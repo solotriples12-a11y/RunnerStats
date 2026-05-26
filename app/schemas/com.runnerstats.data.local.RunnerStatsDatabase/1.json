@@ -1,0 +1,188 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "79ac0b46b08d72f6d995ec509d39861f",
+    "entities": [
+      {
+        "tableName": "carrera_summary",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `fecha_inicio_unix` INTEGER NOT NULL, `distancia_metros` INTEGER NOT NULL, `duracion_segundos` INTEGER NOT NULL, `ritmo_medio_seg_per_km` INTEGER NOT NULL, `frecuencia_cardiaca_media` INTEGER, `vo2_max` REAL, `desnivel_positivo_metros` INTEGER NOT NULL, `desnivel_negativo_metros` INTEGER NOT NULL, `es_record_personal` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fechaInicioUnix",
+            "columnName": "fecha_inicio_unix",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distanciaMetros",
+            "columnName": "distancia_metros",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "duracionSegundos",
+            "columnName": "duracion_segundos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ritmoMedioSegPerKm",
+            "columnName": "ritmo_medio_seg_per_km",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "frecuenciaCardiacaMedia",
+            "columnName": "frecuencia_cardiaca_media",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "vo2Max",
+            "columnName": "vo2_max",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "desnivelPositivoMetros",
+            "columnName": "desnivel_positivo_metros",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "desnivelNegativoMetros",
+            "columnName": "desnivel_negativo_metros",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "esRecordPersonal",
+            "columnName": "es_record_personal",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_carrera_summary_fecha_inicio_unix",
+            "unique": false,
+            "columnNames": [
+              "fecha_inicio_unix"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_carrera_summary_fecha_inicio_unix` ON `${TABLE_NAME}` (`fecha_inicio_unix`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "carrera_muestreo",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `carrera_id` TEXT NOT NULL, `timestamp_unix` INTEGER NOT NULL, `frecuencia_cardiaca` INTEGER, `cadencia_spm` INTEGER, `velocidad_ms` REAL, `altitud_metros` REAL, `latitud` REAL, `longitud` REAL, FOREIGN KEY(`carrera_id`) REFERENCES `carrera_summary`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "carreraId",
+            "columnName": "carrera_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestampUnix",
+            "columnName": "timestamp_unix",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "frecuenciaCardiaca",
+            "columnName": "frecuencia_cardiaca",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "cadenciaSpm",
+            "columnName": "cadencia_spm",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "velocidadMs",
+            "columnName": "velocidad_ms",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "altitudMetros",
+            "columnName": "altitud_metros",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "latitud",
+            "columnName": "latitud",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "longitud",
+            "columnName": "longitud",
+            "affinity": "REAL",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_carrera_muestreo_carrera_id",
+            "unique": false,
+            "columnNames": [
+              "carrera_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_carrera_muestreo_carrera_id` ON `${TABLE_NAME}` (`carrera_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "carrera_summary",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "carrera_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '79ac0b46b08d72f6d995ec509d39861f')"
+    ]
+  }
+}
