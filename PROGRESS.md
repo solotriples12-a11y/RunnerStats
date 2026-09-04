@@ -337,3 +337,34 @@ que calculó el reloj.
 
 **Siguiente**: vista de detalle por carrera, que es lo que da sentido a tener
 los muestreos: gráfica de FC y ritmo, zonas y mapa.
+
+---
+
+## 2026-09-04 — Agrupación configurable en la gráfica de volumen
+
+**Qué**: La gráfica de kilómetros pasa de ser fija por año a tener un selector
+de año, mes, semana (lunes a domingo) o carrera.
+
+**Decisiones que salieron al construirlo**:
+- **Los periodos vacíos se rellenan a cero.** Al agrupar por mes salían 80
+  barras en vez de 177 porque los meses sin carreras no existen en la tabla,
+  y eso pegaba "mar 12" con "may 12" como si fueran consecutivos. Es el mismo
+  fallo que la línea cruzando 2019. Ahora la serie es continua.
+- **Agrupar por año ignora el filtro; el resto lo respeta.** El histórico
+  completo por semanas serían ~770 barras en 640 px, menos de un píxel cada
+  una. Sin año filtrado, mes y semana se recortan a los últimos 36 y 52
+  periodos, y el subtítulo lo dice.
+- El grosor de barra y el hueco se adaptan a la densidad: por debajo de 6 px
+  de banda el separador de 2 px desaparece, porque se comería la marca.
+
+**Verificado**: 54 tests (7 nuevos). Entre ellos, que la semana empieza en
+lunes de verdad (`weekday() == 0` en las 48 semanas de 2012 y siete días
+exactos entre una y la siguiente), que 2019 aparece a cero y la serie de años
+es continua, y que agrupar por carrera da exactamente una barra por carrera
+sumando los mismos kilómetros.
+
+Un test cazó un bug real: con una agrupación desconocida la consulta caía en
+"año" pero el relleno de huecos seguía ramificando por la clave inválida y
+petaba. Ahora se normaliza antes de usarla en ningún sitio.
+
+**Siguiente**: vista de detalle por carrera.

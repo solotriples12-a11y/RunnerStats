@@ -123,9 +123,15 @@ fuente de mayor fidelidad.
   subdominios y evita una dependencia para dos gráficas.
 - Ambas gráficas son de **una sola serie**, así que no llevan leyenda y el
   color va solo en las marcas; las etiquetas usan tokens de texto.
-- Al filtrar por año las gráficas mantienen la vista larga y **resaltan** el
-  año elegido (patrón de énfasis): 15 años de contexto valen más que un año
-  aislado. Las barras no resaltadas usan `--marca-contexto`, un gris legible
+- La gráfica de volumen se agrupa por **año, mes, semana (lunes a domingo) o
+  carrera**. Agrupar por año mantiene la vista larga y **resalta** el año
+  filtrado (patrón de énfasis); el resto de agrupaciones respetan el filtro,
+  porque el histórico completo por semanas serían ~770 barras ilegibles. Sin
+  año filtrado las agrupaciones finas se recortan a los últimos N periodos y
+  la UI lo dice.
+- **Los periodos sin carreras se rellenan a cero.** Omitirlos pegaría marzo
+  con mayo y el eje mentiría sobre el tiempo, el mismo fallo que la línea
+  cruzando 2019. Las barras no resaltadas usan `--marca-contexto`, un gris legible
   sobre la tarjeta; con `--surface-2` desaparecían.
 - La línea de medianas **se parte en los años sin carreras**. Unir 2018 con
   2020 dibujaría continuidad donde no hay ni un dato (2019 está vacío).

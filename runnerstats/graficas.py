@@ -35,17 +35,28 @@ def _ticks(vmax: float, n: int = 3) -> list[float]:
     return [t for t in (paso * i for i in range(n + 2)) if t <= vmax * 1.05]
 
 
-def barras_volumen(datos: list[dict]) -> dict:
-    """Columnas de km por año."""
+def barras_volumen(datos: list[dict], resaltar: str | None = None) -> dict:
+    """Columnas de km por periodo.
+
+    El numero de barras varia mucho segun la agrupacion (16 años, 52 semanas,
+    50 carreras), asi que el grosor y el hueco se adaptan: por debajo de 6 px
+    de banda el hueco desaparece, porque un separador de 2 px sobre una barra
+    de 3 px se comeria la marca.
+    """
     if not datos:
         return {"vacia": True}
 
-    alto_util = ALTO - PAD_SUP - PAD_INF
-    kmax = max(d["km"] for d in datos)
+    kmax = max(d["km"] for d in datos) or 1
     y = _escala(0, kmax, ALTO - PAD_INF, PAD_SUP)
 
     banda = (ANCHO - PAD_IZQ - PAD_DER) / len(datos)
-    ancho = min(GROSOR_MAX, banda - HUECO)
+    hueco = HUECO if banda >= 6 else 0
+    ancho = max(1.0, min(GROSOR_MAX, banda - hueco))
+
+    # Como maximo 8 etiquetas en el eje, repartidas.
+    n = len(datos)
+    paso = max(1, round(n / 8))
+    visibles = {i for i in range(0, n, paso)} | {n - 1}
 
     barras = []
     for i, d in enumerate(datos):
@@ -53,13 +64,14 @@ def barras_volumen(datos: list[dict]) -> dict:
         alto = (ALTO - PAD_INF) - y(d["km"])
         r = min(RADIO, ancho / 2, alto)
         barras.append({
-            "anio": d["anio"],
+            "etiqueta": d["etiqueta"],
+            "clave": d["clave"],
             "km": d["km"],
             "carreras": d["carreras"],
-            "x": round(x, 1),
             "centro": round(x + ancho / 2, 1),
-            # Esquinas superiores redondeadas, base recta contra el eje.
-            "d": (
+            "etiquetada": i in visibles,
+            # Un periodo sin carreras no dibuja barra: el hueco es el dato.
+            "d": None if d["km"] <= 0 else (
                 f"M{x:.1f},{ALTO - PAD_INF} L{x:.1f},{y(d['km']) + r:.1f} "
                 f"Q{x:.1f},{y(d['km']):.1f} {x + r:.1f},{y(d['km']):.1f} "
                 f"L{x + ancho - r:.1f},{y(d['km']):.1f} "
@@ -73,6 +85,7 @@ def barras_volumen(datos: list[dict]) -> dict:
         "ancho": ANCHO, "alto": ALTO,
         "base": ALTO - PAD_INF,
         "barras": barras,
+        "resaltar": resaltar,
         "rejilla": [{"y": round(y(t), 1), "etiqueta": f"{int(t)}"} for t in _ticks(kmax)],
     }
 

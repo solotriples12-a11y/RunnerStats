@@ -18,9 +18,9 @@
 {% if resumen.carreras %}
 
 <nav class="filtros" aria-label="Filtrar por año">
-    <a href="{{ url_for('index') }}" class="chip{% if not anio %} on{% endif %}">Todo</a>
+    <a href="{{ url_for('index', agr=agr) }}" class="chip{% if not anio %} on{% endif %}">Todo</a>
     {% for a in anios %}
-    <a href="{{ url_for('index', anio=a) }}"
+    <a href="{{ url_for('index', anio=a, agr=agr) }}"
        class="chip{% if anio == a %} on{% endif %}">{{ a }}</a>
     {% endfor %}
 </nav>
@@ -65,8 +65,19 @@
 
 {% if not volumen.vacia %}
 <section class="bloque">
-    <h2>Kilómetros por año</h2>
-    {% if anio %}<p class="sub">{{ anio }} resaltado sobre el histórico completo.</p>{% endif %}
+    <h2>Kilómetros</h2>
+    <nav class="filtros sub-filtros" aria-label="Agrupar por">
+        {% for clave, nombre in [('anio','Año'),('mes','Mes'),('semana','Semana'),('carrera','Carrera')] %}
+        <a href="{{ url_for('index', anio=anio, agr=clave) }}"
+           class="chip{% if agr == clave %} on{% endif %}">{{ nombre }}</a>
+        {% endfor %}
+    </nav>
+    <p class="sub">
+        {%- if agr == 'anio' and anio %}{{ anio }} resaltado sobre el histórico completo.
+        {%- elif recortado %}Últimos {{ volumen.barras | length }} periodos. Filtra por año para ver uno completo.
+        {%- elif anio %}{{ anio }}, agrupado por {{ {'mes':'mes','semana':'semana (lunes a domingo)','carrera':'carrera'}[agr] }}.
+        {%- else %}Histórico completo. Los periodos sin carreras salen vacíos.{% endif -%}
+    </p>
     <svg class="gr" viewBox="0 0 {{ volumen.ancho }} {{ volumen.alto }}"
          role="img" aria-label="Kilómetros recorridos por año">
         {% for g in volumen.rejilla %}
@@ -74,11 +85,13 @@
         <text class="ejeY" x="28" y="{{ g.y + 3 }}">{{ g.etiqueta }}</text>
         {% endfor %}
         {% for b in volumen.barras %}
-        <path class="barra{% if anio and b.anio != anio|string %} apagada{% endif %}" d="{{ b.d }}">
-            <title>{{ b.anio }}: {{ b.km | round(1) }} km en {{ b.carreras }} carreras</title>
+        {% if b.d %}
+        <path class="barra{% if volumen.resaltar and b.clave != volumen.resaltar %} apagada{% endif %}" d="{{ b.d }}">
+            <title>{{ b.etiqueta }}: {{ b.km | round(1) }} km en {{ b.carreras }} carrera{{ 's' if b.carreras != 1 }}</title>
         </path>
-        {% if loop.index0 % 3 == 0 or loop.last %}
-        <text class="ejeX" x="{{ b.centro }}" y="{{ volumen.alto - 6 }}">{{ b.anio }}</text>
+        {% endif %}
+        {% if b.etiquetada %}
+        <text class="ejeX" x="{{ b.centro }}" y="{{ volumen.alto - 6 }}">{{ b.etiqueta }}</text>
         {% endif %}
         {% endfor %}
     </svg>

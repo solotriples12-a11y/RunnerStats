@@ -14,6 +14,8 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
   dos gráficas (km por año, evolución del ritmo).
 - Parser de `.fit` del Amazfit, con la cadencia normalizada a pasos por
   minuto y los muestreos a 1 Hz en la tabla `muestreo`.
+- Selector de agrupación en la gráfica de volumen: año, mes, semana y
+  carrera. Récords con el tiempo real además del ritmo.
 
 ## En curso
 

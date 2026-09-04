@@ -148,6 +148,11 @@ def index():
     if anio not in disponibles:
         anio = None
 
+    agr = request.args.get("agr", "anio")
+    if agr not in analisis.AGRUPACIONES:
+        agr = "anio"
+
+    datos = analisis.volumen(conn, agr, anio)
     return render_template(
         "index.html",
         carreras=consultas.listar_carreras(conn, anio),
@@ -155,9 +160,12 @@ def index():
         records=analisis.records(conn, anio),
         anios=disponibles,
         anio=anio,
-        # Las gráficas mantienen siempre la vista larga y resaltan el año
-        # filtrado: 15 años de contexto valen más que un solo año aislado.
-        volumen=graficas.barras_volumen(analisis.volumen_por_anio(conn)),
+        agr=agr,
+        recortado=bool(datos and datos[0]["recortado"]),
+        # Agrupando por año la gráfica mantiene la vista larga y resalta el
+        # año filtrado: 15 años de contexto valen más que un año aislado.
+        volumen=graficas.barras_volumen(
+            datos, resaltar=str(anio) if anio and agr == "anio" else None),
         evolucion=graficas.dispersion_ritmo(analisis.ritmos(conn)),
     )
 
