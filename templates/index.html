@@ -52,10 +52,11 @@
         {% for r in records %}
         <div class="record">
             <span class="record-banda">{{ r.banda }}</span>
-            <span class="record-ritmo">{{ r.ritmo | ritmo }}<small>/km</small></span>
+            <span class="record-tiempo">{{ r.duracion_segundos | duracion }}</span>
             <span class="record-ctx">
-                {{ r.distancia_metros | km }} km · {{ r.fecha_inicio_unix | fecha }}
+                {{ r.ritmo | ritmo }}/km · {{ r.distancia_metros | km }} km
             </span>
+            <span class="record-ctx">{{ r.fecha_inicio_unix | fecha }}</span>
         </div>
         {% endfor %}
     </div>

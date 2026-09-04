@@ -18,7 +18,7 @@
     <div class="resultado{% if error %} error{% endif %}">
         {% if nombre %}<span class="fichero">{{ nombre }}</span>{% endif %}
         <span class="detalle">
-            {%- if error %}{{ error }}{% else %}{{ importadas }} carreras importadas{% endif -%}
+            {%- if error %}{{ error }}{% else %}{{ importadas }} carrera{{ 's' if importadas != 1 }} importada{{ 's' if importadas != 1 }}{% endif -%}
         </span>
     </div>
     {% endfor %}
@@ -26,8 +26,8 @@
 {% endif %}
 
 <footer class="note">
-    Hoy solo se importa el JSON de My Run Stats. Los <code>.fit</code> del
-    Amazfit necesitan un parser que todavía no existe.
+    Se importan el JSON de My Run Stats y los <code>.fit</code> del Amazfit.
+    Reimportar el mismo fichero actualiza en lugar de duplicar.
     <a href="{{ url_for('index') }}">Volver a las carreras</a>
 </footer>
 {% endblock %}

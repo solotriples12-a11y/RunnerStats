@@ -251,8 +251,7 @@ code {
     border-radius: 10px;
 }
 .record-banda { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.record-ritmo { font-size: 1.25rem; font-family: var(--mono-stack); }
-.record-ritmo small { font-size: 0.7rem; color: var(--text-muted); }
+.record-tiempo { font-size: 1.35rem; font-family: var(--mono-stack); }
 .record-ctx { font-size: 0.75rem; color: var(--text-muted); }
 
 /* ---------- Gráficas ---------- */

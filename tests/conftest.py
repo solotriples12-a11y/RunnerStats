@@ -58,3 +58,12 @@ def export_sintetico(tmp_path) -> Path:
     ruta = tmp_path / "my-run-stats-test.json"
     ruta.write_text(json.dumps(datos))
     return ruta
+
+
+@pytest.fixture
+def fit_real() -> Path:
+    """Un .fit real del Amazfit, si esta disponible en data/."""
+    ficheros = sorted(DATA.glob("*.fit"))
+    if not ficheros:
+        pytest.skip("no hay ningun .fit en data/")
+    return ficheros[0]

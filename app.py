@@ -5,10 +5,11 @@ from datetime import datetime, timezone
 from pathlib import PurePath
 
 from dotenv import load_dotenv
+from fitparse.utils import FitParseError
 from flask import Flask, Response, g, render_template, request
 
 from runnerstats import analisis, consultas, db, graficas
-from runnerstats.importers import my_run_stats
+from runnerstats.importers import amazfit_fit, my_run_stats
 
 load_dotenv()
 
@@ -94,7 +95,13 @@ def _importar_uno(conn, fichero) -> tuple[str, int | None, str | None]:
     ext = PurePath(nombre).suffix.lower()
 
     if ext == ".fit":
-        return nombre, None, "todavia no hay parser de .fit"
+        try:
+            return nombre, amazfit_fit.importar(conn, fichero.stream), None
+        except amazfit_fit.FitInvalido as e:
+            return nombre, None, str(e)
+        except (FitParseError, KeyError, TypeError, ValueError) as e:
+            return nombre, None, f"no se pudo leer el .fit ({e})"
+
     if ext != ".json":
         return nombre, None, f"formato no soportado ({ext or 'sin extension'})"
 

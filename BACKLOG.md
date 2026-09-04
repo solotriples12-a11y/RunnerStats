@@ -12,6 +12,8 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
 - Publicado en `https://run.javimendoza.com` (Coolify, volumen persistente).
 - Panel: tiles de cabecera, récords por banda de distancia, filtro por año y
   dos gráficas (km por año, evolución del ritmo).
+- Parser de `.fit` del Amazfit, con la cadencia normalizada a pasos por
+  minuto y los muestreos a 1 Hz en la tabla `muestreo`.
 
 ## En curso
 
@@ -20,12 +22,10 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
 
 ## Próximo
 
-2. Parser de `.fit` del Amazfit → carrera + muestreos. Normalizar la cadencia
-   (×2 en records). Trozo más grande del proyecto.
-3. Vista de detalle: gráfica de FC + ritmo sobre los muestreos.
-4. Algoritmo de PRs por ventana rodante sobre `distancia_acumulada_metros`.
+2. Vista de detalle: gráfica de FC + ritmo sobre los muestreos.
+3. Algoritmo de PRs por ventana rodante sobre `distancia_acumulada_metros`.
    Solo aplica a carreras con muestreos: la UI debe decirlo.
-5. Vista de PRs.
+4. Vista de PRs.
 
 ## Esperando
 
@@ -43,6 +43,14 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
 - Mapa de la ruta con scrubbing sincronizado con la gráfica.
 - Tracker de desgaste de zapatillas (alertas a 600-800 km acumulados).
 - Récord de desnivel positivo por km.
+
+## Pendiente de una acción tuya
+
+- **Secreto del webhook de auto-deploy.** El webhook ya existe en el repo
+  (id 674567388, evento `push`, JSON) y apunta a Coolify, pero le falta el
+  secreto compartido. Copia el "Webhook secret" de Coolify (Webhooks →
+  GitHub) al campo Secret del webhook en GitHub. Sin eso Coolify rechaza los
+  envíos y hay que desplegar a mano.
 
 ## Limpieza pendiente
 

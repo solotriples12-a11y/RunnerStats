@@ -89,3 +89,14 @@ def test_la_linea_de_medianas_no_cruza_anios_vacios(conn_real):
     assert 2019 not in anios
     # Hay huecos, luego tiene que haber mas de un segmento.
     assert len(g["segmentos"]) + len(g["sueltos"]) > 1
+
+
+def test_los_records_traen_el_tiempo_real_de_la_carrera(conn_real, crudo):
+    """El tiempo mostrado es el de esa carrera, no una proyeccion."""
+    porid = {c["id"]: c for c in crudo}
+    for r in analisis.records(conn_real):
+        original = porid[r["id"].split(":", 1)[1]]
+        assert r["duracion_segundos"] == mrs.a_segundos(original["duration"])
+        # Y cuadra con ritmo x distancia.
+        assert abs(r["ritmo"] * r["distancia_metros"] / 1000
+                   - r["duracion_segundos"]) < 1

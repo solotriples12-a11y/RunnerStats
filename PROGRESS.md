@@ -303,3 +303,37 @@ Revisado en el navegador, donde salieron dos fallos que los tests no ven:
 
 **Siguiente**: el parser de `.fit`, que desbloquea zonas de FC, eficiencia
 cardiovascular, detalle por carrera y récords por ventana rodante.
+
+---
+
+## 2026-09-04 — Parser de .fit, webhook de auto-deploy y tiempo en los récords
+
+**Qué**:
+- **Parser de `.fit` del Amazfit**. Es la última fuente que faltaba y la de
+  fidelidad completa: llena `carrera` desde el mensaje `session` y `muestreo`
+  con los puntos a 1 Hz (GPS, altitud, FC, cadencia, velocidad y distancia
+  acumulada). Conectado al formulario de subida.
+- **Webhook de auto-deploy** creado en el repo (id 674567388, `push`, JSON)
+  apuntando a Coolify. Le falta el secreto, que no manejo yo.
+- Los récords muestran ahora el **tiempo real de esa carrera** además del
+  ritmo. Se siguen eligiendo por ritmo: en la banda de 5 km caben carreras de
+  5,0 y de 5,9 km, así que ordenar por tiempo compararía distancias distintas.
+
+**Verificado**: 48 tests (12 nuevos). Los del parser no clavan constantes:
+contrastan contra el propio mensaje `session` del fichero, que es el resumen
+que calculó el reloj.
+- Distancia, duración, FC media/máx, desnivel y calorías cuadran con `session`.
+- El instante de inicio se interpreta en UTC (2026-09-02 06:06:24 Z).
+- 3603 muestreos a 1 Hz sin un solo hueco de tiempo.
+- **La cadencia sale ~156 spm, no ~77**: se contrasta contra `total_strides`
+  (9302 pasos / 3602 s x 60 = 155). Es la trampa del factor 2.
+- El GPS convertido de semicírculos cae en Madrid y dentro de rango válido.
+- La distancia acumulada es monótona, empieza en 0 y cierra en el total.
+- Los huecos del sensor siguen siendo NULL (92 de FC, 49 de cadencia): faltar
+  es un dato, no se rellena ni se pone a cero.
+- Reimportar no duplica ni deja muestreos huérfanos, y borrar la carrera los
+  arrastra por CASCADE.
+- Un fichero corrupto da un mensaje, no un 500.
+
+**Siguiente**: vista de detalle por carrera, que es lo que da sentido a tener
+los muestreos: gráfica de FC y ritmo, zonas y mapa.

@@ -116,12 +116,23 @@ def test_subir_json_importa(cliente_vacio, export_sintetico):
         "/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
 
 
-def test_subir_fit_avisa_de_que_no_hay_parser(cliente_vacio):
-    r = _subir(cliente_vacio, b"\x0e\x10fake fit", "carrera.fit")
-    assert "todavia no hay parser" in r.get_data(as_text=True)
-    # Y no ha entrado nada.
+def test_subir_fit_corrupto_da_error_y_no_entra_nada(cliente_vacio):
+    r = _subir(cliente_vacio, b"\x0e\x10esto no es un fit", "carrera.fit")
+    assert r.status_code == 200
+    assert "no se pudo leer el .fit" in r.get_data(as_text=True)
     assert "Todavía no hay ninguna carrera" in cliente_vacio.get(
         "/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
+
+
+def test_subir_fit_real_importa_con_muestreos(cliente_vacio, fit_real):
+    r = _subir(cliente_vacio, fit_real.read_bytes(), fit_real.name)
+    assert r.status_code == 200
+    assert "1 carrera importada" in r.get_data(as_text=True)
+
+    # Y en la portada aparece marcada como carrera con detalle.
+    html = cliente_vacio.get("/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
+    assert "has-detail" in html
+    assert "148 ppm" in html
 
 
 def test_json_corrupto_no_da_500(cliente_vacio):
