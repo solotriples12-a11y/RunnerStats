@@ -1,115 +1,124 @@
 # Architecture — RunnerStats
 
 ## Visión
-App Android personal que lee carreras desde Huawei Health Kit (OAuth oficial),
-las persiste localmente y ofrece análisis estadístico más rico que la app
-oficial de Huawei Salud: récords personales por ventana rodante, eficiencia
-cardiovascular en el tiempo, gráficas interactivas con zonas de FC y mapa.
+Web personal de estadísticas de carrera, servida en `run.javimendoza.com`
+desde el servidor Hetzner propio. Importa carreras desde ficheros exportados
+a mano, las persiste en SQLite y ofrece análisis más rico que las apps
+oficiales: récords por ventana rodante, eficiencia cardiovascular en el
+tiempo, gráficas con zonas de FC y mapa.
+
+Responsive: se consulta igual desde ordenador que desde móvil.
 
 ## Stack
-- Lenguaje: Kotlin
-- UI: Jetpack Compose (Material 3)
-- Persistencia local: Room
-- Asincronía: Coroutines + Flow
-- DI: Hilt (introducir en cuanto haya un segundo grafo de dependencias real)
-- Red: Retrofit + OkHttp para los endpoints REST de Health Kit
-- Auth: AppAuth-Android para OAuth 2.0 contra Huawei Account Kit
-- Gráficas: TBD entre Vico (nativo Compose) y MPAndroidChart (más maduro,
-  requiere `AndroidView` wrapper). Decisión al implementar pantalla de detalle.
-- Mapas: TBD entre Huawei Map Kit, osmdroid (OSM) o MapLibre. Decisión al
-  implementar scrubbing en mapa.
+Mismo patrón que el resto de subdominios de javimendoza.com.
 
-## Capas (Clean Architecture ligero)
-- `data/` — Room (entities, DAOs), `HuaweiHealthApiService`, `AuthRepository`,
-  `RunningRepository`.
-- `domain/` — Modelos de dominio, casos de uso (calcular PRs, eficiencia,
-  zonas FC). Sin dependencias de Android para poder testearlo en JVM puro.
-- `ui/` — Pantallas Compose y ViewModels (StateFlow).
-- `app/` — Application, MainActivity, grafo Hilt.
+- Flask + Jinja2 + gunicorn sobre `python:3.12-slim`
+- SQLite en volumen persistente
+- CSS plano, heredando los tokens de `javimendoza.com` (fondo `#0f0f0f`,
+  texto `#f5f5f5`, acento `#f56565`, borde `#2a2a2a`)
+- Docker → **Coolify** sobre Hetzner, HTTPS por Let's Encrypt, auto-deploy
+  al hacer push a `main`
+- Subdominio `run.javimendoza.com`. Pasos en `DEPLOY.md`.
 
-## Modelo de datos local (Room)
+### Autenticación
+Basic auth **en la aplicación**, con la contraseña en `RUNNERSTATS_PASSWORD`.
+Es la convención que ya usa `javimendoza.com` para `/stats` y `/enlaces`.
+
+Dos diferencias respecto a aquella:
+- El guard es global (`before_request`), no ruta por ruta: aquí no hay
+  ninguna parte pública.
+- Falla cerrado. Sin la variable configurada la web devuelve 401 a todo, para
+  que un despiste de configuración no publique el histórico.
+
+### Persistencia en producción
+El SQLite vive en un volumen montado en `/app/data`. Sin volumen, cada
+redeploy borraría los 15 años de histórico. `.dockerignore` impide además que
+los datos entren en la imagen, que se construye desde un repo público.
+
+Historial: el proyecto nació como app Android nativa (Kotlin + Compose +
+Room). El único motivo era que Huawei Health Kit es Android-only. Tras el
+rechazo de Huawei se pivotó a web. Ver `DECISIONS.md`, 2026-09-04.
+
+## Fuentes de datos
+Todas son ficheros exportados a mano. No hay sincronización automática.
+
+| Fuente | Carreras | Periodo | Fidelidad |
+|---|---|---|---|
+| My Run Stats (JSON) | 207 | 2011-12 → 2026-05 | Solo resumen |
+| Amazfit Cheetah 2 Pro (`.fit`) | 9 | 2026 | Completa, 1 Hz |
+| Huawei (export de privacidad) | ? | ? | Por confirmar |
+
+El detalle verificado de cada formato está en `DECISIONS.md` (entrada
+"Tres fuentes de datos con niveles de fidelidad distintos").
+
+Cada fuente se implementa como un importador independiente que produce
+carreras normalizadas. Es el equivalente de la interfaz `CarreraSource` del
+diseño Android, ahora con tres implementaciones reales.
+
+### Niveles de fidelidad
+No todas las funciones aplican a todas las carreras:
+
+- **Volumen y tendencia de ritmo a largo plazo** → las 207. Señal de 15 años.
+- **Zonas de FC, eficiencia cardiovascular, PRs por ventana rodante** → solo
+  carreras con muestreos.
+
+La capa de análisis debe saber sobre qué subconjunto habla, y la UI debe
+decirlo. Un "mejor 1K de siempre" calculado sobre 9 carreras y mostrado junto
+a 15 años de histórico es engañoso aunque sea correcto.
+
+## Modelo de datos (SQLite)
 
 ```
-[ CarreraSummary ] 1 ──< N [ CarreraMuestreo ]
+[ carrera ] 1 ──< N [ muestreo ]
 ```
 
-### CarreraSummary
-Resumen rápido para listas y cálculos agregados.
-- `id` (PK; id estable de Huawei si lo expone, si no UUID + hash)
-- `fechaInicioUnix`
-- `distanciaMetros`
-- `duracionSegundos`
-- `ritmoMedioSegPerKm`
-- `frecuenciaCardiacaMedia`
-- `vo2Max` (nullable; no todas las actividades lo traen)
-- `desnivelPositivoMetros`
-- `desnivelNegativoMetros`
-- `esRecordPersonal` (boolean derivado, recalculado tras cada sync)
+### carrera
+- `id` (PK, TEXT) — clave natural prefijada por fuente
+- `fecha_inicio_unix` (UTC)
+- `distancia_metros`
+- `duracion_segundos`
+- `fuente` — `my_run_stats` | `amazfit_fit` | `huawei`
+- `fc_media`, `fc_maxima` (nullable)
+- `desnivel_positivo_metros`, `desnivel_negativo_metros` (nullable)
+- `calorias` (nullable)
+- `dispositivo` (nullable)
+- `importado_en`
 
-### CarreraMuestreo
+El ritmo medio se deriva de distancia y duración; no se almacena. La condición
+de récord se calcula al leer; no se almacena.
+
+### muestreo
 Puntos segundo a segundo. Solo se cargan al abrir el detalle.
-- `id` (PK)
-- `carreraId` (FK indexado)
-- `timestampUnix`
-- `frecuenciaCardiaca` (nullable)
-- `cadenciaSpm` (nullable)
-- `velocidadMs` (nullable)
-- `altitudMetros` (nullable)
-- `latitud` / `longitud` (nullable; pueden faltar fuera de cobertura GPS)
+- `carrera_id` (FK, CASCADE) + `timestamp_unix` (PK compuesta)
+- `distancia_acumulada_metros` (nullable)
+- `frecuencia_cardiaca`, `cadencia_spm`, `velocidad_ms`, `altitud_metros`,
+  `latitud`, `longitud` (todos nullable)
 
-## Fuente de carreras (agnóstica)
-El `RunningRepository` depende de una interfaz `CarreraSource` en `domain/`,
-no de un cliente concreto. Esto permite cambiar de fuente sin reescribir la
-capa de datos local ni el ViewModel.
+Los nulos son reales, no defensivos: en el FIT examinado faltaban 92 valores
+de FC y 49 de cadencia, dispersos como microcortes del sensor.
 
-```
-interface CarreraSource {
-    suspend fun fetchCarrerasDesde(timestampUnix: Long): List<CarreraImportada>
-}
-```
+## Trampas de unidades
+Ambas verificadas sobre datos reales. Detalle completo en `DECISIONS.md`.
 
-Implementaciones previstas:
-- `HuaweiHealthKitSource` — OAuth + REST (camino principal).
-- `HuaweiZipImportSource` — parser del export ZIP (Plan B y desarrollo
-  offline).
-- `FixtureSource` — JSON checked-in para desarrollo sin dispositivo.
+- **Cadencia FIT**: los `record` vienen por pierna (×2 para pasos por
+  minuto); los `lap` vienen ya en pasos por minuto.
+- **Splits de My Run Stats**: descartados por no fiables.
 
-## Frontera con Huawei Health Kit
-- OAuth 2.0 vía AppAuth-Android.
-- Scopes: pertenecen a la familia `HEALTHKIT_*_BOTH` / `HEALTHKIT_*_READ`
-  (los nombres exactos dependen de lo que ofrezca el formulario de apply de
-  Huawei y se anotarán cuando se confirmen). Lo necesario para running con
-  muestreos:
-  - Heart rate samples
-  - Location/GPS samples
-  - Cadence samples
-  - Speed / distance / altitude samples
-  - Workout / activity session summaries
-- Sincronización incremental: query desde `lastSyncTimestamp` (DataStore).
-- Paginación: pedir por bloques de tiempo (p. ej. 7 días) y manejar `nextToken`.
-- Requisito de runtime: HMS Core en el dispositivo. Desarrollo: teléfono
-  Huawei con HMS o emulador con HMS instalado.
-- Restricción importante: el acceso a Health Kit requiere una solicitud
-  aparte en https://developer.huawei.com/consumer/en/hms/huaweihealth/ con
-  revisión manual de Huawei. Tasa de rechazo alta para uso personal.
+## Deduplicación
+Las fuentes se solapan: la carrera del 2026-09-02 está en Huawei y en el
+Amazfit. Regla: misma fecha y distancia aproximada. Ante un duplicado gana la
+fuente de mayor fidelidad.
 
-## Estado y flujo
-- Single source of truth: Room.
-- ViewModels exponen `StateFlow<UiState>` derivado de `Flow<List<Entity>>` del
-  DAO. La UI nunca lee del repository directamente para datos; solo dispara
-  acciones (refrescar, recalcular PRs).
-
-## Cálculos derivados (en `domain/`)
+## Cálculos derivados
 - **PRs por ventana rodante**: mejor 1K/5K/10K extraído de CUALQUIER carrera
-  recorriendo muestreos consecutivos con distancia acumulada (no requiere que
-  la carrera mida exactamente esa distancia).
-- **Eficiencia cardiovascular**: serie temporal de `(ritmoMedio, FCMedia)`
-  agrupada por mes; comparativa móvil para detectar mejoras.
-- **Zonas de FC**: 5 zonas desde FCMax (`220 − edad` o personalizada). Para
-  cada carrera se calcula tiempo por zona.
+  con muestreos, recorriendo `distancia_acumulada_metros` con dos punteros.
+- **Eficiencia cardiovascular**: serie de `(ritmo medio, FC media)` agrupada
+  por mes.
+- **Zonas de FC**: 5 zonas desde FCMax. El FIT del Amazfit ya trae
+  `time_in_hr_zone` calculado por el reloj, útil como contraste.
 
-## Fuera de alcance (MVP)
-- Cloud sync entre dispositivos.
+## Fuera de alcance
 - Multi-usuario.
-- Otros deportes (ciclismo, natación). Solo running.
-- Predicciones tipo "tiempo estimado de próxima carrera".
+- Otros deportes. Solo running.
+- Sincronización automática desde ningún reloj.
+- Predicciones tipo "tiempo estimado de tu próxima carrera".

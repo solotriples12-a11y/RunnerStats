@@ -149,3 +149,202 @@ recupera todo su sentido la abstracción `CarreraSource`.
 - Scopes exactos a marcar en el formulario: a confirmar en la propia
   pantalla del apply (lista cerrada que ofrece Huawei). Se anotarán en una
   nueva entrada de este fichero cuando esté hecho.
+
+---
+
+## 2026-09-04 — Huawei rechaza la solicitud de Health Kit
+
+**Contexto**: La solicitud enviada en mayo de 2026 fue denegada. El riesgo
+registrado el 2026-05-25 ("tasa de rechazo alta para uso personal") se
+materializó.
+
+**Decisión**: Abandonar Health Kit definitivamente. No se reintenta.
+
+**Consecuencias**:
+- Se cae la sincronización automática. Todas las fuentes pasan a ser ficheros
+  exportados a mano.
+- Se cae el motivo principal para que el proyecto fuese Android nativo
+  (ver entrada del pivote a web, más abajo).
+- Los HTML de `docs/` (política de privacidad y términos) existían solo para
+  el formulario de solicitud. Quedan sin propósito.
+
+---
+
+## 2026-09-04 — Tres fuentes de datos con niveles de fidelidad distintos
+
+**Contexto**: Tras el rechazo se examinaron ficheros reales de cada fuente
+disponible. Todos los datos de abajo están verificados sobre exports propios,
+no sobre documentación.
+
+**Hallazgos**:
+
+1. **Huawei, export por actividad (TCX)**: solo `Time`, latitud, longitud y
+   `AltitudeMeters`. 3606 trackpoints sin una sola pulsación. Cero FC, cero
+   cadencia, cero velocidad, cero distancia por punto. Además el XML es
+   inválido contra el esquema TCX (`CumulativeClimb` y `CumulativeDecrease`
+   como hijos sin namespace de `<Lap>`, fuera de orden). Inservible para
+   zonas de FC, eficiencia cardiovascular y cadencia.
+
+2. **Amazfit Cheetah 2 Pro (.fit)**: la fuente más rica con diferencia.
+   Muestreo perfecto a 1 Hz sin huecos. Por punto: GPS, altitud, FC (97,4%),
+   cadencia (98,6%), velocidad, **distancia acumulada** (98,7%), potencia,
+   longitud de zancada, tiempo de contacto, oscilación y ratio vertical.
+   A nivel de sesión: distancia, duración, FC media/máx, ascenso, descenso,
+   calorías, training effect y `time_in_hr_zone`. Además 9 vueltas
+   automáticas de 1 km. Ocupa 135 KB frente a 1,7 MB del TCX del mismo Zepp,
+   que además pierde la distancia acumulada y toda la dinámica de carrera.
+
+3. **My Run Stats (JSON)**: 207 carreras del 2011-12-26 al 2026-05-04,
+   1098,8 km, 112,3 h. Es la única fuente con histórico largo. Resúmenes
+   fiables: `pace` cuadra con `duration/distance` en las 207.
+
+**Decisión**: Usar las tres, cada una en su nivel. `.fit` del Amazfit para
+detalle completo; My Run Stats para el histórico largo en resumen; Huawei
+como relleno intermedio si su export de privacidad (pendiente, 7 días)
+resulta traer FC.
+
+**Consecuencias**:
+- Las funciones planeadas NO aplican a todas las carreras por igual. Zonas de
+  FC, eficiencia cardiovascular y PRs por ventana rodante solo son calculables
+  sobre carreras con muestreos. La capa de análisis debe saber sobre qué
+  subconjunto habla, y la UI debe decirlo.
+- Se necesita deduplicación entre fuentes: la carrera del 2026-09-02 está en
+  Huawei y en el Amazfit a la vez.
+- La interfaz `CarreraSource` queda justificada por fin con tres
+  implementaciones reales, no hipotéticas. Se mantiene.
+
+---
+
+## 2026-09-04 — Dos trampas de unidades verificadas en los datos
+
+**Contexto**: Ambas producirían resultados incorrectos sin que nada falle.
+Se registran aquí porque son invisibles al leer el código.
+
+**Trampa 1 — Cadencia ×2 en el FIT**: `record.cadence` (78) y
+`session.avg_running_cadence` (77) vienen en zancadas por minuto **por
+pierna**. `lap.avg_cadence` (156) viene ya en pasos por minuto. La cadencia
+real es ~156 spm, confirmado por `total_strides` (9302 / 3602 s × 60 = 155).
+Hay que normalizar los records ×2 y NO tocar los laps.
+
+**Trampa 2 — Splits parciales en My Run Stats**: el último `km_split` de cada
+carrera es la fracción sobrante, y su `time` es tiempo bruto, no ritmo. Coger
+el split más rápido sin filtrar da un "mejor kilómetro" de **3:01** que en
+realidad son 580 m. El mejor kilómetro real es **4:05** (2022-12-18).
+64 s/km de diferencia en una pantalla de récords.
+
+**Decisión**: Documentar ambas aquí y cubrirlas con tests sobre datos reales.
+
+**Consecuencias**: Los `km_splits` de My Run Stats se **descartan** por
+completo, no solo se filtran. Motivos: solo los tienen 101 de 207 carreras
+(ninguna anterior a 2018), su suma nunca cuadra con la duración (65 de 101
+se quedan cortos, mediana −16 s, peor caso −219 s) y el número de splits no
+cuadra con la distancia en 65 de 101. Para las carreras del Amazfit las
+vueltas de 1 km reales vienen gratis en el FIT. Añadir una tabla para datos
+en los que no confiamos sería complejidad especulativa (CLAUDE.md §2).
+
+---
+
+## 2026-09-04 — Pivote: de app Android nativa a web propia
+
+**Contexto**: La entrada del 2026-05-25 eligió Android nativo con un único
+argumento de peso: "acceso natural al SDK de Huawei Health Kit (oficialmente
+Android-only)". Health Kit ha sido rechazado, así que ese argumento ya no
+existe. Las tres fuentes de datos son ficheros que se exportan a mano.
+
+**Opciones consideradas**:
+- Seguir en Android nativo.
+- Web propia en el servidor Hetzner ya existente, en un subdominio.
+
+**Decisión**: Web propia en `run.javimendoza.com`, responsive para consultar
+desde ordenador y móvil. **Supersede la entrada del 2026-05-25 "Stack:
+Android nativo"**.
+
+**Stack**: Python + SQLite. Frontend responsive servido por la misma app.
+Autenticación mediante basic auth en el proxy inverso.
+
+**Por qué**:
+- No queda ningún requisito que ate el proyecto a un móvil. Subir nueve
+  ficheros desde el escritorio es más cómodo que desde Android.
+- `fitparse` ya está verificado contra un `.fit` real en esta máquina: el
+  trozo de más riesgo técnico está probado antes de decidir.
+- Desaparecen dos decisiones abiertas de `ARCHITECTURE.md`: la de librería de
+  gráficas (Vico vs MPAndroidChart) y la de mapas (Map Kit vs osmdroid vs
+  MapLibre). En web ambas son problemas resueltos.
+- Los tests dejan de necesitar dispositivo o emulador. El test instrumentado
+  de Room nunca llegó a ejecutarse por eso.
+- SQLite sobra: 500 carreras a 1 Hz serían ~1,8 M de muestreos.
+
+**Consecuencias**:
+- Se borra el scaffold Android (~250 líneas de Kotlin: build Gradle, dos
+  entities, dos DAOs, `MainActivity` placeholder y un test nunca ejecutado).
+  El diseño del modelo de datos sobrevive intacto: Room es SQLite y las dos
+  tablas pasan a SQL sin cambios.
+- **Coste nuevo y real: autenticación.** Los datos pasan de un móvil propio a
+  internet. Son 15 años de entrenamientos, frecuencia cardíaca y trazas GPS
+  que salen y vuelven al domicilio. No puede quedar abierto. Se resuelve con
+  basic auth en el proxy: cero código de aplicación, seguro sobre HTTPS,
+  sustituible por un login real más adelante sin rehacer nada.
+- Coste menor: se pierde el "compartir a la app" desde Zepp. Habrá que
+  exportar y subir, aunque desde el móvil se hace igual en el navegador.
+- Se valida a posteriori la decisión de pausar del 2026-05-25: de haber
+  construido la UI contra fixtures en mayo, hoy se tiraría mucho más que un
+  scaffold.
+
+---
+
+## 2026-09-04 — Ajustes al modelo de datos tras ver datos reales
+
+**Contexto**: El modelo del 2026-05-25 se diseñó sin haber visto un solo
+fichero. Con tres fuentes reales delante aparecen cambios justificados.
+
+**Decisión**:
+- **Añadir `distancia_acumulada_metros` a los muestreos.** El FIT la trae con
+  autoridad del reloj (98,7%, monótona, cuadra con el total de sesión). Con
+  ella el algoritmo de PRs por ventana rodante es un barrido de dos punteros
+  en vez de integrar haversine sobre GPS ruidoso.
+- **Añadir `fuente` a la carrera.** Necesario para el nivel de fidelidad y
+  para deduplicar entre fuentes.
+- **Eliminar `ritmoMedioSegPerKm`.** Es derivable de distancia y duración, y
+  en My Run Stats se verificó redundante en las 207 carreras.
+- **Eliminar `esRecordPersonal`.** Estado derivado y cacheado que hay que
+  recalcular tras cada import. Se calcula al leer.
+- **Eliminar `vo2Max`.** No aparece en ninguna de las fuentes examinadas. Se
+  añadirá cuando se vea en un fichero real, no antes.
+
+**Consecuencias**:
+- Las carreras de My Run Stats solo llenan fecha, distancia, duración y
+  fuente. Todo lo demás queda a NULL. El nivel de fidelidad se expresa solo
+  con eso, sin necesidad de una columna de tipo.
+- Limitación conocida: My Run Stats solo da `date` (YYYY-MM-DD), sin hora.
+  Esas carreras se guardan a medianoche. El FIT sí trae timestamp exacto.
+- Los timestamps se guardan en UTC. La visualización usa Europe/Madrid.
+
+---
+
+## 2026-09-04 — Infraestructura: Coolify sobre Hetzner, y auth en la app
+
+**Contexto**: Al revisar el proyecto `web-javimendoza` aparece que ya hay tres
+subdominios en producción (`javimendoza.com`, `app.` y `links.`) con un patrón
+consolidado, y que `javimendoza.com` ya es Flask + gunicorn en Docker.
+
+**Decisión**: Seguir ese patrón en lugar de inventar uno.
+
+- Flask + gunicorn sobre `python:3.12-slim`, puerto 8000, un repo por
+  subdominio, build por Dockerfile, Coolify gestiona HTTPS y auto-deploy.
+- **Corrige la decisión de auth tomada horas antes en este mismo día**: se
+  había elegido basic auth en el proxy inverso. Se cambia a basic auth **en
+  la aplicación** (`RUNNERSTATS_PASSWORD`), que es lo que ya hace
+  `javimendoza.com` en `/stats` y `/enlaces`. Motivo: es la convención de la
+  casa, está probada en este stack y no obliga a tocar la configuración de
+  Traefik en Coolify (CLAUDE.md §3).
+
+**Consecuencias**:
+- Dos diferencias deliberadas con el patrón de `javimendoza.com`: el guard es
+  global en vez de por ruta (aquí nada es público) y falla cerrado si falta
+  la variable de entorno.
+- El SQLite exige un volumen persistente en `/app/data`. Sin él cada redeploy
+  borra el histórico — el mismo problema que ya apareció con `tracker.db`.
+- El repo `RunnerStats` es **público**, como los otros tres. Obliga a que
+  `.gitignore` y `.dockerignore` excluyan `data/` y `*.db` sin excepción.
+- Queda un hueco conocido: no hay formulario de subida, así que la primera
+  carga en producción es copiar el SQLite al volumen a mano.

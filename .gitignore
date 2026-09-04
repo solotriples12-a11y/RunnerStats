@@ -1,10 +1,14 @@
-*.iml
-.gradle
-local.properties
-.idea
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secretos. El repo es publico.
+.env
+
+# Exports personales (datos de salud). Nunca se suben.
+data/*
+!data/README.md
+*.db
+*.sqlite3
 .DS_Store
-build/
-captures/
-.externalNativeBuild
-.cxx
-/app/release

@@ -2,61 +2,58 @@
 
 Ordenado. Los ítems salen al completarse o al matarse explícitamente.
 
-## Bloqueante actual
+## Hecho
 
-1. **[Externo, bloqueante de todo lo demás]** Solicitud de Health Kit a
-   Huawei. Pasos completados hasta hoy:
-   - [x] Cuenta en developer.huawei.com creada y verificada.
-   - [x] Proyecto `RunnerStats` creado en AppGallery Connect.
-   - [x] App Android `RunnerStats` con package `com.runnerstats` creada.
-   - [ ] Solicitar Health Kit en
-         https://developer.huawei.com/consumer/en/hms/huaweihealth/
-         (NO desde AGC — es un apply form aparte con revisión manual).
-   - [ ] Esperar aprobación. Riesgo alto de rechazo para uso personal.
-   - Scopes a marcar: los relativos a heart rate, location, cadence,
-     speed/distance/altitude samples y activity session summaries.
-     Nombres exactos `HEALTHKIT_*` los confirma el propio formulario.
+- Esquema SQLite + importador de My Run Stats (207 carreras), con tests.
+- Vista de lista responsive con basic auth global.
+- Empaquetado Docker y `DEPLOY.md` para `run.javimendoza.com`.
 
-## Próximo (al tener Health Kit aprobado)
+## En curso
 
-2. Cliente Huawei Health Kit como `HuaweiHealthKitSource`: AppAuth-Android
-   para OAuth + Retrofit para los endpoints REST. Primera ejecución real
-   contra tus datos.
+1. Publicar el subdominio: DNS, app en Coolify, volumen persistente y
+   variables de entorno. Pasos en `DEPLOY.md`. Requiere acceso al panel.
 
-3. Reevaluar la interfaz `CarreraSource` (decidida en DECISIONS pero ahora
-   con solo una implementación prevista): mantener o eliminar la
-   indirección.
+## Próximo
 
-4. `RunningRepository.refreshCarreras()` con sincronización incremental
-   (last sync timestamp en DataStore, paginación por bloques de 7 días).
+2. **Formulario de subida de ficheros.** Hoy no hay forma de meter datos
+   desde la web: la primera carga en producción es copiar el SQLite a mano.
+   Bloquea que el sitio sea autónomo.
+3. Parser de `.fit` del Amazfit → carrera + muestreos. Normalizar la cadencia
+   (×2 en records). Trozo más grande del proyecto.
+4. Vista de detalle: gráfica de FC + ritmo sobre los muestreos.
+5. Algoritmo de PRs por ventana rodante sobre `distancia_acumulada_metros`.
+   Solo aplica a carreras con muestreos: la UI debe decirlo.
+6. Vista de PRs.
 
-5. Pantalla "Mis Carreras": lista con resumen, observando `Flow` del DAO.
+## Esperando
 
-6. Pantalla detalle: gráfica de FC + ritmo. Decisión Vico vs MPAndroidChart
-   aquí (registrarla en `DECISIONS.md`).
-
-7. Algoritmo de PRs por ventana rodante: mejor 1K/5K/10K extraído de
-   cualquier carrera, no solo de carreras de esa distancia exacta.
-
-8. Pantalla de PRs.
+- **Export de privacidad de Huawei**: solicitado el 2026-09-04, avisan de 7
+  días. Al llegar, mirar si `Motion path detail data` trae FC. Si la trae,
+  escribir el importador; si no, descartar Huawei como fuente y quedarse con
+  las rutas para el mapa. Existe [Hitrava](https://github.com/CTHRU/Hitrava),
+  que ya parsea ese formato, como referencia.
 
 ## Después
 
-- Eficiencia cardiovascular (ritmo vs FC) agregada por mes con gráfica.
-- Zonas de FC pintadas como bandas de fondo en la gráfica de detalle.
-- Scrubbing en gráfica sincronizado con mapa flotante.
+- Deduplicación entre fuentes (la carrera del 2026-09-02 está duplicada).
+- Eficiencia cardiovascular por mes con gráfica.
+- Zonas de FC como bandas de fondo en la gráfica de detalle.
+- Mapa de la ruta con scrubbing sincronizado con la gráfica.
 - Tracker de desgaste de zapatillas (alertas a 600-800 km acumulados).
 - Récord de desnivel positivo por km.
 
-## Plan B
+## Limpieza pendiente
 
-Si Huawei rechaza la solicitud de Health Kit:
-- Importador de export ZIP de Huawei Salud (Privacidad → Solicitar datos).
-- Implica parser del formato HCY/JSON que entrega Huawei en el email.
+- `docs/index.html`, `docs/privacy.html`, `docs/terms.html`: se crearon solo
+  para el formulario de solicitud de Health Kit, que fue rechazado. Sin
+  propósito actual. Confirmar borrado.
 
-## Descartado por ahora
+## Descartado
 
-- Cloud sync entre dispositivos.
-- Multi-usuario.
-- Otros deportes (ciclismo, natación).
-- Predicciones ML ("tiempo estimado de tu próxima 10K").
+- Huawei Health Kit. Solicitud rechazada el 2026-09-04.
+- App Android nativa. Superseded por la web (`DECISIONS.md` 2026-09-04).
+- `km_splits` de My Run Stats. No fiables.
+- Strava como fuente: desde el 30-06-2026 la API de tier estándar exige
+  suscripción de pago, la sincronización Zepp→Strava no rellena histórico, y
+  no está claro que los muestreos de FC sobrevivan a la subida.
+- Cloud sync entre dispositivos, multi-usuario, otros deportes, predicciones.
