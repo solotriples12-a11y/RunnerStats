@@ -1,8 +1,23 @@
 # Deploy
 
-Pasos para publicar `run.javimendoza.com` la primera vez. Mismo patrón que
-`links.javimendoza.com` y `app.javimendoza.com`: Hetzner + Coolify, build
-desde `Dockerfile`, HTTPS automático y auto-deploy al hacer push a `main`.
+**Desplegado el 2026-09-04.** `https://run.javimendoza.com` está en producción
+y responde 401 (falta poner `RUNNERSTATS_PASSWORD`).
+
+Mismo patrón que `links.javimendoza.com` y `app.javimendoza.com`: Hetzner +
+Coolify, build desde `Dockerfile`, HTTPS automático y auto-deploy al hacer
+push a `main`.
+
+## Trampa: Coolify ignora el EXPOSE del Dockerfile
+
+Al crear la aplicación, Coolify puso **3000** por defecto en dos sitios
+distintos pese a que el `Dockerfile` declara `EXPOSE 8000`:
+
+1. El puerto interno del dominio.
+2. El campo **Ports Exposes** de la configuración general.
+
+Hay que corregir **los dos**. Al cambiar el primero salta un aviso
+("Port 8000 is not listed in Ports Exposes") que delata el segundo. Si se
+corrige solo uno, el proxy enruta a un puerto donde no escucha nadie.
 
 ## 0. Antes de nada: el repo es público
 
@@ -10,20 +25,24 @@ desde `Dockerfile`, HTTPS automático y auto-deploy al hacer push a `main`.
 puede serlo; **los datos no**. `.gitignore` excluye `data/` y `*.db`, y
 `.dockerignore` impide además que entren en la imagen. No aflojar eso.
 
-## 1. DNS en Hetzner
+## 1. DNS — ya está hecho
 
-En la zona DNS de `javimendoza.com`:
+La zona `javimendoza.com` **la sirve Cloudflare** (`otto.ns.cloudflare.com`,
+`monroe.ns.cloudflare.com`), no Hetzner, y tiene un **comodín**
+`*.javimendoza.com` → `178.105.168.93`.
 
-1. Añade un registro:
-   - **Tipo:** `A`
-   - **Nombre:** `run`
-   - **Valor:** la IP pública del servidor de Coolify, la misma que los otros
-     subdominios (`dig +short app.javimendoza.com`).
-   - **TTL:** el por defecto.
-2. Si ese servidor tiene IPv6, añade también el `AAAA`.
-3. Verifica con `dig +short run.javimendoza.com` antes de seguir.
+Comprobado el 2026-09-04: `run.javimendoza.com` ya resuelve a esa IP, igual
+que cualquier nombre inventado (`esto-no-existe-xyz123.javimendoza.com`
+resuelve al mismo sitio). Y ya responde con un 404 de Traefik, o sea que el
+servidor escucha y solo le falta la aplicación.
+
+**No hay que crear ningún registro.** El comodín es DNS-only (apunta a la IP
+de origen, no a las IPs de Cloudflare como hace `links`), así que la
+validación HTTP-01 de Let's Encrypt funciona sin más.
 
 ## 2. Nueva aplicación en Coolify
+
+Panel: <https://coolify.javimendoza.com>
 
 1. **+ New Resource → Application → Public Repository**.
 2. **Repository URL:** `https://github.com/solotriples12-a11y/RunnerStats`.

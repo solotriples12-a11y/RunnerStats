@@ -229,3 +229,39 @@ la regla base de `a` en el CSS, así que los enlaces salían en el azul por
 defecto del navegador en vez del acento de la casa.
 
 **Siguiente**: Publicar el subdominio, y después el parser de `.fit`.
+
+---
+
+## 2026-09-04 — En producción: https://run.javimendoza.com
+
+**Qué**: Desplegado en el Coolify del Hetzner, pilotando el panel desde el
+navegador. Aplicación `runner-stats` en el proyecto Personal / production:
+repo público, rama `main`, build pack Dockerfile, dominio
+`https://run.javimendoza.com` con puerto interno 8000, volumen
+`runnerstats-data` montado en `/app/data` y `RUNNERSTATS_DB` apuntando ahí.
+
+**Hallazgos durante el despliegue**:
+- El paso de DNS del plan **no existía**: la zona la sirve Cloudflare (no
+  Hetzner, como decía este documento) y tiene un comodín `*.javimendoza.com`
+  → 178.105.168.93. `run` ya resolvía.
+- **Coolify ignora el `EXPOSE 8000` del Dockerfile** y pone 3000 en dos
+  campos independientes. Documentado en `DEPLOY.md`.
+- El panel avisa de "Cannot connect to real-time service" y hay una alerta de
+  puertos de firewall. No impidió nada (Livewire responde 200), pero deja sin
+  logs de despliegue en vivo. Pendiente de mirar, es del servidor.
+
+**Verificado** contra el dominio real, no contra el panel:
+- `server: gunicorn` y `www-authenticate: Basic realm="RunnerStats"`, o sea
+  que responde la aplicación y no una página del proxy.
+- Certificado Let's Encrypt válido para `run.javimendoza.com`.
+- HTTP redirige a HTTPS.
+- **Fallo cerrado confirmado en producción**: 401 sin credenciales, con
+  usuario sin contraseña y con contraseña inventada. `/importar` también.
+
+**Pendiente del usuario**: poner `RUNNERSTATS_PASSWORD` en las variables de
+entorno de Coolify. Hasta entonces la web queda cerrada a todo el mundo, que
+es el estado correcto. La contraseña la teclea él: no introduzco credenciales
+en formularios.
+
+**Siguiente**: con la contraseña puesta, entrar en `/importar`, subir el JSON
+y ver las 207 carreras. Después, el parser de `.fit`.
