@@ -1,0 +1,13 @@
+# Datos de salud: nunca dentro de la imagen. En producción viven en el
+# volumen persistente montado en /app/data.
+data/
+*.db
+*.sqlite3
+
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+tests/
