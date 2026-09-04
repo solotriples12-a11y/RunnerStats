@@ -265,3 +265,41 @@ en formularios.
 
 **Siguiente**: con la contraseña puesta, entrar en `/importar`, subir el JSON
 y ver las 207 carreras. Después, el parser de `.fit`.
+
+---
+
+## 2026-09-04 — Panel: estadísticas, récords, filtros y gráficas
+
+**Qué**: La portada era una lista plana de 207 filas. Ahora tiene cabecera con
+kilómetros totales, tiles (mejor ritmo, carrera más larga, media por carrera),
+récords por banda de distancia, filtro por año y dos gráficas en SVG generado
+en servidor: kilómetros por año y evolución del ritmo.
+
+**Por qué**: Con los datos reales cargados, la lista sola se quedaba corta.
+Todo lo añadido se sostiene solo con el resumen, así que aplica a las 207
+carreras sin esperar al parser de `.fit`.
+
+**Decisiones**:
+- Sin librería de gráficas ni CDN. `graficas.py` calcula geometría y la
+  plantilla pinta el SVG. Encaja con el "CSS plano" del resto de subdominios.
+- Los récords son **por carrera completa**, no por ventana rodante, y la UI lo
+  dice. El mejor 5K dentro de una carrera más larga necesita muestreos.
+- Un récord de banda es el mejor **ritmo**, no el mejor tiempo: en la banda de
+  5 km caben carreras de 5,0 y de 5,9, así que comparar tiempos sería comparar
+  distancias distintas.
+- Al filtrar, las gráficas mantienen los 15 años y resaltan el año elegido.
+
+**Verificado**: 35 tests (8 nuevos). Los de análisis no clavan números a mano:
+recalculan el resultado desde el JSON y lo comparan con el que da SQL —
+totales, filtro de 2012 (33 carreras, 227,4 km), mejor ritmo y récords de las
+bandas 5K y 10K. Cubierto también que 2019 no aparece como año disponible y
+que una base vacía no revienta.
+
+Revisado en el navegador, donde salieron dos fallos que los tests no ven:
+- Las barras no resaltadas usaban `--surface-2` y **desaparecían** contra el
+  fondo de la tarjeta. Se añadió `--marca-contexto`.
+- La línea de medianas **cruzaba 2019**, que no tiene ni una carrera,
+  dibujando continuidad inexistente. Ahora se parte en los huecos.
+
+**Siguiente**: el parser de `.fit`, que desbloquea zonas de FC, eficiencia
+cardiovascular, detalle por carrera y récords por ventana rodante.

@@ -3,47 +3,143 @@
 {% block contenido %}
 <header class="hero">
     <h1>RunnerStats</h1>
-    {% if totales.carreras %}
+    {% if resumen.carreras %}
+    <p class="hero-num">{{ resumen.metros | km }} <span>km</span></p>
     <p>
-        {{ totales.carreras }} carreras ·
-        {{ totales.metros | km }} km ·
-        {{ (totales.segundos / 3600) | round(1) }} h
-        desde {{ totales.desde | fecha }}
+        {{ resumen.carreras }} carreras · {{ (resumen.segundos / 3600) | round(1) }} h
+        {% if anio %}en {{ anio }}{% else %}desde {{ resumen.desde | fecha }}{% endif %}
     </p>
     {% else %}
     <p>Todavía no hay ninguna carrera.</p>
     {% endif %}
-    <p class="acciones">
-        <a href="{{ url_for('importar') }}">Importar carreras</a>
-    </p>
+    <p class="acciones"><a href="{{ url_for('importar') }}">Importar carreras</a></p>
 </header>
 
-{% if totales.carreras %}
-<section class="run-list">
-    {% for c in carreras %}
-    <article class="run-card{% if c.tiene_detalle %} has-detail{% endif %}">
-        <div class="run-date">{{ c.fecha_inicio_unix | fecha }}</div>
-        <div class="run-metrics">
-            <span class="metric primary">{{ c.distancia_metros | km }} km</span>
-            <span class="metric">{{ c.duracion_segundos | duracion }}</span>
-            <span class="metric">
-                {{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }}/km
-            </span>
-            {% if c.fc_media %}
-            <span class="metric">{{ c.fc_media }} ppm</span>
-            {% endif %}
-        </div>
-        {% if c.tiene_detalle %}
-        <span class="badge" title="Tiene muestreos segundo a segundo">detalle</span>
-        {% endif %}
-    </article>
+{% if resumen.carreras %}
+
+<nav class="filtros" aria-label="Filtrar por año">
+    <a href="{{ url_for('index') }}" class="chip{% if not anio %} on{% endif %}">Todo</a>
+    {% for a in anios %}
+    <a href="{{ url_for('index', anio=a) }}"
+       class="chip{% if anio == a %} on{% endif %}">{{ a }}</a>
     {% endfor %}
+</nav>
+
+<section class="tiles">
+    <div class="tile">
+        <span class="tile-lab">Mejor ritmo</span>
+        <span class="tile-val">{{ resumen.mejor_ritmo | ritmo }}<small>/km</small></span>
+    </div>
+    <div class="tile">
+        <span class="tile-lab">Carrera más larga</span>
+        <span class="tile-val">{{ resumen.mas_larga | km }}<small>km</small></span>
+    </div>
+    <div class="tile">
+        <span class="tile-lab">Media por carrera</span>
+        <span class="tile-val">{{ (resumen.metros / resumen.carreras) | km }}<small>km</small></span>
+    </div>
+</section>
+
+{% if records %}
+<section class="bloque">
+    <h2>Récords</h2>
+    <p class="sub">
+        Mejor ritmo por banda de distancia, calculado sobre la carrera
+        completa. El mejor 5K extraído de dentro de una carrera más larga
+        necesita muestreos y llegará con los <code>.fit</code>.
+    </p>
+    <div class="records">
+        {% for r in records %}
+        <div class="record">
+            <span class="record-banda">{{ r.banda }}</span>
+            <span class="record-ritmo">{{ r.ritmo | ritmo }}<small>/km</small></span>
+            <span class="record-ctx">
+                {{ r.distancia_metros | km }} km · {{ r.fecha_inicio_unix | fecha }}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if not volumen.vacia %}
+<section class="bloque">
+    <h2>Kilómetros por año</h2>
+    {% if anio %}<p class="sub">{{ anio }} resaltado sobre el histórico completo.</p>{% endif %}
+    <svg class="gr" viewBox="0 0 {{ volumen.ancho }} {{ volumen.alto }}"
+         role="img" aria-label="Kilómetros recorridos por año">
+        {% for g in volumen.rejilla %}
+        <line class="rejilla" x1="34" y1="{{ g.y }}" x2="{{ volumen.ancho - 8 }}" y2="{{ g.y }}"/>
+        <text class="ejeY" x="28" y="{{ g.y + 3 }}">{{ g.etiqueta }}</text>
+        {% endfor %}
+        {% for b in volumen.barras %}
+        <path class="barra{% if anio and b.anio != anio|string %} apagada{% endif %}" d="{{ b.d }}">
+            <title>{{ b.anio }}: {{ b.km | round(1) }} km en {{ b.carreras }} carreras</title>
+        </path>
+        {% if loop.index0 % 3 == 0 or loop.last %}
+        <text class="ejeX" x="{{ b.centro }}" y="{{ volumen.alto - 6 }}">{{ b.anio }}</text>
+        {% endif %}
+        {% endfor %}
+    </svg>
+</section>
+{% endif %}
+
+{% if not evolucion.vacia %}
+<section class="bloque">
+    <h2>Evolución del ritmo</h2>
+    <p class="sub">Cada punto es una carrera. La línea es la mediana de cada año.</p>
+    <svg class="gr" viewBox="0 0 {{ evolucion.ancho }} {{ evolucion.alto }}"
+         role="img" aria-label="Ritmo de cada carrera a lo largo del tiempo">
+        {% for g in evolucion.rejilla %}
+        <line class="rejilla" x1="34" y1="{{ g.y }}" x2="{{ evolucion.ancho - 8 }}" y2="{{ g.y }}"/>
+        <text class="ejeY" x="28" y="{{ g.y + 3 }}">{{ g.etiqueta }}</text>
+        {% endfor %}
+        {% for p in evolucion.puntos %}
+        <circle class="punto" cx="{{ p.cx }}" cy="{{ p.cy }}" r="3">
+            <title>{{ p.fecha }} · {{ p.km | round(2) }} km · {{ p.ritmo | ritmo }}/km</title>
+        </circle>
+        {% endfor %}
+        {% for seg in evolucion.segmentos %}
+        <polyline class="linea" points="{{ seg }}"/>
+        {% endfor %}
+        {% for m in evolucion.medianas %}
+        <circle class="nodo" cx="{{ m.x }}" cy="{{ m.y }}" r="4">
+            <title>Mediana {{ m.anio }}: {{ m.ritmo | ritmo }}/km</title>
+        </circle>
+        {% endfor %}
+        {% for e in evolucion.ejex %}
+        <text class="ejeX" x="{{ e.x }}" y="{{ evolucion.alto - 6 }}">{{ e.etiqueta }}</text>
+        {% endfor %}
+    </svg>
+</section>
+{% endif %}
+
+<section class="bloque">
+    <h2>{% if anio %}Carreras de {{ anio }}{% else %}Todas las carreras{% endif %}</h2>
+    <div class="run-list">
+        {% for c in carreras %}
+        <article class="run-card{% if c.tiene_detalle %} has-detail{% endif %}">
+            <div class="run-date">{{ c.fecha_inicio_unix | fecha }}</div>
+            <div class="run-metrics">
+                <span class="metric primary">{{ c.distancia_metros | km }} km</span>
+                <span class="metric">{{ c.duracion_segundos | duracion }}</span>
+                <span class="metric">
+                    {{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }}/km
+                </span>
+                {% if c.fc_media %}<span class="metric">{{ c.fc_media }} ppm</span>{% endif %}
+            </div>
+            {% if c.tiene_detalle %}
+            <span class="badge" title="Tiene muestreos segundo a segundo">detalle</span>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
 </section>
 
 <footer class="note">
     Solo las carreras marcadas como <span class="badge">detalle</span> tienen
     muestreos segundo a segundo. Las demás son resúmenes importados y no
-    admiten gráficas, zonas de FC ni récords por ventana rodante.
+    admiten gráficas por carrera, zonas de FC ni récords por ventana rodante.
 </footer>
 {% endif %}
 {% endblock %}

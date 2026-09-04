@@ -9,6 +9,9 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
 - Empaquetado Docker y `DEPLOY.md` para `run.javimendoza.com`.
 - Formulario de subida en `/importar`. El sitio ya es autónomo: no hace
   falta tocar el servidor para meter datos.
+- Publicado en `https://run.javimendoza.com` (Coolify, volumen persistente).
+- Panel: tiles de cabecera, récords por banda de distancia, filtro por año y
+  dos gráficas (km por año, evolución del ritmo).
 
 ## En curso
 

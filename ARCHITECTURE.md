@@ -114,6 +114,24 @@ Las fuentes se solapan: la carrera del 2026-09-02 está en Huawei y en el
 Amazfit. Regla: misma fecha y distancia aproximada. Ante un duplicado gana la
 fuente de mayor fidelidad.
 
+## Capa de análisis y gráficas
+- `analisis.py` — solo cálculos que se sostienen con el resumen (fecha,
+  distancia, duración), así que aplican a las 207 carreras. Lo que necesita
+  muestreos vive fuera y aún no existe.
+- `graficas.py` — devuelve geometría; el SVG lo pinta la plantilla. Sin
+  librería de gráficas ni CDN: encaja con el "CSS plano" del resto de
+  subdominios y evita una dependencia para dos gráficas.
+- Ambas gráficas son de **una sola serie**, así que no llevan leyenda y el
+  color va solo en las marcas; las etiquetas usan tokens de texto.
+- Al filtrar por año las gráficas mantienen la vista larga y **resaltan** el
+  año elegido (patrón de énfasis): 15 años de contexto valen más que un año
+  aislado. Las barras no resaltadas usan `--marca-contexto`, un gris legible
+  sobre la tarjeta; con `--surface-2` desaparecían.
+- La línea de medianas **se parte en los años sin carreras**. Unir 2018 con
+  2020 dibujaría continuidad donde no hay ni un dato (2019 está vacío).
+- Los tooltips son `<title>` nativos de SVG: cero JavaScript, y la lista de
+  carreras hace de vista en tabla.
+
 ## Cálculos derivados
 - **PRs por ventana rodante**: mejor 1K/5K/10K extraído de CUALQUIER carrera
   con muestreos, recorriendo `distancia_acumulada_metros` con dos punteros.

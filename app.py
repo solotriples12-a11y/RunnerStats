@@ -7,7 +7,7 @@ from pathlib import PurePath
 from dotenv import load_dotenv
 from flask import Flask, Response, g, render_template, request
 
-from runnerstats import consultas, db
+from runnerstats import analisis, consultas, db, graficas
 from runnerstats.importers import my_run_stats
 
 load_dotenv()
@@ -136,10 +136,22 @@ def importar():
 @app.route("/")
 def index():
     conn = get_db()
+    anio = request.args.get("anio", type=int)
+    disponibles = analisis.anios(conn)
+    if anio not in disponibles:
+        anio = None
+
     return render_template(
         "index.html",
-        carreras=consultas.listar_carreras(conn),
-        totales=consultas.totales(conn),
+        carreras=consultas.listar_carreras(conn, anio),
+        resumen=analisis.resumen(conn, anio),
+        records=analisis.records(conn, anio),
+        anios=disponibles,
+        anio=anio,
+        # Las gráficas mantienen siempre la vista larga y resaltan el año
+        # filtrado: 15 años de contexto valen más que un solo año aislado.
+        volumen=graficas.barras_volumen(analisis.volumen_por_anio(conn)),
+        evolucion=graficas.dispersion_ritmo(analisis.ritmos(conn)),
     )
 
 
