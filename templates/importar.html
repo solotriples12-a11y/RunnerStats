@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}Importar · RunnerStats{% endblock %}
+
+{% block contenido %}
+<header class="hero">
+    <h1>Importar</h1>
+    <p>Arrastra tus exports. Se leen en memoria; no se guarda ningún fichero.</p>
+</header>
+
+<form class="upload" method="post" enctype="multipart/form-data">
+    <input type="file" name="ficheros" multiple accept=".json,.fit">
+    <button type="submit">Importar</button>
+</form>
+
+{% if resultados %}
+<section class="resultados">
+    {% for nombre, importadas, error in resultados %}
+    <div class="resultado{% if error %} error{% endif %}">
+        {% if nombre %}<span class="fichero">{{ nombre }}</span>{% endif %}
+        <span class="detalle">
+            {%- if error %}{{ error }}{% else %}{{ importadas }} carreras importadas{% endif -%}
+        </span>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}
+
+<footer class="note">
+    Hoy solo se importa el JSON de My Run Stats. Los <code>.fit</code> del
+    Amazfit necesitan un parser que todavía no existe.
+    <a href="{{ url_for('index') }}">Volver a las carreras</a>
+</footer>
+{% endblock %}

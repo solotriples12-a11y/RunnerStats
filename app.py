@@ -1,15 +1,22 @@
+import json
 import os
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import PurePath
 
 from dotenv import load_dotenv
 from flask import Flask, Response, g, render_template, request
 
 from runnerstats import consultas, db
+from runnerstats.importers import my_run_stats
 
 load_dotenv()
 
 app = Flask(__name__)
+
+# El export mas grande visto hasta ahora ronda los 2 MB. 32 evita que una
+# subida enorme agote la memoria del contenedor.
+app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024
 
 RUTA_DB = os.environ.get("RUNNERSTATS_DB") or "data/runnerstats.db"
 
@@ -75,6 +82,55 @@ def f_km(metros: float) -> str:
 def f_ritmo(seg_por_km: float) -> str:
     m, s = divmod(round(seg_por_km), 60)
     return f"{m}:{s:02d}"
+
+
+def _importar_uno(conn, fichero) -> tuple[str, int | None, str | None]:
+    """Devuelve (nombre, carreras importadas, error).
+
+    Solo se usa la extension del nombre subido, nunca la ruta: el contenido
+    se lee del stream y no se escribe nada en disco.
+    """
+    nombre = fichero.filename or "(sin nombre)"
+    ext = PurePath(nombre).suffix.lower()
+
+    if ext == ".fit":
+        return nombre, None, "todavia no hay parser de .fit"
+    if ext != ".json":
+        return nombre, None, f"formato no soportado ({ext or 'sin extension'})"
+
+    try:
+        return nombre, my_run_stats.importar(conn, fichero.stream), None
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        return nombre, None, f"no es un JSON valido ({e})"
+    except (KeyError, TypeError, ValueError) as e:
+        return nombre, None, f"no tiene la forma de un export de My Run Stats ({e})"
+
+
+@app.errorhandler(413)
+def _demasiado_grande(_):
+    return render_template(
+        "importar.html",
+        resultados=[("", None, "el fichero supera el limite de 32 MB")],
+    ), 413
+
+
+@app.route("/importar", methods=["GET", "POST"])
+def importar():
+    if request.method == "GET":
+        return render_template("importar.html", resultados=None)
+
+    ficheros = [f for f in request.files.getlist("ficheros") if f.filename]
+    if not ficheros:
+        return render_template(
+            "importar.html",
+            resultados=[("", None, "no has seleccionado ningun fichero")],
+        )
+
+    conn = get_db()
+    return render_template(
+        "importar.html",
+        resultados=[_importar_uno(conn, f) for f in ficheros],
+    )
 
 
 @app.route("/")

@@ -2,6 +2,7 @@
 de salud y no tiene ninguna parte pública."""
 
 import base64
+import io
 
 import pytest
 
@@ -65,3 +66,82 @@ def test_marca_las_carreras_sin_detalle(cliente):
     html = cliente.get("/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
     assert 'class="run-card"' in html
     assert "has-detail" not in html
+
+
+@pytest.fixture
+def cliente_vacio(tmp_path, monkeypatch):
+    """Base sin ninguna carrera: es el estado con el que nace produccion."""
+    ruta = tmp_path / "vacia.db"
+    db.conectar(ruta).close()
+    monkeypatch.setattr(webapp, "RUTA_DB", str(ruta))
+    monkeypatch.setenv("RUNNERSTATS_PASSWORD", PASSWORD)
+    webapp.app.config["TESTING"] = True
+    return webapp.app.test_client()
+
+
+def _subir(cliente, contenido: bytes, nombre: str):
+    return cliente.post(
+        "/importar",
+        headers=_cabecera(PASSWORD),
+        data={"ficheros": (io.BytesIO(contenido), nombre)},
+        content_type="multipart/form-data",
+    )
+
+
+def test_base_vacia_no_revienta(cliente_vacio):
+    """Sin carreras los agregados de SQL son NULL y los filtros recibirian
+    None. La portada tiene que seguir rindiendo."""
+    r = cliente_vacio.get("/", headers=_cabecera(PASSWORD))
+    assert r.status_code == 200
+    assert "Todavía no hay ninguna carrera" in r.get_data(as_text=True)
+
+
+def test_importar_requiere_auth(cliente):
+    assert cliente.get("/importar").status_code == 401
+    assert cliente.post("/importar").status_code == 401
+
+
+def test_formulario_se_muestra(cliente):
+    r = cliente.get("/importar", headers=_cabecera(PASSWORD))
+    assert r.status_code == 200
+    assert 'name="ficheros"' in r.get_data(as_text=True)
+
+
+def test_subir_json_importa(cliente_vacio, export_sintetico):
+    r = _subir(cliente_vacio, export_sintetico.read_bytes(), "export.json")
+    assert r.status_code == 200
+    assert "2 carreras importadas" in r.get_data(as_text=True)
+    # Y ya se ven en la portada.
+    assert "5.03 km" in cliente_vacio.get(
+        "/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
+
+
+def test_subir_fit_avisa_de_que_no_hay_parser(cliente_vacio):
+    r = _subir(cliente_vacio, b"\x0e\x10fake fit", "carrera.fit")
+    assert "todavia no hay parser" in r.get_data(as_text=True)
+    # Y no ha entrado nada.
+    assert "Todavía no hay ninguna carrera" in cliente_vacio.get(
+        "/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
+
+
+def test_json_corrupto_no_da_500(cliente_vacio):
+    r = _subir(cliente_vacio, b"{esto no es json", "roto.json")
+    assert r.status_code == 200
+    assert "no es un JSON valido" in r.get_data(as_text=True)
+
+
+def test_json_con_otra_forma_no_da_500(cliente_vacio):
+    r = _subir(cliente_vacio, b'{"otra": "cosa"}', "ajeno.json")
+    assert r.status_code == 200
+    assert "no tiene la forma" in r.get_data(as_text=True)
+
+
+def test_extension_no_soportada(cliente_vacio):
+    r = _subir(cliente_vacio, b"lo que sea", "ruta.tcx")
+    assert "formato no soportado" in r.get_data(as_text=True)
+
+
+def test_sin_seleccionar_nada(cliente):
+    r = cliente.post("/importar", headers=_cabecera(PASSWORD),
+                     data={}, content_type="multipart/form-data")
+    assert "no has seleccionado" in r.get_data(as_text=True)

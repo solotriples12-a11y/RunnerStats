@@ -55,6 +55,11 @@ Cada fuente se implementa como un importador independiente que produce
 carreras normalizadas. Es el equivalente de la interfaz `CarreraSource` del
 diseño Android, ahora con tres implementaciones reales.
 
+Los ficheros se suben desde `/importar` y se leen **en memoria**: nada se
+escribe en disco, lo que evita de raíz tener que sanear rutas. El despacho
+se hace por extensión y cada fichero informa de su resultado por separado,
+para que un fichero corrupto no tumbe la subida entera.
+
 ### Niveles de fidelidad
 No todas las funciones aplican a todas las carreras:
 

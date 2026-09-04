@@ -1,51 +1,49 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RunnerStats</title>
-    <meta name="robots" content="noindex, nofollow">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <main class="container">
-        <header class="hero">
-            <h1>RunnerStats</h1>
-            <p>
-                {{ totales.carreras }} carreras ·
-                {{ totales.metros | km }} km ·
-                {{ (totales.segundos / 3600) | round(1) }} h
-                desde {{ totales.desde | fecha }}
-            </p>
-        </header>
+{% extends "base.html" %}
 
-        <section class="run-list">
-            {% for c in carreras %}
-            <article class="run-card{% if c.tiene_detalle %} has-detail{% endif %}">
-                <div class="run-date">{{ c.fecha_inicio_unix | fecha }}</div>
-                <div class="run-metrics">
-                    <span class="metric primary">{{ c.distancia_metros | km }} km</span>
-                    <span class="metric">{{ c.duracion_segundos | duracion }}</span>
-                    <span class="metric">
-                        {{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }}/km
-                    </span>
-                    {% if c.fc_media %}
-                    <span class="metric">{{ c.fc_media }} ppm</span>
-                    {% endif %}
-                </div>
-                {% if c.tiene_detalle %}
-                <span class="badge" title="Tiene muestreos segundo a segundo">detalle</span>
-                {% endif %}
-            </article>
-            {% endfor %}
-        </section>
+{% block contenido %}
+<header class="hero">
+    <h1>RunnerStats</h1>
+    {% if totales.carreras %}
+    <p>
+        {{ totales.carreras }} carreras ·
+        {{ totales.metros | km }} km ·
+        {{ (totales.segundos / 3600) | round(1) }} h
+        desde {{ totales.desde | fecha }}
+    </p>
+    {% else %}
+    <p>Todavía no hay ninguna carrera.</p>
+    {% endif %}
+    <p class="acciones">
+        <a href="{{ url_for('importar') }}">Importar carreras</a>
+    </p>
+</header>
 
-        <footer class="note">
-            Solo las carreras marcadas como <span class="badge">detalle</span>
-            tienen muestreos segundo a segundo. Las demás son resúmenes
-            importados y no admiten gráficas, zonas de FC ni récords por
-            ventana rodante.
-        </footer>
-    </main>
-</body>
-</html>
+{% if totales.carreras %}
+<section class="run-list">
+    {% for c in carreras %}
+    <article class="run-card{% if c.tiene_detalle %} has-detail{% endif %}">
+        <div class="run-date">{{ c.fecha_inicio_unix | fecha }}</div>
+        <div class="run-metrics">
+            <span class="metric primary">{{ c.distancia_metros | km }} km</span>
+            <span class="metric">{{ c.duracion_segundos | duracion }}</span>
+            <span class="metric">
+                {{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }}/km
+            </span>
+            {% if c.fc_media %}
+            <span class="metric">{{ c.fc_media }} ppm</span>
+            {% endif %}
+        </div>
+        {% if c.tiene_detalle %}
+        <span class="badge" title="Tiene muestreos segundo a segundo">detalle</span>
+        {% endif %}
+    </article>
+    {% endfor %}
+</section>
+
+<footer class="note">
+    Solo las carreras marcadas como <span class="badge">detalle</span> tienen
+    muestreos segundo a segundo. Las demás son resúmenes importados y no
+    admiten gráficas, zonas de FC ni récords por ventana rodante.
+</footer>
+{% endif %}
+{% endblock %}

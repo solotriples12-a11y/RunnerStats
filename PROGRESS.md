@@ -194,3 +194,38 @@ su propia línea y las métricas quedan legibles.
 - Export de Huawei: pedido, 7 días.
 
 **Siguiente**: Formulario de subida, y después el parser de `.fit`.
+
+---
+
+## 2026-09-04 — Formulario de subida: el sitio ya es autónomo
+
+**Qué**:
+- Ruta `/importar` con subida múltiple de ficheros. Despacho por extensión:
+  el JSON de My Run Stats se importa; los `.fit` avisan de que aún no hay
+  parser; el resto informa de formato no soportado.
+- El importador de My Run Stats acepta ahora una ruta **o un stream**, así
+  que lo que sube el navegador se lee en memoria sin tocar disco. Eso elimina
+  de raíz el saneado de rutas.
+- Cada fichero informa de su propio resultado: un JSON corrupto o ajeno da un
+  mensaje, no un 500 ni tumba la subida entera. Límite de 32 MB con su
+  manejador de 413.
+- Plantilla base compartida y estado vacío en la portada.
+
+**Por qué**: Sin esto, poblar producción exigía `scp` del SQLite al volumen.
+Con el formulario se sube el export desde el propio móvil.
+
+**Verificado**: 27 tests en verde (9 nuevos). Además de los casos de error,
+uno cubre que **la portada rinde con la base vacía**, que es justo el estado
+con el que nace producción: sin carreras los agregados de SQL son NULL y los
+filtros recibirían None.
+
+Prueba de extremo a extremo con datos reales, arrancando con base vacía:
+portada vacía → subida del JSON por el formulario → "207 carreras
+importadas" → portada con las 207 y 1098,80 km. Subida de un `.fit` → aviso,
+y no entra nada.
+
+Revisado visualmente en escritorio y móvil. Se corrigió un defecto: faltaba
+la regla base de `a` en el CSS, así que los enlaces salían en el azul por
+defecto del navegador en vez del acento de la casa.
+
+**Siguiente**: Publicar el subdominio, y después el parser de `.fit`.

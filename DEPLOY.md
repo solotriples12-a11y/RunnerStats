@@ -53,15 +53,15 @@ publicar el histórico.
 
 ## 5. Deploy y primera carga de datos
 
-Lanza el deploy. La web responderá pidiendo usuario y contraseña, pero la
-base estará **vacía**: todavía no hay formulario de subida (está en el
-backlog). Para poblarla la primera vez, copia el SQLite local al volumen:
+Lanza el deploy. La web pedirá usuario y contraseña y mostrará la portada
+vacía, porque la base de producción nace en blanco.
 
-```bash
-scp data/runnerstats.db <usuario>@<ip>:/tmp/runnerstats.db
-```
+Para poblarla, entra en **`/importar`** y sube el export de My Run Stats
+desde el navegador, en el móvil o en el escritorio. No hace falta `scp` ni
+tocar el servidor: el fichero se lee en memoria y nunca se escribe en disco.
 
-y muévelo al volumen desde el servidor, o usa el file manager de Coolify.
+Los `.fit` del Amazfit se pueden seleccionar, pero de momento el importador
+avisa de que aún no hay parser para ellos.
 
 ## Cambios futuros
 

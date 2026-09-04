@@ -7,6 +7,8 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
 - Esquema SQLite + importador de My Run Stats (207 carreras), con tests.
 - Vista de lista responsive con basic auth global.
 - Empaquetado Docker y `DEPLOY.md` para `run.javimendoza.com`.
+- Formulario de subida en `/importar`. El sitio ya es autónomo: no hace
+  falta tocar el servidor para meter datos.
 
 ## En curso
 
@@ -15,15 +17,12 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
 
 ## Próximo
 
-2. **Formulario de subida de ficheros.** Hoy no hay forma de meter datos
-   desde la web: la primera carga en producción es copiar el SQLite a mano.
-   Bloquea que el sitio sea autónomo.
-3. Parser de `.fit` del Amazfit → carrera + muestreos. Normalizar la cadencia
+2. Parser de `.fit` del Amazfit → carrera + muestreos. Normalizar la cadencia
    (×2 en records). Trozo más grande del proyecto.
-4. Vista de detalle: gráfica de FC + ritmo sobre los muestreos.
-5. Algoritmo de PRs por ventana rodante sobre `distancia_acumulada_metros`.
+3. Vista de detalle: gráfica de FC + ritmo sobre los muestreos.
+4. Algoritmo de PRs por ventana rodante sobre `distancia_acumulada_metros`.
    Solo aplica a carreras con muestreos: la UI debe decirlo.
-6. Vista de PRs.
+5. Vista de PRs.
 
 ## Esperando
 

@@ -45,8 +45,15 @@ def _fecha_a_unix(fecha: str) -> int:
     return int(dia.replace(tzinfo=timezone.utc).timestamp())
 
 
-def leer(ruta: str | Path) -> list[Carrera]:
-    datos = json.loads(Path(ruta).read_text())
+def leer(origen) -> list[Carrera]:
+    """Lee desde una ruta o desde un fichero ya abierto.
+
+    Aceptar streams permite importar lo que sube el navegador sin escribir
+    nada en disco, que ademas evita tener que sanear rutas.
+    """
+    datos = json.load(origen) if hasattr(origen, "read") else json.loads(
+        Path(origen).read_text()
+    )
     return [
         Carrera(
             id=f"{FUENTE}:{c['id']}",
