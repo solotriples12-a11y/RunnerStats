@@ -51,21 +51,6 @@ def test_mejor_ritmo_coincide_con_el_calculo_directo(conn_real, crudo):
     assert abs(analisis.resumen(conn_real)["mejor_ritmo"] - mejor) < 1
 
 
-def test_records_por_banda(conn_real, crudo):
-    recs = {r["banda"]: r for r in analisis.records(conn_real)}
-    assert "5K" in recs and "10K" in recs
-    # La banda "Media" no existe: la carrera más larga son 14,99 km.
-    assert "Media" not in recs
-
-    for banda, lo, hi in (("5K", 5, 6), ("10K", 10, 11)):
-        esperado = min(
-            mrs.a_segundos(c["duration"]) / c["distance"]
-            for c in crudo if lo <= c["distance"] < hi
-        )
-        assert abs(recs[banda]["ritmo"] - esperado) < 1
-        assert lo * 1000 <= recs[banda]["distancia_metros"] < hi * 1000
-
-
 def test_volumen_por_anio_suma_el_total(conn_real, crudo):
     v = analisis.volumen(conn_real, "anio")
     assert round(sum(x["km"] for x in v), 1) == round(sum(c["distance"] for c in crudo), 1)
@@ -123,7 +108,7 @@ def test_resumen_vacio_no_revienta(tmp_path):
     r = analisis.resumen(c)
     assert r["carreras"] == 0 and r["metros"] == 0
     assert r["mejor_ritmo"] is None
-    assert analisis.records(c) == []
+    assert analisis.records_rodantes(c) == []
     assert analisis.volumen(c) == []
 
 
@@ -137,12 +122,20 @@ def test_la_linea_de_medianas_no_cruza_anios_vacios(conn_real):
     assert len(g["segmentos"]) + len(g["sueltos"]) > 1
 
 
-def test_los_records_traen_el_tiempo_real_de_la_carrera(conn_real, crudo):
-    """El tiempo mostrado es el de esa carrera, no una proyeccion."""
-    porid = {c["id"]: c for c in crudo}
-    for r in analisis.records(conn_real):
-        original = porid[r["id"].split(":", 1)[1]]
-        assert r["duracion_segundos"] == mrs.a_segundos(original["duration"])
-        # Y cuadra con ritmo x distancia.
-        assert abs(r["ritmo"] * r["distancia_metros"] / 1000
-                   - r["duracion_segundos"]) < 1
+def test_records_rodantes_salen_de_dentro_de_la_carrera(conn_real, nike_dir):
+    """El mejor 5K no exige que la carrera midiera 5 km."""
+    from runnerstats.importers import nike_tcx as nike
+    nike.importar(conn_real, str(nike_dir / "con-fc-y-gps.tcx"))
+
+    recs = {r["metros"]: r for r in analisis.records_rodantes(conn_real)}
+    assert 1000 in recs and 5000 in recs
+
+    for m, r in recs.items():
+        # El tramo cabe dentro de su carrera.
+        assert r["distancia_carrera"] >= m
+        # Y el ritmo es humano: el record del mundo de 1000 m son 2:11.
+        assert r["ritmo"] > 130, f"{m}: {r['ritmo']:.0f} s/km es imposible"
+        assert r["ritmo"] < 900
+
+    # Un tramo de 5 km nunca puede ser mas rapido que el mejor kilometro.
+    assert recs[5000]["ritmo"] >= recs[1000]["ritmo"]

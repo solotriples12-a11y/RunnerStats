@@ -9,17 +9,6 @@ rodante— viven fuera de este módulo porque aún no hay datos que los soporten
 import sqlite3
 from datetime import datetime, timedelta, timezone
 
-# Bandas de distancia para los récords. Un récord aquí es el mejor RITMO
-# dentro de la banda, no el mejor tiempo: las carreras de una banda no miden
-# lo mismo (5,0 y 5,9 km caen en la misma), así que comparar tiempos sería
-# comparar distancias distintas.
-BANDAS = (
-    ("3K", 3.0, 4.0),
-    ("5K", 5.0, 6.0),
-    ("10K", 10.0, 11.0),
-    ("Media", 21.0, 22.0),
-)
-
 _FILTRO_ANIO = "AND strftime('%Y', fecha_inicio_unix, 'unixepoch') = ?"
 
 
@@ -70,32 +59,6 @@ def resumen(conn: sqlite3.Connection, anio: int | None = None) -> dict:
         "desde": fila["desde"],
         "mejor_ritmo": mejor["ritmo"] if mejor else None,
     }
-
-
-def records(conn: sqlite3.Connection, anio: int | None = None) -> list[dict]:
-    """Mejor ritmo por banda de distancia.
-
-    Son récords POR CARRERA COMPLETA. El "mejor 5K extraído de cualquier
-    carrera" necesita distancia acumulada por muestreo y no se puede calcular
-    con estas fuentes.
-    """
-    filtro, params = _where(anio)
-    salida = []
-    for nombre, minimo, maximo in BANDAS:
-        fila = conn.execute(
-            f"""
-            SELECT id, fecha_inicio_unix, distancia_metros, duracion_segundos,
-                   duracion_segundos * 1000.0 / distancia_metros AS ritmo
-            FROM carrera
-            WHERE sustituida_por IS NULL
-              AND distancia_metros >= ? AND distancia_metros < ? {filtro}
-            ORDER BY ritmo LIMIT 1
-            """,
-            [minimo * 1000, maximo * 1000] + params,
-        ).fetchone()
-        if fila:
-            salida.append({"banda": nombre, **dict(fila)})
-    return salida
 
 
 MESES_CORTOS = ("ene", "feb", "mar", "abr", "may", "jun",
@@ -229,3 +192,47 @@ def ritmos(conn: sqlite3.Connection) -> list[dict]:
             """
         )
     ]
+
+
+def records_rodantes(conn: sqlite3.Connection, anio: int | None = None) -> list[dict]:
+    """Mejor 1K/5K/10K extraído de DENTRO de cualquier carrera.
+
+    Esto es lo que un corredor entiende por "mi mejor 5K": no hace falta que
+    la carrera midiera 5 km, basta con que en algún tramo los cubriera. Solo
+    aplica a las carreras con distancia acumulada; el resto no tiene con qué.
+
+    El barrido completo tarda ~0,3 s sobre las 296 carreras, así que se
+    calcula al vuelo en vez de mantener una tabla derivada.
+    """
+    from . import detalle
+
+    filtro, params = _where(anio)
+    ids = [r["id"] for r in conn.execute(
+        f"SELECT id FROM carrera WHERE sustituida_por IS NULL {filtro}", params)]
+
+    mejores: dict[int, dict] = {}
+    for cid in ids:
+        for metros, (segundos, inicio, _) in detalle.ventanas(
+                detalle.muestreos(conn, cid)).items():
+            actual = mejores.get(metros)
+            if actual is None or segundos < actual["segundos"]:
+                mejores[metros] = {"metros": metros, "segundos": segundos,
+                                   "carrera_id": cid, "inicio_unix": int(inicio)}
+
+    for m in mejores.values():
+        car = conn.execute(
+            "SELECT fecha_inicio_unix, distancia_metros FROM carrera WHERE id = ?",
+            (m["carrera_id"],)).fetchone()
+        m["fecha_inicio_unix"] = car["fecha_inicio_unix"]
+        m["distancia_carrera"] = car["distancia_metros"]
+        m["ritmo"] = m["segundos"] / (m["metros"] / 1000)
+
+    return [mejores[d] for d in detalle.DISTANCIAS if d in mejores]
+
+
+def carreras_con_muestreos(conn: sqlite3.Connection, anio: int | None = None) -> int:
+    filtro, params = _where(anio)
+    return conn.execute(
+        f"""SELECT COUNT(*) FROM carrera c WHERE c.sustituida_por IS NULL {filtro}
+            AND EXISTS (SELECT 1 FROM muestreo m WHERE m.carrera_id = c.id)""",
+        params).fetchone()[0]

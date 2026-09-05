@@ -105,3 +105,32 @@ def test_una_carrera_sin_muestreos_no_ofrece_series(tmp_path):
     assert detalle.ruta([]) == []
     assert graficas.ruta_svg([])["vacia"] is True
     assert graficas.linea_serie([], 0, 1)["vacia"] is True
+
+
+def test_la_ventana_rodante_interpola_el_arranque():
+    """Ritmo constante: cualquier ventana de 1 km debe dar el mismo tiempo."""
+    p = [(t, t * (1000 / 300)) for t in range(0, 1200)]   # 5:00/km
+    v = detalle.mejor_ventana(p, 1000)
+    assert v is not None
+    assert abs(v[0] - 300) < 1.0, v
+
+
+def test_no_hay_ventana_si_la_carrera_no_llega(conn_carrera):
+    conn, cid = conn_carrera
+    ms = detalle.muestreos(conn, cid)
+    assert detalle.mejor_ventana(detalle._con_distancia(ms), 50000) is None
+
+
+def test_los_saltos_imposibles_no_inventan_records():
+    """Un pico de GPS daba un "mejor kilometro" de 1:25, mas rapido que el
+    record del mundo. Se descuenta el tramo, no la carrera entera."""
+    # 600 s a 5:00/km, con un salto de 400 m en 1 s por el medio.
+    p, d = [], 0.0
+    for t in range(600):
+        d += 1000 / 300
+        if t == 300:
+            d += 400
+        p.append((t, d))
+    limpio = detalle._sin_saltos(p)
+    v = detalle.mejor_ventana(limpio, 1000)
+    assert v is not None and v[0] > 280, f"el salto se ha colado: {v}"

@@ -341,3 +341,6 @@ code {
 @media (max-width: 480px) {
     .splits { grid-template-columns: repeat(3, 1fr); }
 }
+
+.record { color: inherit; }
+.record:hover { border-color: var(--accent); text-decoration: none; }

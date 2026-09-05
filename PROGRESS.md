@@ -469,3 +469,27 @@ recorrido era cuadrado y dejaba media caja vacía.
 
 **Siguiente**: récords por ventana rodante, que ahora sí son calculables
 sobre 206 carreras con distancia acumulada fiable.
+
+---
+
+## 2026-09-05 — Récords por ventana rodante
+
+**Qué**: El mejor 1K/5K/10K extraído de dentro de cualquier carrera, no de
+carreras que midieran exactamente eso. Sustituye a los récords por banda, que
+eran el apaño provisional. Cada récord enlaza a su carrera.
+
+**Resultado**: 1K en 3:15, 5K en 20:21 (4:04/km) y 10K en 47:34 (4:45/km).
+Todos de 2012-2013.
+
+**Un dato falso cazado**: el primer cálculo dio un mejor kilómetro de 1:25,
+más rápido que el récord del mundo. Venía de picos aislados en los
+incrementos de Nike — 37 tramos por encima de 12 m/s en una carrera de 2018,
+con máximos de 79 km/h. Se descuentan esos tramos con el mismo umbral que ya
+se usaba para el GPS.
+
+**Verificado**: 84 tests (4 nuevos), incluido uno que mete un salto de 400 m
+en una serie sintética y comprueba que no se convierte en récord.
+
+**Limpieza**: eliminados `analisis.records()` y `BANDAS`, huérfanos tras el
+cambio. En el proceso borré de más y me cargué `AGRUPACIONES` y `_etiqueta`;
+lo detectaron 16 tests y se restauró desde git.

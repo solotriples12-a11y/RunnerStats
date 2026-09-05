@@ -115,3 +115,68 @@ def splits(ms) -> list[dict]:
 def ruta(ms) -> list[tuple[float, float]]:
     return [(m["latitud"], m["longitud"]) for m in ms
             if m["latitud"] is not None and m["longitud"] is not None]
+
+
+# Distancias para las que se busca la mejor ventana dentro de una carrera.
+DISTANCIAS = (1000, 5000, 10000)
+
+
+def _sin_saltos(puntos: list[tuple[int, float]]) -> list[tuple[int, float]]:
+    """Serie de distancia descontando los tramos imposibles.
+
+    Los incrementos de Nike traen picos aislados: en una carrera de 2018 hay
+    37 tramos por encima de 12 m/s, con maximos de 79 km/h. Sin descontarlos
+    el "mejor kilometro" salia en 1:25, mas rapido que el record del mundo.
+
+    Es raro (179 de 206 carreras no tienen ni uno) pero basta un pico para
+    inventar un record. Se usa el mismo umbral que para el GPS derivado.
+    """
+    if len(puntos) < 2:
+        return puntos
+    limpio = [(puntos[0][0], 0.0)]
+    acumulado = 0.0
+    for (t0, d0), (t1, d1) in zip(puntos, puntos[1:]):
+        paso = d1 - d0
+        if 0 <= paso <= geo.VELOCIDAD_ABSURDA * max(t1 - t0, 1):
+            acumulado += paso
+        limpio.append((t1, acumulado))
+    return limpio
+
+
+def mejor_ventana(puntos: list[tuple[int, float]], metros: float):
+    """Tramo más rápido que cubre `metros` dentro de una carrera.
+
+    Barrido de dos punteros sobre la distancia acumulada. El instante de
+    inicio se **interpola**: a 2,2 s de muestreo, empezar a contar en la
+    muestra más cercana mete varios segundos en un récord de 1 km.
+
+    Devuelve (segundos, inicio_unix, fin_unix) o None si la carrera no llega
+    a esa distancia.
+    """
+    if len(puntos) < 2 or puntos[-1][1] - puntos[0][1] < metros:
+        return None
+
+    mejor = None
+    i = 0
+    for j in range(1, len(puntos)):
+        tj, dj = puntos[j]
+        objetivo = dj - metros
+        while i + 1 < j and puntos[i + 1][1] <= objetivo:
+            i += 1
+        ti, di = puntos[i]
+        if di > objetivo:
+            continue
+        ti1, di1 = puntos[i + 1]
+        inicio = (ti + (ti1 - ti) * (objetivo - di) / (di1 - di)
+                  if di1 > di else ti)
+        segundos = tj - inicio
+        if segundos > 0 and (mejor is None or segundos < mejor[0]):
+            mejor = (segundos, inicio, tj)
+    return mejor
+
+
+def ventanas(ms) -> dict[int, tuple]:
+    """Mejor ventana de cada distancia dentro de una carrera."""
+    puntos = _sin_saltos(_con_distancia(ms))
+    return {m: v for m in DISTANCIAS
+            if (v := mejor_ventana(puntos, m)) is not None}

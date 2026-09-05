@@ -51,24 +51,26 @@
     </div>
 </section>
 
-{% if records %}
+{% if rodantes %}
 <section class="bloque">
     <h2>Récords</h2>
     <p class="sub">
-        Mejor ritmo por banda de distancia, calculado sobre la carrera
-        completa. El mejor 5K extraído de dentro de una carrera más larga
-        necesita muestreos y llegará con los <code>.fit</code>.
+        El mejor tramo de cada distancia extraído de <em>dentro</em> de
+        cualquier carrera: no hace falta que midiera 5 km, basta con que en
+        algún momento los cubriera. Calculado sobre las {{ con_detalle }}
+        carreras con muestreos.
     </p>
     <div class="records">
-        {% for r in records %}
-        <div class="record">
-            <span class="record-banda">{{ r.banda }}</span>
-            <span class="record-tiempo">{{ r.duracion_segundos | duracion }}</span>
+        {% for r in rodantes %}
+        <a class="record" href="{{ url_for('carrera', carrera_id=r.carrera_id) }}">
+            <span class="record-banda">{{ r.metros // 1000 }}K</span>
+            <span class="record-tiempo">{{ r.segundos | duracion }}</span>
+            <span class="record-ctx">{{ r.ritmo | ritmo }}/km</span>
             <span class="record-ctx">
-                {{ r.ritmo | ritmo }}/km · {{ r.distancia_metros | km }} km
+                {{ r.fecha_inicio_unix | fecha }} ·
+                carrera de {{ r.distancia_carrera | km }} km
             </span>
-            <span class="record-ctx">{{ r.fecha_inicio_unix | fecha }}</span>
-        </div>
+        </a>
         {% endfor %}
     </div>
 </section>

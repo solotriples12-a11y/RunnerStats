@@ -503,3 +503,34 @@ correlación que no está en los datos.
 - La página se adapta a lo que hay: de las 296 visibles, 206 tienen ritmo y
   parciales, 158 recorrido y 98 pulso. Una carrera de cinta con pulsómetro
   tiene 855 puntos de FC y ni GPS ni distancia.
+
+---
+
+## 2026-09-05 — Récords por ventana rodante
+
+**Contexto**: Los récords eran "mejor ritmo de una carrera dentro de una banda
+de distancia", un apaño mientras no había distancia acumulada fiable. Con 206
+carreras que ya la tienen, se puede calcular lo que un corredor entiende de
+verdad por "mi mejor 5K": el tramo más rápido de esa distancia extraído de
+dentro de cualquier carrera.
+
+**Decisión**: barrido de dos punteros sobre la distancia acumulada,
+**interpolando** el instante de arranque. A 2,2 s de muestreo, empezar a
+contar en la muestra más cercana mete varios segundos en un récord de 1 km.
+
+Se calcula al vuelo: el barrido completo tarda 0,27 s sobre las 296 carreras,
+así que no compensa mantener una tabla derivada.
+
+**Trampa encontrada**: el primer resultado dio un mejor kilómetro de **1:25**,
+más rápido que el récord del mundo. La causa son picos aislados en los
+incrementos de Nike: una carrera de 2018 tiene 37 tramos por encima de 12 m/s,
+con máximos de 79 km/h. Es raro (179 de 206 carreras no tienen ninguno) pero
+basta un pico para inventar un récord.
+
+Se descuenta la distancia de los tramos imposibles usando el mismo umbral que
+ya se aplicaba al GPS derivado. Con eso los récords quedan en 1K 3:15, 5K
+20:21 (4:04/km) y 10K 47:34 (4:45/km), todos de 2012-2013 y todos plausibles.
+
+**Consecuencias**: se elimina `analisis.records()` y las bandas de distancia,
+que quedan superseded. Los récords solo cubren las carreras con muestreos, y
+la UI lo dice.
