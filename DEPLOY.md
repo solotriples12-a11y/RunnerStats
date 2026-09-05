@@ -82,10 +82,30 @@ tocar el servidor: el fichero se lee en memoria y nunca se escribe en disco.
 Los `.fit` del Amazfit se pueden seleccionar, pero de momento el importador
 avisa de que aún no hay parser para ellos.
 
-## Cambios futuros
+## Cambios futuros: auto-deploy
 
 Push a `main` → Coolify reconstruye y redespliega. El volumen no se toca, así
 que los datos sobreviven.
+
+El webhook está dado de alta en el repo (id `674567388`, evento `push`,
+content-type JSON) apuntando a
+`https://coolify.javimendoza.com/webhooks/source/github/events/manual`.
+
+**Marcar "auto-deploy" en Coolify no basta**: un repo público necesita el
+webhook creado a mano en GitHub Y el *Webhook secret* de Coolify copiado al
+campo Secret del webhook. Sin el secreto, Coolify recibe el envío y lo
+descarta.
+
+**Trampa al verificarlo**: GitHub marca la entrega en verde con 200 OK aunque
+Coolify la haya descartado. El 200 no prueba nada. La única comprobación
+válida es mirar si el sitio cambia:
+
+```bash
+curl -s -u usuario:CONTRASEÑA https://run.javimendoza.com/ | grep -o 'algo-nuevo-del-commit'
+```
+
+Si hay que desplegar a mano: Coolify → la aplicación → **Actions → Deploy**.
+La sesión del panel caduca, así que puede pedir login otra vez.
 
 ## Desarrollo local
 
