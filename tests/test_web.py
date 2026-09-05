@@ -280,3 +280,18 @@ def test_la_duracion_lleva_su_unidad_mayor(cliente):
     html = cliente.get("/carrera/my_run_stats:aaaa-1111",
                        headers=_cabecera(PASSWORD)).get_data(as_text=True)
     assert '<span class="uni">min</span>' in html
+
+
+def test_los_records_llevan_el_ritmo_junto_al_tiempo(cliente_vacio, nike_dir):
+    from runnerstats import dedup
+    from runnerstats.importers import nike_tcx as nike
+    conn = db.conectar(webapp.RUTA_DB)
+    nike.importar(conn, str(nike_dir / "con-fc-y-gps.tcx"))
+    dedup.marcar_duplicadas(conn)
+    conn.close()
+
+    html = cliente_vacio.get("/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
+    assert 'class="record-linea"' in html
+    # Tiempo y ritmo en el mismo contenedor, no en lineas separadas.
+    bloque = html.split('class="record-linea"')[1].split("</span>\n            </span>")[0]
+    assert "record-tiempo" in bloque and "record-ritmo" in bloque

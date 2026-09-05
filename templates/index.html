@@ -58,8 +58,10 @@
         {% for r in rodantes %}
         <a class="record" href="{{ url_for('carrera', carrera_id=r.carrera_id) }}">
             <span class="record-banda">{{ r.metros // 1000 }}K</span>
-            <span class="record-tiempo">{{ r.segundos | duracion }}</span>
-            <span class="record-ctx">{{ r.ritmo | ritmo }}/km</span>
+            <span class="record-linea">
+                <span class="record-tiempo">{{ r.segundos | duracion }}</span>
+                <span class="record-ritmo">{{ r.ritmo | ritmo }}<small>/km</small></span>
+            </span>
             <span class="record-ctx">
                 {{ r.fecha_inicio_unix | fecha }} ·
                 carrera de {{ r.distancia_carrera | km }} km

@@ -243,7 +243,14 @@ code {
     border-radius: 10px;
 }
 .record-banda { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.record-linea { display: flex; align-items: baseline; gap: 0.5rem; }
 .record-tiempo { font-size: 1.35rem; font-family: var(--mono-stack); }
+.record-ritmo {
+    font-family: var(--mono-stack);
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+.record-ritmo small { font-size: 0.75em; }
 .record-ctx { font-size: 0.75rem; color: var(--text-muted); }
 
 /* ---------- Gráficas ---------- */
