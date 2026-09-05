@@ -143,7 +143,8 @@
     <h2>{% if anio %}Carreras de {{ anio }}{% else %}Todas las carreras{% endif %}</h2>
     <div class="run-list">
         {% for c in carreras %}
-        <article class="run-card{% if c.tiene_detalle %} has-detail{% endif %}">
+        <a class="run-card{% if c.tiene_detalle %} has-detail{% endif %}"
+           href="{{ url_for('carrera', carrera_id=c.id) }}">
             <div class="run-date">{{ c.fecha_inicio_unix | fecha }}</div>
             <div class="run-metrics">
                 <span class="metric primary">{{ c.distancia_metros | km }} km</span>
@@ -156,7 +157,7 @@
             {% if c.tiene_detalle %}
             <span class="badge" title="Tiene muestreos segundo a segundo">detalle</span>
             {% endif %}
-        </article>
+        </a>
         {% endfor %}
     </div>
 </section>

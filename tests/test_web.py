@@ -224,3 +224,11 @@ def test_detalle_completo(cliente_vacio, nike_dir):
     for seccion in ("Ritmo", "Frecuencia cardíaca", "Recorrido", "Parciales"):
         assert seccion in html, f"falta la seccion {seccion}"
     assert "solo tiene resumen" not in html
+
+
+def test_la_lista_enlaza_al_detalle(cliente):
+    """Se colo una vez: la sustitucion en la plantilla no coincidio por la
+    indentacion y fallo en silencio, dejando las tarjetas sin enlace."""
+    html = cliente.get("/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
+    assert 'href="/carrera/' in html
+    assert "<article class=\"run-card" not in html
