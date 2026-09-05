@@ -184,37 +184,35 @@ def records_rodantes(conn: sqlite3.Connection, anio: int | None = None) -> list[
     """Mejor 1K/5K/10K extraído de DENTRO de cualquier carrera.
 
     Esto es lo que un corredor entiende por "mi mejor 5K": no hace falta que
-    la carrera midiera 5 km, basta con que en algún tramo los cubriera. Solo
-    aplica a las carreras con distancia acumulada; el resto no tiene con qué.
+    la carrera midiera 5 km, basta con que en algún tramo los cubriera.
 
-    El barrido completo tarda ~0,3 s sobre las 296 carreras, así que se
-    calcula al vuelo en vez de mantener una tabla derivada.
+    Lee de `record_ventana`, que se rellena al importar. Calcularlo al vuelo
+    costaba 300 ms por visita.
     """
     from . import detalle
 
     filtro, params = _where(anio)
-    ids = [r["id"] for r in conn.execute(
-        f"SELECT id FROM carrera WHERE sustituida_por IS NULL {filtro}", params)]
+    filas = conn.execute(
+        f"""
+        SELECT r.metros, r.segundos, r.carrera_id,
+               c.fecha_inicio_unix, c.distancia_metros AS distancia_carrera,
+               MIN(r.segundos) OVER (PARTITION BY r.metros) AS mejor
+        FROM record_ventana r
+        JOIN carrera c ON c.id = r.carrera_id
+        WHERE c.sustituida_por IS NULL {filtro}
+        """,
+        params,
+    ).fetchall()
 
-    mejores: dict[int, dict] = {}
-    for cid in ids:
-        car = detalle.carrera(conn, cid)
-        for metros, (segundos, inicio, _) in detalle.ventanas(
-                detalle.muestreos(conn, cid), car).items():
-            actual = mejores.get(metros)
-            if actual is None or segundos < actual["segundos"]:
-                mejores[metros] = {"metros": metros, "segundos": segundos,
-                                   "nombre": detalle.NOMBRES[metros],
-                                   "carrera_id": cid, "inicio_unix": int(inicio)}
-
-    for m in mejores.values():
-        car = conn.execute(
-            "SELECT fecha_inicio_unix, distancia_metros FROM carrera WHERE id = ?",
-            (m["carrera_id"],)).fetchone()
-        m["fecha_inicio_unix"] = car["fecha_inicio_unix"]
-        m["distancia_carrera"] = car["distancia_metros"]
-        m["ritmo"] = m["segundos"] / (m["metros"] / 1000)
-
+    mejores = {}
+    for f in filas:
+        if f["segundos"] != f["mejor"]:
+            continue
+        if f["metros"] not in mejores:
+            mejores[f["metros"]] = {
+                **dict(f), "nombre": detalle.NOMBRES[f["metros"]],
+                "ritmo": f["segundos"] / (f["metros"] / 1000),
+            }
     return [mejores[d] for d in detalle.DISTANCIAS if d in mejores]
 
 

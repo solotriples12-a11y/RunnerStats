@@ -36,3 +36,17 @@ CREATE TABLE IF NOT EXISTS muestreo (
     longitud                    REAL,
     PRIMARY KEY (carrera_id, timestamp_unix)
 );
+
+-- Mejor ventana de cada distancia dentro de cada carrera. Es una tabla
+-- derivada: recorrer los 222.000 muestreos en cada visita costaba 300 ms.
+-- Se recalcula al importar.
+CREATE TABLE IF NOT EXISTS record_ventana (
+    carrera_id   TEXT    NOT NULL
+        REFERENCES carrera (id) ON DELETE CASCADE,
+    metros       INTEGER NOT NULL,
+    segundos     REAL    NOT NULL,
+    inicio_unix  INTEGER NOT NULL,
+    PRIMARY KEY (carrera_id, metros)
+);
+
+CREATE INDEX IF NOT EXISTS idx_record_metros ON record_ventana (metros, segundos);

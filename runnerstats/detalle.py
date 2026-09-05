@@ -291,3 +291,24 @@ def ventanas(ms, carrera=None) -> dict[int, tuple]:
     puntos = _sin_saltos(en_movimiento(_con_distancia(ms, carrera)))
     return {m: v for m in DISTANCIAS
             if (v := mejor_ventana(puntos, m)) is not None}
+
+
+def recalcular_records(conn) -> int:
+    """Rellena `record_ventana` para todas las carreras. Devuelve cuántas
+    ventanas se guardaron.
+
+    Recorrer los muestreos en cada visita costaba 300 ms de los 306 que
+    tardaba la portada. Los récords solo cambian al importar, así que se
+    calculan ahí.
+    """
+    conn.execute("DELETE FROM record_ventana")
+    filas = []
+    for car in conn.execute("SELECT * FROM carrera").fetchall():
+        for metros, (segundos, inicio, _) in ventanas(
+                muestreos(conn, car["id"]), car).items():
+            filas.append((car["id"], metros, segundos, int(inicio)))
+    conn.executemany(
+        "INSERT INTO record_ventana (carrera_id, metros, segundos, inicio_unix)"
+        " VALUES (?,?,?,?)", filas)
+    conn.commit()
+    return len(filas)

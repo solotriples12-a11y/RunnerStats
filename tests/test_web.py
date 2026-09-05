@@ -6,7 +6,7 @@ import io
 import pytest
 
 import app as webapp
-from runnerstats import db
+from runnerstats import db, detalle
 from runnerstats.importers import my_run_stats as mrs
 
 PASSWORD = "secreto-de-prueba"
@@ -255,6 +255,7 @@ def test_los_records_llevan_el_ritmo_junto_al_tiempo(cliente_vacio, nike_dir):
     conn = db.conectar(webapp.RUTA_DB)
     nike.importar(conn, str(nike_dir / "con-fc-y-gps.tcx"))
     dedup.marcar_duplicadas(conn)
+    detalle.recalcular_records(conn)
     conn.close()
 
     html = cliente_vacio.get("/").get_data(as_text=True)
@@ -279,6 +280,7 @@ def test_la_carrera_mas_larga_abre_los_records(cliente_vacio, nike_dir):
     conn = db.conectar(webapp.RUTA_DB)
     nike.importar(conn, str(nike_dir / "con-fc-y-gps.tcx"))
     dedup.marcar_duplicadas(conn)
+    detalle.recalcular_records(conn)
     conn.close()
 
     html = cliente_vacio.get("/").get_data(as_text=True)

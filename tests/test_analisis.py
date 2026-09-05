@@ -115,9 +115,11 @@ def test_la_linea_de_medianas_no_cruza_anios_vacios(conn_real):
 
 def test_records_rodantes_salen_de_dentro_de_la_carrera(conn_real, nike_dir):
     """El mejor 5K no exige que la carrera midiera 5 km."""
+    from runnerstats import detalle
     from runnerstats.importers import nike_tcx as nike
     nike.importar(conn_real, str(nike_dir / "con-fc-y-gps.tcx"))
 
+    detalle.recalcular_records(conn_real)
     recs = {r["metros"]: r for r in analisis.records_rodantes(conn_real)}
     assert 1000 in recs and 5000 in recs
 
@@ -174,6 +176,7 @@ def test_ningun_record_es_mas_rapido_de_lo_que_permite_su_carrera(conn_real, nik
         except Exception:
             pass
     dedup.marcar_duplicadas(conn_real)
+    detalle.recalcular_records(conn_real)
 
     for r in analisis.records_rodantes(conn_real):
         car = detalle.carrera(conn_real, r["carrera_id"])

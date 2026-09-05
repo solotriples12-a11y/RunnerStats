@@ -15,6 +15,7 @@ def conectar(ruta: str | Path) -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(ESQUEMA.read_text())
     _migrar(conn)
+    _rellenar_records(conn)
     return conn
 
 
@@ -29,3 +30,19 @@ def _migrar(conn: sqlite3.Connection) -> None:
         if col not in existentes:
             conn.execute(f"ALTER TABLE carrera ADD COLUMN {col} {tipo}")
     conn.commit()
+
+
+def _rellenar_records(conn: sqlite3.Connection) -> None:
+    """Rellena `record_ventana` la primera vez que se abre una base que ya
+    tenía muestreos.
+
+    La tabla es nueva; sin esto, una base ya existente (la de producción) se
+    quedaría sin récords hasta la siguiente importación.
+    """
+    hay_muestreos = conn.execute("SELECT 1 FROM muestreo LIMIT 1").fetchone()
+    if not hay_muestreos:
+        return
+    if conn.execute("SELECT 1 FROM record_ventana LIMIT 1").fetchone():
+        return
+    from . import detalle
+    detalle.recalcular_records(conn)

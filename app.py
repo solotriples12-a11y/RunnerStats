@@ -192,7 +192,10 @@ def importar():
 
     conn = get_db()
     resultados = [_importar_uno(conn, f) for f in ficheros]
-    fusiones = dedup.marcar_duplicadas(conn) if any(r[1] for r in resultados) else []
+    hubo_cambios = any(r[1] for r in resultados)
+    fusiones = dedup.marcar_duplicadas(conn) if hubo_cambios else []
+    if hubo_cambios:
+        detalle.recalcular_records(conn)
     return render_template("importar.html", resultados=resultados,
                            fusiones=len(fusiones))
 
