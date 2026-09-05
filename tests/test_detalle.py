@@ -178,29 +178,53 @@ def test_el_pulso_no_se_oculta_por_ser_estable():
     assert graficas.linea_serie(estable, 0, 299)["vacia"] is False
 
 
-def test_se_descarta_la_distancia_que_no_cubre_la_carrera():
-    """Visto en 2 de 206 carreras: Nike escribio distancia cada 10 s hasta el
-    segundo 850 y luego dejo de hacerlo, atribuyendo a ese tramo los 4282 m
-    completos. Derivar ritmo de ahi daba 3:19/km con una media real de 4:47."""
-    paso = 1000 / 300
-    ms = []
-    for t in range(1200):
-        # Distancia solo en los primeros 700 s, pero la carrera dura 1200.
-        d = t * paso if t <= 700 else None
-        ms.append({"timestamp_unix": t, "distancia_acumulada_metros": d,
+def _serie(metros_por_punto, n, carrera_km=None, carrera_s=None, hueco_en=None):
+    """Muestreos sinteticos a 1 Hz, opcionalmente con un hueco sin distancia."""
+    ms, d = [], 0.0
+    for t in range(n):
+        hay = not (hueco_en and hueco_en[0] <= t < hueco_en[1])
+        if hay:
+            d += metros_por_punto
+        ms.append({"timestamp_unix": t,
+                   "distancia_acumulada_metros": d if hay else None,
                    "latitud": None, "longitud": None, "frecuencia_cardiaca": None})
-    assert detalle._con_distancia(ms) == []
-    assert detalle.serie_ritmo(ms) == []
-    assert detalle.splits(ms) == []
-    assert detalle.ventanas(ms) == {}
+    car = None
+    if carrera_km is not None:
+        car = {"distancia_metros": carrera_km * 1000,
+               "duracion_segundos": carrera_s if carrera_s else n}
+    return ms, car
 
 
-def test_una_serie_que_si_cubre_la_carrera_se_acepta():
+def test_se_descarta_la_serie_con_un_hueco_interior():
+    """Caso real: 890 s seguidos sin distancia en una carrera de 2400, con los
+    incrementos concentrados en el tramo con datos. El acumulado llegaba a
+    5 km en 1230 s cuando la app de Nike marcaba 2093."""
+    ms, car = _serie(3.3, 2400, carrera_km=7.9, carrera_s=2400, hueco_en=(800, 1690))
+    assert detalle._con_distancia(ms, car) == []
+    assert detalle.serie_ritmo(ms, car) == []
+    assert detalle.splits(ms, car) == []
+    assert detalle.ventanas(ms, car) == {}
+
+
+def test_se_descarta_la_serie_que_no_suma_la_distancia_declarada():
+    """Vista una serie que solo sumaba el 36 % de los metros de su carrera."""
+    ms, car = _serie(3.3, 1000, carrera_km=9.0)   # la serie da 3,3 km
+    assert detalle._con_distancia(ms, car) == []
+
+
+def test_se_descarta_la_serie_mas_larga_que_la_carrera():
+    """Vista una serie de 2822 s para una carrera que declara 1932."""
+    ms, car = _serie(3.3, 2800, carrera_km=9.24, carrera_s=1900)
+    assert detalle._con_distancia(ms, car) == []
+
+
+def test_una_serie_coherente_con_su_carrera_se_acepta():
     paso = 1000 / 300
+    ms, car = _serie(paso, 1200, carrera_km=1200 * paso / 1000, carrera_s=1200)
+    assert len(detalle._con_distancia(ms, car)) == 1200
     ms = [{"timestamp_unix": t, "distancia_acumulada_metros": t * paso,
            "latitud": None, "longitud": None, "frecuencia_cardiaca": None}
           for t in range(1200)]
-    assert len(detalle._con_distancia(ms)) == 1200
     assert detalle.ventanas(ms)[1000][0] == pytest.approx(300, abs=1)
 
 

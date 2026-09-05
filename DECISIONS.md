@@ -559,13 +559,14 @@ récords por ventana rodante para esa carrera; el resumen se sigue mostrando.
 
 **Consecuencias**: afecta a 2 de 206 carreras. El 3K falso desaparece.
 
-**Queda un caso ambiguo sin resolver**: la carrera del 2012-03-13 (5,62 km en
-2402 s, media 7:07/km) tiene puntos de distancia en toda su duración, así que
-pasa la validación, pero concentra 5023 m en los primeros 1230 s y luego cae a
-7-8 min/km. De ahí salen los récords de 1K, 3K y 5K. Puede ser real —correr
-fuerte y luego parar— o GPS inflado al principio. No hay pulso en 2012 con el
-que contrastar. Se deja como está y se avisa al usuario, que es quien puede
-saber si aquel día corrió una carrera.
+**El caso del 2012-03-13 quedó resuelto y NO era ambiguo**: el usuario mostró
+la carrera en la propia app de Nike, con parciales 5'27" 5'51" 5'18" 10'11"
+8'06" y media de 7'08"/km. El 5K real es 34:53, no los 20:21 que mostrábamos.
+Investigado el fichero: tenía **890 s seguidos sin ningún punto de distancia**
+en medio, y los incrementos, que suman bien el total, se concentraban en el
+tramo con datos. La validación por span no lo detectaba porque los puntos
+llegaban de principio a fin. Ver la entrada del 2026-09-05 sobre validación
+contra el resumen.
 
 ---
 
@@ -575,3 +576,41 @@ saber si aquel día corrió una carrera.
 No aparecen hasta que alguna carrera las cubra, porque `mejor_ventana`
 devuelve None si la carrera no llega a la distancia. Así el panel las añade
 solo el día que se corran, sin tocar código.
+
+---
+
+## 2026-09-05 — La serie de distancia se valida contra el resumen de la carrera
+
+**Contexto**: Un récord de 5K salió en 20:21 (4:04/km) dentro de una carrera
+cuya media es 7:08/km. El usuario lo contrastó con la propia app de Nike: los
+parciales reales son 5'27", 5'51", 5'18", 10'11" y 8'06", o sea un 5K de
+34:53. Nuestro dato era falso.
+
+**Principio que faltaba**: el **resumen** de una carrera (distancia y
+duración) es fiable — coincide con lo que muestra Nike. La **serie punto a
+punto no siempre lo es**, y hasta ahora se usaba sin contrastarla contra nada.
+
+**Tres modos de fallo encontrados en el export**:
+1. **Huecos interiores**: 890 s seguidos sin ningún punto de distancia en una
+   carrera de 2400. Los incrementos suman el total correcto pero se concentran
+   en el tramo con datos, así que el acumulado llegaba a 5 km en 1230 s.
+2. **Distancia incompleta**: una serie que solo sumaba el 36 % de los metros
+   declarados, lo que daba parciales demasiado lentos.
+3. **Línea temporal más larga que la carrera**: 2822 s de muestras para una
+   carrera que declara 1932.
+
+**Decisión**: `_serie_fiable()` valida la serie contra el resumen antes de
+usarla. Debe cubrir ≥85 % de la duración sin huecos de más de 30 s, sumar la
+distancia declarada con ±10 % y ocupar la duración declarada con ±15 %. Si no
+la pasa, se intenta derivar del GPS; si tampoco, esa carrera se queda sin
+ritmo, parciales ni récords, pero conserva su resumen.
+
+**Consecuencias**: de 267 carreras con muestreos, 180 tienen serie fiable
+(antes se usaban 202, 22 de ellas mal). Auditadas las 180: desviación mediana
+−0,1 % frente a su propio resumen, **ninguna fuera del ±13 %** y 168 dentro del
+±5 %. Los récords quedan en 1K 4:00, 3K 12:38, 5K 22:17 y 10K 47:34, todos
+algo más rápidos que la media de su carrera, que es lo esperable.
+
+**Lección de método**: la validación anterior miraba solo el *span* de la
+serie (primer y último punto). Pasaba con un agujero de 890 s en medio. Una
+comprobación de extremos no dice nada sobre lo que hay dentro.

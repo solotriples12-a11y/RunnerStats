@@ -171,7 +171,7 @@ def carrera(carrera_id):
 
     if ms:
         t0, t1 = ms[0]["timestamp_unix"], ms[-1]["timestamp_unix"]
-        serie = [{"t": x["t"], "v": x["ritmo"]} for x in detalle.serie_ritmo(ms)]
+        serie = [{"t": x["t"], "v": x["ritmo"]} for x in detalle.serie_ritmo(ms, car)]
         # El ritmo se invierte: mas rapido, mas arriba.
         ctx["ritmo"] = graficas.linea_serie(serie, t0, t1, invertir=True,
                                             formato=f_ritmo)
@@ -184,7 +184,7 @@ def carrera(carrera_id):
             formato=lambda v: f"{v:.0f} m",
             rango_minimo=graficas.RANGO_MINIMO["altitud_metros"])
         ctx["ruta"] = graficas.ruta_svg(detalle.ruta(ms))
-        ctx["splits"] = detalle.splits(ms)
+        ctx["splits"] = detalle.splits(ms, car)
 
     # Media y maxima acompañan al titulo de su grafica en vez de ocupar
     # tarjetas propias.

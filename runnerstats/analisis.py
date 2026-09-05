@@ -212,8 +212,9 @@ def records_rodantes(conn: sqlite3.Connection, anio: int | None = None) -> list[
 
     mejores: dict[int, dict] = {}
     for cid in ids:
+        car = detalle.carrera(conn, cid)
         for metros, (segundos, inicio, _) in detalle.ventanas(
-                detalle.muestreos(conn, cid)).items():
+                detalle.muestreos(conn, cid), car).items():
             actual = mejores.get(metros)
             if actual is None or segundos < actual["segundos"]:
                 mejores[metros] = {"metros": metros, "segundos": segundos,

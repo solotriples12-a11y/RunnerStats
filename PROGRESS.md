@@ -666,3 +666,32 @@ muestreos cubriendo los 1218 s, con la acumulada cerrando exacta.
 **Verificado**: 96 tests (3 nuevos), incluido uno que construye una serie que
 se corta a los 700 s de 1200 y exige que no salga ni ritmo, ni parciales, ni
 récords.
+
+---
+
+## 2026-09-05 — Récords falsos: la serie de distancia no se validaba contra el resumen
+
+**Qué pasó**: El usuario contrastó un récord con la app de Nike y no cuadraba.
+Mostrábamos un 5K de 20:21 (4:04/km) en una carrera cuya media es 7:08/km. El
+5K real, sumando los parciales que da Nike, es 34:53.
+
+**Causa**: se usaba la serie de distancia punto a punto sin contrastarla con
+nada. En esa carrera había **890 s seguidos sin un solo punto de distancia**,
+y los incrementos —que suman bien el total— se concentraban en el tramo con
+datos. La validación que había miraba solo el span de la serie, así que un
+agujero en medio pasaba desapercibido.
+
+**Arreglo**: la serie se valida ahora contra el resumen de la carrera, que sí
+es fiable. Tres criterios: cubrir ≥85 % de la duración sin huecos de más de
+30 s, sumar la distancia declarada ±10 % y ocupar la duración declarada ±15 %.
+
+**Alcance del error**: de 267 carreras con muestreos se usaban 202; **22 de
+ellas tenían la serie mal**. Ahora se usan 180.
+
+**Verificado**: 100 tests. Dos son auditorías sobre el corpus real: que
+ninguna serie usada se desvíe más del 15 % del resumen de su carrera, y que
+ningún récord sea absurdamente más rápido que la media de la carrera de la
+que sale. Medido: desviación mediana −0,1 %, ninguna fuera del ±13 %.
+
+**Lección**: comprobar los extremos de una serie no dice nada de lo que hay
+en medio.

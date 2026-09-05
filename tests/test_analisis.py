@@ -169,3 +169,51 @@ def test_el_eje_de_anios_del_ritmo_tampoco_se_pisa(conn_real):
     xs = [e["x"] for e in g["ejex"]]
     assert xs == sorted(xs), "el eje sale en orden inverso"
     assert all(b - a >= ANCHO_ETIQUETA for a, b in zip(xs, xs[1:]))
+
+
+def test_ningun_record_es_mas_rapido_de_lo_que_permite_su_carrera(conn_real, nike_dir):
+    """La invariante que fallo: un record salio a 4:04/km dentro de una
+    carrera cuya media era 7:07/km, porque la serie de distancia mentia."""
+    import glob
+    from runnerstats import detalle, dedup
+    from runnerstats.importers import nike_tcx as nike
+    for f in glob.glob(str(nike_dir / "*.tcx")):
+        try:
+            nike.importar(conn_real, f)
+        except Exception:
+            pass
+    dedup.marcar_duplicadas(conn_real)
+
+    for r in analisis.records_rodantes(conn_real):
+        car = detalle.carrera(conn_real, r["carrera_id"])
+        media = car["duracion_segundos"] / (car["distancia_metros"] / 1000)
+        # Un tramo puede ser mas rapido que la media, pero no cinco veces.
+        assert r["ritmo"] > media * 0.55, (
+            f"{r['nombre']}: {r['ritmo']:.0f} s/km dentro de una carrera "
+            f"de media {media:.0f} s/km")
+
+
+def test_toda_serie_usada_concuerda_con_su_resumen(conn_real, nike_dir):
+    """Auditoria: si mostramos ritmo o parciales de una carrera, su serie de
+    distancia tiene que implicar el mismo ritmo que su resumen."""
+    import glob
+    from runnerstats import detalle
+    from runnerstats.importers import nike_tcx as nike
+    for f in glob.glob(str(nike_dir / "*.tcx")):
+        try:
+            nike.importar(conn_real, f)
+        except Exception:
+            pass
+
+    revisadas = 0
+    for car in conn_real.execute("SELECT * FROM carrera WHERE sustituida_por IS NULL"):
+        ms = detalle.muestreos(conn_real, car["id"])
+        p = detalle._con_distancia(ms, car) if ms else []
+        if len(p) < 3 or not car["duracion_segundos"]:
+            continue
+        revisadas += 1
+        serie = (p[-1][0] - p[0][0]) / ((p[-1][1] - p[0][1]) / 1000)
+        declarado = car["duracion_segundos"] / (car["distancia_metros"] / 1000)
+        assert abs(serie - declarado) / declarado <= 0.15, (
+            f"{car['id']}: serie {serie:.0f} s/km vs resumen {declarado:.0f} s/km")
+    assert revisadas > 0

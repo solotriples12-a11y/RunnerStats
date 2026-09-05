@@ -32,46 +32,85 @@ def muestreos(conn: sqlite3.Connection, carrera_id: str) -> list[sqlite3.Row]:
     ).fetchall()
 
 
-# Fraccion de la carrera que deben cubrir los puntos con distancia para que
-# la serie sirva de linea temporal.
+# Un intervalo mayor que esto entre dos puntos con distancia es un hueco:
+# el muestreo normal va de 1 a 10 s.
+HUECO_S = 30
+# Margenes contra el resumen de la carrera, que es el dato fiable.
 COBERTURA_MINIMA = 0.85
+TOLERANCIA_DISTANCIA = 0.10
+TOLERANCIA_DURACION = 0.15
 
 
-def _cubre_la_carrera(puntos, ms) -> bool:
-    """La serie de distancia debe abarcar casi toda la carrera.
+def _serie_fiable(puntos, ms, carrera) -> bool:
+    """¿Sirve la serie de distancia como linea temporal de la carrera?
 
-    Visto en 2 de 206 carreras: Nike escribio distancia cada 10 s hasta el
-    segundo 850 y luego dejo de hacerlo, pero atribuyo a ese tramo los 4282 m
-    completos. El resumen de la carrera sigue siendo fiable; su linea temporal
-    no. Derivar ritmo de ahi daba 3:19/km cuando la media real era 4:47.
+    El resumen (distancia y duracion) es fiable; la serie punto a punto no
+    siempre. Vistos tres modos de fallo distintos en el export de Nike:
+
+    - Huecos interiores: 890 s seguidos sin ningun punto en una carrera de
+      2400. Los incrementos suman bien el total pero se concentran en el
+      tramo con datos, y el acumulado llegaba a 5 km en 1230 s cuando la app
+      de Nike marca 2093. Salia un 5K de 20:21 donde el real es 34:53.
+    - Distancia incompleta: una serie que solo suma el 36 % de los metros.
+    - Linea temporal mas larga que la carrera: 2822 s de muestras para una
+      carrera de 1932.
+
+    Sin serie fiable no hay ritmo, ni parciales, ni records para esa carrera;
+    el resumen se sigue mostrando.
     """
-    duracion = ms[-1]["timestamp_unix"] - ms[0]["timestamp_unix"]
-    if duracion <= 0:
+    if len(puntos) < 3:
+        return False
+
+    span = puntos[-1][0] - puntos[0][0]
+    if span <= 0:
+        return False
+
+    # 1. Sin huecos: el tiempo realmente cubierto frente al de la carrera.
+    duracion = ms[-1]["timestamp_unix"] - ms[0]["timestamp_unix"] or span
+    cubierto = sum(b - a for (a, _), (b, _) in zip(puntos, puntos[1:])
+                   if b - a <= HUECO_S)
+    if cubierto / duracion < COBERTURA_MINIMA:
+        return False
+
+    if carrera is None:
         return True
-    return (puntos[-1][0] - puntos[0][0]) / duracion >= COBERTURA_MINIMA
+
+    # 2. La serie debe sumar los metros que declara la carrera.
+    declarada = carrera["distancia_metros"]
+    if declarada > 0:
+        if abs((puntos[-1][1] - puntos[0][1]) - declarada) / declarada > TOLERANCIA_DISTANCIA:
+            return False
+
+    # 3. Y ocupar el tiempo que declara la carrera.
+    dur = carrera["duracion_segundos"]
+    if dur > 0 and abs(span - dur) / dur > TOLERANCIA_DURACION:
+        return False
+
+    return True
 
 
-def _con_distancia(ms) -> list[tuple[int, float]]:
-    """Instantes con distancia acumulada, derivándola del GPS si hace falta.
+def _con_distancia(ms, carrera=None) -> list[tuple[int, float]]:
+    """Instantes con distancia acumulada, derivandola del GPS si hace falta.
 
     Nike escribe la distancia por punto en unas carreras y solo el total en
-    otras. Cuando falta pero hay traza, se deriva: es la misma técnica
-    validada con un 0,3 % de error, y sin ella estas carreras se quedarían
+    otras. Cuando falta pero hay traza, se deriva: es la misma tecnica
+    validada con un 0,3 % de error, y sin ella estas carreras se quedarian
     sin ritmo ni parciales pese a tener 800 puntos de GPS.
     """
     propia = [(m["timestamp_unix"], m["distancia_acumulada_metros"])
               for m in ms if m["distancia_acumulada_metros"] is not None]
-    if len(propia) > 2 and _cubre_la_carrera(propia, ms):
+    if _serie_fiable(propia, ms, carrera):
         return propia
 
     acum = geo.acumular([(m["timestamp_unix"], m["latitud"], m["longitud"])
                          for m in ms])
-    return sorted(acum.items())
+    derivada = sorted(acum.items())
+    return derivada if _serie_fiable(derivada, ms, carrera) else []
 
 
-def serie_ritmo(ms) -> list[dict]:
+def serie_ritmo(ms, carrera=None) -> list[dict]:
     """Ritmo en s/km sobre una ventana móvil, con su distancia y su instante."""
-    puntos = _con_distancia(ms)
+    puntos = _con_distancia(ms, carrera)
     if len(puntos) < 2:
         return []
 
@@ -99,14 +138,14 @@ def serie(ms, campo: str) -> list[dict]:
             for m in ms if m[campo] is not None]
 
 
-def splits(ms) -> list[dict]:
+def splits(ms, carrera=None) -> list[dict]:
     """Parciales por kilómetro completo, con la FC media de cada tramo.
 
     Interpola el instante exacto de cada corte en vez de quedarse con la
     muestra más cercana: a 2,2 s de muestreo, redondear mete varios segundos
     de error en cada kilómetro.
     """
-    puntos = _con_distancia(ms)
+    puntos = _con_distancia(ms, carrera)
     if len(puntos) < 2:
         return []
 
@@ -208,8 +247,8 @@ def mejor_ventana(puntos: list[tuple[int, float]], metros: float):
     return mejor
 
 
-def ventanas(ms) -> dict[int, tuple]:
+def ventanas(ms, carrera=None) -> dict[int, tuple]:
     """Mejor ventana de cada distancia dentro de una carrera."""
-    puntos = _sin_saltos(_con_distancia(ms))
+    puntos = _sin_saltos(_con_distancia(ms, carrera))
     return {m: v for m in DISTANCIAS
             if (v := mejor_ventana(puntos, m)) is not None}
