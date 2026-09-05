@@ -334,3 +334,28 @@ def test_los_records_llevan_el_ritmo_junto_al_tiempo(cliente_vacio, nike_dir):
     # Tiempo y ritmo en el mismo contenedor, no en lineas separadas.
     bloque = html.split('class="record-linea"')[1].split("</span>\n            </span>")[0]
     assert "record-tiempo" in bloque and "record-ritmo" in bloque
+
+
+def test_la_portada_solo_tiene_tres_tarjetas(cliente):
+    html = cliente.get("/").get_data(as_text=True)
+    assert html.count('class="tile"') == 3
+    for etiqueta in ("Carreras", "Kilómetros", "Media por carrera"):
+        assert etiqueta in html
+    for fuera in ("Mejor ritmo", "FC media"):
+        assert fuera not in html
+
+
+def test_la_carrera_mas_larga_abre_los_records(cliente_vacio, nike_dir):
+    from runnerstats import dedup
+    from runnerstats.importers import nike_tcx as nike
+    conn = db.conectar(webapp.RUTA_DB)
+    nike.importar(conn, str(nike_dir / "con-fc-y-gps.tcx"))
+    dedup.marcar_duplicadas(conn)
+    conn.close()
+
+    html = cliente_vacio.get("/").get_data(as_text=True)
+    bloque = html.split('class="records"')[1]
+    assert "Más larga" in bloque
+    # Y va antes que cualquier record de distancia.
+    assert bloque.index("Más larga") < bloque.index(">1K<")
+    assert ">3K<" not in bloque

@@ -236,7 +236,7 @@ def test_media_y_maraton_solo_salen_si_se_cubren():
               "latitud": None, "longitud": None, "frecuencia_cardiaca": None}
              for t in range(1800)]          # 6 km
     v = detalle.ventanas(corta)
-    assert set(v) == {1000, 3000, 5000}
+    assert set(v) == {1000, 5000}
     assert 21097 not in v and 42195 not in v
 
 

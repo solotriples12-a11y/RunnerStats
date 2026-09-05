@@ -23,27 +23,12 @@
 
 <section class="tiles">
     <div class="tile">
-        <span class="tile-lab">Kilómetros</span>
-        <span class="tile-val">{{ resumen.metros | km }}<small>km</small></span>
-    </div>
-    <div class="tile">
         <span class="tile-lab">Carreras</span>
         <span class="tile-val">{{ resumen.carreras }}</span>
     </div>
     <div class="tile">
-        <span class="tile-lab">Tiempo</span>
-        <span class="tile-val">{{ (resumen.segundos / 3600) | round(1) }}<small>h</small></span>
-    </div>
-    <div class="tile">
-        <span class="tile-lab">Mejor ritmo</span>
-        <span class="tile-val">
-            {%- if resumen.mejor_ritmo %}{{ resumen.mejor_ritmo | ritmo }}<small>/km</small>
-            {%- else %}—{% endif -%}
-        </span>
-    </div>
-    <div class="tile">
-        <span class="tile-lab">Carrera más larga</span>
-        <span class="tile-val">{{ resumen.mas_larga | km }}<small>km</small></span>
+        <span class="tile-lab">Kilómetros</span>
+        <span class="tile-val">{{ resumen.metros | km }}<small>km</small></span>
     </div>
     <div class="tile">
         <span class="tile-lab">Media por carrera</span>
@@ -51,10 +36,22 @@
     </div>
 </section>
 
-{% if rodantes %}
+{% if rodantes or mas_larga %}
 <section class="bloque">
     <h2>Récords</h2>
     <div class="records">
+        {% if mas_larga %}
+        <a class="record" href="{{ url_for('carrera', carrera_id=mas_larga.id) }}">
+            <span class="record-cab">
+                <span class="record-banda">Más larga</span>
+                <span class="record-ctx">{{ mas_larga.fecha_inicio_unix | fecha }}</span>
+            </span>
+            <span class="record-linea">
+                <span class="record-tiempo">{{ mas_larga.distancia_metros | km }}<small>km</small></span>
+                <span class="record-ritmo">{{ mas_larga.duracion_segundos | duracion }}</span>
+            </span>
+        </a>
+        {% endif %}
         {% for r in rodantes %}
         <a class="record" href="{{ url_for('carrera', carrera_id=r.carrera_id) }}">
             <span class="record-cab">

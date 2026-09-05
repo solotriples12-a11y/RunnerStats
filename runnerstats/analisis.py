@@ -230,3 +230,18 @@ def records_rodantes(conn: sqlite3.Connection, anio: int | None = None) -> list[
         m["ritmo"] = m["segundos"] / (m["metros"] / 1000)
 
     return [mejores[d] for d in detalle.DISTANCIAS if d in mejores]
+
+
+def carrera_mas_larga(conn: sqlite3.Connection, anio: int | None = None) -> dict | None:
+    """La carrera de mayor distancia. Va la primera entre los récords porque
+    es la única que no depende de tener muestreos: sale del resumen."""
+    filtro, params = _where(anio)
+    fila = conn.execute(
+        f"""
+        SELECT id, fecha_inicio_unix, distancia_metros, duracion_segundos
+        FROM carrera WHERE sustituida_por IS NULL {filtro}
+        ORDER BY distancia_metros DESC LIMIT 1
+        """,
+        params,
+    ).fetchone()
+    return dict(fila) if fila else None

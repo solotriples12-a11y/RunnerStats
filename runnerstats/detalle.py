@@ -226,9 +226,9 @@ def en_movimiento(puntos: list[tuple[int, float]]) -> list[tuple[float, float]]:
 # Distancias para las que se busca la mejor ventana dentro de una carrera.
 # Media y maratón se declaran ya: no aparecen hasta que alguna carrera las
 # cubra, porque `mejor_ventana` devuelve None si no se llega a la distancia.
-DISTANCIAS = (1000, 3000, 5000, 10000, 21097, 42195)
+DISTANCIAS = (1000, 5000, 10000, 21097, 42195)
 
-NOMBRES = {1000: "1K", 3000: "3K", 5000: "5K", 10000: "10K",
+NOMBRES = {1000: "1K", 5000: "5K", 10000: "10K",
            21097: "Media maratón", 42195: "Maratón"}
 
 

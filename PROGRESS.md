@@ -737,3 +737,21 @@ de 180.
 
 **Verificado**: 107 tests (3 nuevos con una parada sintética). Auditoría:
 mediana −1,16 % frente a la duración de Nike, 163 de 183 dentro del ±5 %.
+
+---
+
+## 2026-09-05 — Portada: tres tarjetas y la carrera más larga entre los récords
+
+**Qué**: A petición del usuario.
+- Las tarjetas quedan en tres: carreras, kilómetros y media por carrera.
+  Fuera tiempo total, mejor ritmo y carrera más larga.
+- Se elimina el récord de 3K.
+- La **carrera más larga** pasa a ser el primer récord: distancia como cifra
+  principal y su tiempo al lado. Es el único récord que no necesita
+  muestreos, sale del resumen.
+
+**Contraste con Nike**: la carrera más larga coincide exacta — 15,01 km en
+1:13:56 el 22 abr 2013, igual que marca la app.
+
+**Verificado**: 109 tests, dos nuevos: que la portada tenga exactamente tres
+tarjetas y que "Más larga" abra los récords sin rastro del 3K.
