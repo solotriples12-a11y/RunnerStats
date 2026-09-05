@@ -714,3 +714,26 @@ sesión se redirige al login, que el formulario no pide usuario, que una
 contraseña mala devuelve 401 y no da acceso, que salir cierra la sesión, que
 sin contraseña configurada se responde 503, y que un `next` absoluto no
 convierte el login en un redirector abierto.
+
+---
+
+## 2026-09-05 — Los parciales descuentan el tiempo parado
+
+**Qué**: Nike excluye el tiempo parado de su duración y nosotros lo
+incluíamos, así que los parciales salían más lentos que en la app. Ahora el
+tiempo se cronometra solo mientras hay movimiento (umbral de 0,3 m/s).
+
+**Dos vías descartadas antes de dar con ella**: la etiqueta `nax:Halt` de Nike
+está en todos los trackpoints, no marca las pausas; y filtrar por "distancia
+que no crece" no servía porque durante la parada el GPS sigue temblando.
+
+**Efecto**: las 7 carreras con pausa real pasan de +10,5 % a −2,0 % frente a
+Nike, y las 7 caen dentro del ±5 %. En la carrera del 2025-05-05 el km 3 pasa
+de 9:24 a 6:22 — era una parada, no un mal kilómetro.
+
+De paso, la validación de la serie compara ahora el tiempo en movimiento y no
+el span, así que dejan de rechazarse carreras con paradas largas: 183 en vez
+de 180.
+
+**Verificado**: 107 tests (3 nuevos con una parada sintética). Auditoría:
+mediana −1,16 % frente a la duración de Nike, 163 de 183 dentro del ±5 %.

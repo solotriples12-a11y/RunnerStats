@@ -238,3 +238,50 @@ def test_media_y_maraton_solo_salen_si_se_cubren():
     v = detalle.ventanas(corta)
     assert set(v) == {1000, 3000, 5000}
     assert 21097 not in v and 42195 not in v
+
+
+def _con_parada(metros_por_s=3.3, corriendo=600, parado=300):
+    """Corre, se para (el GPS tiembla un poco) y sigue."""
+    ms, d = [], 0.0
+    t = 0
+    for _ in range(corriendo):
+        d += metros_por_s; ms.append((t, d)); t += 1
+    for _ in range(parado):
+        d += 0.05        # 0,05 m/s: temblor de GPS, no avance
+        ms.append((t, d)); t += 1
+    for _ in range(corriendo):
+        d += metros_por_s; ms.append((t, d)); t += 1
+    return ms
+
+
+def test_el_tiempo_parado_no_cuenta():
+    """Nike lo excluye de su duracion; sin esto los parciales salian mas
+    lentos que en la app."""
+    puntos = _con_parada()
+    mov = detalle.en_movimiento(puntos)
+    assert mov[0] == (0.0, puntos[0][1])
+    # 1200 s corriendo de los 1500 transcurridos.
+    assert 1190 < mov[-1][0] < 1210, mov[-1][0]
+    # La distancia no se toca.
+    assert mov[-1][1] == puntos[-1][1]
+
+
+def test_los_parciales_se_cronometran_sin_las_paradas():
+    puntos = _con_parada()
+    ms = [{"timestamp_unix": t, "distancia_acumulada_metros": d,
+           "latitud": None, "longitud": None, "frecuencia_cardiaca": None}
+          for t, d in puntos]
+    car = {"distancia_metros": puntos[-1][1], "duracion_segundos": 1200}
+    sp = detalle.splits(ms, car)
+    completos = [s for s in sp if not s["parcial"]]
+    assert completos, "deberia haber kilometros completos"
+    # A 3,3 m/s un kilometro son ~303 s. Con la parada dentro serian ~600.
+    for s in completos:
+        assert 280 < s["segundos"] < 340, f"km {s['km']}: {s['segundos']:.0f}s"
+
+
+def test_un_record_no_incluye_el_tiempo_parado():
+    puntos = _con_parada()
+    v = detalle.mejor_ventana(detalle.en_movimiento(puntos), 1000)
+    assert v is not None
+    assert 280 < v[0] < 340, v[0]

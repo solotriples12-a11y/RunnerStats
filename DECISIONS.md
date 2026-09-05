@@ -614,3 +614,43 @@ algo más rápidos que la media de su carrera, que es lo esperable.
 **Lección de método**: la validación anterior miraba solo el *span* de la
 serie (primer y último punto). Pasaba con un agujero de 890 s en medio. Una
 comprobación de extremos no dice nada sobre lo que hay dentro.
+
+---
+
+## 2026-09-05 — El tiempo parado no se cronometra
+
+**Contexto**: Los parciales salían más lentos que en la app de Nike. Medido:
+7 carreras se pasaban entre un 7 % y un 13 % de su `TotalTimeSeconds`. Nike
+excluye el tiempo parado de esa cifra; nuestros muestreos lo incluían.
+
+**Descartado — `nax:Halt`**: Nike marca las pausas con esa etiqueta, pero
+aparece en **todos** los trackpoints del fichero (3512 de 3512), así que
+indica que la autopausa estaba activada, no dónde hubo pausa. No sirve.
+
+**Descartado — intervalos sin distancia**: durante la pausa la distancia
+sigue avanzando un poco (temblor de GPS), así que filtrar por "distancia que
+no crece" no cambiaba nada: el error pasaba de +10,5 % a +10,3 %.
+
+**Decisión**: umbral de **velocidad**. Por debajo de 0,3 m/s (1,1 km/h) no se
+está corriendo ni andando, se está parado. `en_movimiento()` reescribe el eje
+de tiempo descontando esos tramos, y parciales y récords se miden sobre él.
+
+**Calibración sobre el corpus**, probando de 0 a 1,8 m/s:
+
+| v mín | 7 con pausa | 168 que ya cuadraban |
+|---|---|---|
+| 0,0 | +10,5 %, 0/7 dentro del ±5 % | −0,26 % |
+| **0,3** | **−2,0 %, 7/7** | **−1,75 %** |
+| 0,6 | −3,4 %, 6/7 | −2,36 % |
+| 0,9 | −5,1 %, 4/7 | −3,17 % |
+
+0,3 arregla las 7 con un coste de ~1,5 % en las demás. Umbrales mayores
+empiezan a comerse tramos lentos legítimos.
+
+**Consecuencia colateral**: la validación de la serie pasa a comparar el
+tiempo **en movimiento** contra la duración declarada, no el span crudo.
+Contra el span, una carrera con una parada larga se rechazaría entera. Con el
+cambio entran 183 carreras en vez de 180.
+
+**Sesgo conocido**: queda un −1,2 % sistemático, porque el umbral también
+descarta momentos lentos legítimos. Es conservador y está medido.

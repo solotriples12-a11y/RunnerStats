@@ -81,10 +81,14 @@ def _serie_fiable(puntos, ms, carrera) -> bool:
         if abs((puntos[-1][1] - puntos[0][1]) - declarada) / declarada > TOLERANCIA_DISTANCIA:
             return False
 
-    # 3. Y ocupar el tiempo que declara la carrera.
+    # 3. Y su tiempo EN MOVIMIENTO debe ser el que declara la carrera.
+    # Contra el span crudo no valdria: Nike excluye las paradas de su
+    # duracion, asi que una carrera con una parada larga se rechazaria entera.
     dur = carrera["duracion_segundos"]
-    if dur > 0 and abs(span - dur) / dur > TOLERANCIA_DURACION:
-        return False
+    if dur > 0:
+        movimiento = en_movimiento(puntos)[-1][0]
+        if abs(movimiento - dur) / dur > TOLERANCIA_DURACION:
+            return False
 
     return True
 
@@ -141,13 +145,19 @@ def serie(ms, campo: str) -> list[dict]:
 def splits(ms, carrera=None) -> list[dict]:
     """Parciales por kilómetro completo, con la FC media de cada tramo.
 
-    Interpola el instante exacto de cada corte en vez de quedarse con la
-    muestra más cercana: a 2,2 s de muestreo, redondear mete varios segundos
-    de error en cada kilómetro.
+    Se llevan los dos ejes de tiempo a la vez: el **real**, para ir a buscar
+    los muestreos de pulso por su instante, y el de **movimiento**, que
+    descuenta las paradas y es el que se cronometra, igual que hace Nike.
+
+    Los cortes se interpolan en vez de quedarse con la muestra más cercana: a
+    2,2 s de muestreo, redondear mete varios segundos en cada kilómetro.
     """
-    puntos = _con_distancia(ms, carrera)
-    if len(puntos) < 2:
+    reales = _con_distancia(ms, carrera)
+    if len(reales) < 2:
         return []
+    moviles = en_movimiento(reales)
+    # (t_real, t_movimiento, distancia)
+    puntos = [(r[0], m[0], r[1]) for r, m in zip(reales, moviles)]
 
     pulsos = [(m["timestamp_unix"], m["frecuencia_cardiaca"]) for m in ms
               if m["frecuencia_cardiaca"] is not None]
@@ -158,30 +168,59 @@ def splits(ms, carrera=None) -> list[dict]:
 
     salida = []
     objetivo = 1000.0
-    anterior_t = puntos[0][0]
-    for (t0, d0), (t1, d1) in zip(puntos, puntos[1:]):
+    ant_real, ant_mov = puntos[0][0], puntos[0][1]
+    for (r0, m0, d0), (r1, m1, d1) in zip(puntos, puntos[1:]):
         while d0 <= objetivo <= d1 and d1 > d0:
-            t = t0 + (t1 - t0) * (objetivo - d0) / (d1 - d0)
+            frac = (objetivo - d0) / (d1 - d0)
+            corte_real = r0 + (r1 - r0) * frac
+            corte_mov = m0 + (m1 - m0) * frac
             salida.append({"km": int(objetivo // 1000),
-                           "segundos": t - anterior_t, "parcial": False,
-                           "fc": fc_media(anterior_t, t)})
-            anterior_t = t
+                           "segundos": corte_mov - ant_mov, "parcial": False,
+                           "fc": fc_media(ant_real, corte_real)})
+            ant_real, ant_mov = corte_real, corte_mov
             objetivo += 1000.0
 
     # El trozo final no es un kilómetro: se marca para que nadie lo compare
     # con los demás. Es la trampa que ya nos mordió con My Run Stats.
-    fin_t, fin_d = puntos[-1]
+    fin_real, fin_mov, fin_d = puntos[-1]
     sobra = fin_d - (objetivo - 1000.0)
     if sobra > 50:
-        salida.append({"km": len(salida) + 1, "segundos": fin_t - anterior_t,
+        salida.append({"km": len(salida) + 1, "segundos": fin_mov - ant_mov,
                        "parcial": True, "metros": sobra,
-                       "fc": fc_media(anterior_t, fin_t)})
+                       "fc": fc_media(ant_real, fin_real)})
     return salida
 
 
 def ruta(ms) -> list[tuple[float, float]]:
     return [(m["latitud"], m["longitud"]) for m in ms
             if m["latitud"] is not None and m["longitud"] is not None]
+
+
+# Por debajo de esta velocidad no estas corriendo ni andando: estas parado y
+# el GPS tiembla. 0,3 m/s son 1,1 km/h.
+#
+# Nike excluye el tiempo parado de su `TotalTimeSeconds`, asi que sin esto los
+# parciales salian mas lentos que en la app. Calibrado sobre el corpus: en las
+# 7 carreras con pausa real el error frente a Nike pasa de +10,5 % a -2,0 %, y
+# las 7 caen dentro del +-5 %. Umbrales mayores empiezan a comerse tramos
+# lentos legitimos de las otras 168.
+VELOCIDAD_PARADO = 0.3
+
+
+def en_movimiento(puntos: list[tuple[int, float]]) -> list[tuple[float, float]]:
+    """Reescribe el eje de tiempo descontando lo que se estuvo parado.
+
+    Devuelve (tiempo_en_movimiento, distancia). Los parciales y los records se
+    miden sobre este eje para que coincidan con lo que muestra la app.
+    """
+    salida = [(0.0, puntos[0][1])] if puntos else []
+    acumulado = 0.0
+    for (t0, d0), (t1, d1) in zip(puntos, puntos[1:]):
+        dt = t1 - t0
+        if dt > 0 and (d1 - d0) / dt >= VELOCIDAD_PARADO:
+            acumulado += dt
+        salida.append((acumulado, d1))
+    return salida
 
 
 # Distancias para las que se busca la mejor ventana dentro de una carrera.
@@ -249,6 +288,6 @@ def mejor_ventana(puntos: list[tuple[int, float]], metros: float):
 
 def ventanas(ms, carrera=None) -> dict[int, tuple]:
     """Mejor ventana de cada distancia dentro de una carrera."""
-    puntos = _sin_saltos(_con_distancia(ms, carrera))
+    puntos = _sin_saltos(en_movimiento(_con_distancia(ms, carrera)))
     return {m: v for m in DISTANCIAS
             if (v := mejor_ventana(puntos, m)) is not None}
