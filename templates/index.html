@@ -54,12 +54,6 @@
 {% if rodantes %}
 <section class="bloque">
     <h2>Récords</h2>
-    <p class="sub">
-        El mejor tramo de cada distancia extraído de <em>dentro</em> de
-        cualquier carrera: no hace falta que midiera 5 km, basta con que en
-        algún momento los cubriera. Calculado sobre las {{ con_detalle }}
-        carreras con muestreos.
-    </p>
     <div class="records">
         {% for r in rodantes %}
         <a class="record" href="{{ url_for('carrera', carrera_id=r.carrera_id) }}">
@@ -85,12 +79,7 @@
            class="chip{% if agr == clave %} on{% endif %}">{{ nombre }}</a>
         {% endfor %}
     </nav>
-    <p class="sub">
-        {%- if agr == 'anio' and anio %}{{ anio }} resaltado sobre el histórico completo.
-        {%- elif recortado %}Últimos {{ volumen.barras | length }} periodos. Filtra por año para ver uno completo.
-        {%- elif anio %}{{ anio }}, agrupado por {{ {'mes':'mes','semana':'semana (lunes a domingo)','carrera':'carrera'}[agr] }}.
-        {%- else %}Histórico completo. Los periodos sin carreras salen vacíos.{% endif -%}
-    </p>
+    {% if recortado %}<p class="sub">Últimos {{ volumen.barras | length }} periodos.</p>{% endif %}
     <svg class="gr" viewBox="0 0 {{ volumen.ancho }} {{ volumen.alto }}"
          role="img" aria-label="Kilómetros recorridos por año">
         {% for g in volumen.rejilla %}
@@ -114,7 +103,6 @@
 {% if not evolucion.vacia %}
 <section class="bloque">
     <h2>Evolución del ritmo</h2>
-    <p class="sub">Cada punto es una carrera. La línea es la mediana de cada año.</p>
     <svg class="gr" viewBox="0 0 {{ evolucion.ancho }} {{ evolucion.alto }}"
          role="img" aria-label="Ritmo de cada carrera a lo largo del tiempo">
         {% for g in evolucion.rejilla %}
@@ -163,11 +151,5 @@
         {% endfor %}
     </div>
 </section>
-
-<footer class="note">
-    Solo las carreras marcadas como <span class="badge">detalle</span> tienen
-    muestreos segundo a segundo. Las demás son resúmenes importados y no
-    admiten gráficas por carrera, zonas de FC ni récords por ventana rodante.
-</footer>
 {% endif %}
 {% endblock %}

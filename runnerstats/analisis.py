@@ -228,11 +228,3 @@ def records_rodantes(conn: sqlite3.Connection, anio: int | None = None) -> list[
         m["ritmo"] = m["segundos"] / (m["metros"] / 1000)
 
     return [mejores[d] for d in detalle.DISTANCIAS if d in mejores]
-
-
-def carreras_con_muestreos(conn: sqlite3.Connection, anio: int | None = None) -> int:
-    filtro, params = _where(anio)
-    return conn.execute(
-        f"""SELECT COUNT(*) FROM carrera c WHERE c.sustituida_por IS NULL {filtro}
-            AND EXISTS (SELECT 1 FROM muestreo m WHERE m.carrera_id = c.id)""",
-        params).fetchone()[0]

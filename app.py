@@ -198,7 +198,6 @@ def index():
         carreras=consultas.listar_carreras(conn, anio),
         resumen=analisis.resumen(conn, anio),
         rodantes=analisis.records_rodantes(conn, anio),
-        con_detalle=analisis.carreras_con_muestreos(conn, anio),
         anios=disponibles,
         anio=anio,
         agr=agr,

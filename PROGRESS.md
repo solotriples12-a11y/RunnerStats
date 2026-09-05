@@ -493,3 +493,26 @@ en una serie sintética y comprueba que no se convierte en récord.
 **Limpieza**: eliminados `analisis.records()` y `BANDAS`, huérfanos tras el
 cambio. En el proceso borré de más y me cargué `AGRUPACIONES` y `_etiqueta`;
 lo detectaron 16 tests y se restauró desde git.
+
+---
+
+## 2026-09-05 — Fuera los textos explicativos de la interfaz
+
+**Qué**: Eliminados los subtítulos que explicaban cómo funciona cada cosa —
+cómo se calculan los récords, qué es la media móvil del ritmo, por qué el
+mapa se dibuja en local, qué significa el badge de detalle, qué año está
+resaltado. La interfaz leía como documentación.
+
+**Qué se conserva y por qué**: los mensajes que dicen un *estado*, no un
+método.
+- "Últimos N periodos", solo cuando la ventana está recortada: sin él se
+  leería una vista parcial como si fuera todo el histórico.
+- "Sin muestreos: esta carrera solo tiene resumen", que explica una página
+  vacía.
+- Los formatos aceptados y el límite de 64 MB en la subida, que son
+  accionables.
+
+El porqué de cada cálculo sigue en `DECISIONS.md`, que es su sitio.
+
+**Huérfanos retirados**: `analisis.carreras_con_muestreos()` y el parámetro
+`sub` del macro de gráficas, que solo existían para los textos eliminados.

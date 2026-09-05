@@ -35,17 +35,13 @@
 </section>
 
 {% if not muestreos %}
-<p class="note">
-    Esta carrera solo tiene resumen: la fuente no guardó muestreos, así que no
-    hay ritmo, pulso ni ruta que enseñar.
-</p>
+<p class="note">Sin muestreos: esta carrera solo tiene resumen.</p>
 {% endif %}
 
-{% macro grafica(g, titulo, sub) %}
+{% macro grafica(g, titulo) %}
 {% if g and not g.vacia %}
 <section class="bloque">
     <h2>{{ titulo }}</h2>
-    {% if sub %}<p class="sub">{{ sub }}</p>{% endif %}
     <svg class="gr" viewBox="0 0 {{ g.ancho }} {{ g.alto }}" role="img" aria-label="{{ titulo }}">
         {% for r in g.rejilla %}
         <line class="rejilla" x1="34" y1="{{ r.y }}" x2="{{ g.ancho - 8 }}" y2="{{ r.y }}"/>
@@ -60,15 +56,13 @@
 {% endif %}
 {% endmacro %}
 
-{{ grafica(ritmo, "Ritmo", "Media móvil de 20 s. Las paradas no cuentan como ritmo.") }}
-{{ grafica(pulso, "Frecuencia cardíaca", None) }}
-{{ grafica(altitud, "Altitud", None) }}
+{{ grafica(ritmo, "Ritmo") }}
+{{ grafica(pulso, "Frecuencia cardíaca") }}
+{{ grafica(altitud, "Altitud") }}
 
 {% if ruta and not ruta.vacia %}
 <section class="bloque">
     <h2>Recorrido</h2>
-    <p class="sub">Dibujado en local: pedir mapas a un servidor externo enviaría
-       fuera las coordenadas de por dónde corres.</p>
     <svg class="ruta" viewBox="0 0 {{ ruta.ancho }} {{ ruta.alto }}" role="img"
          aria-label="Recorrido de la carrera">
         <polyline class="traza" points="{{ ruta.linea }}"/>
@@ -91,8 +85,6 @@
         </div>
         {% endfor %}
     </div>
-    <p class="sub">El último tramo no es un kilómetro completo y no se compara
-       con los demás.</p>
 </section>
 {% endif %}
 {% endblock %}

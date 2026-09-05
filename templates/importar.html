@@ -4,7 +4,6 @@
 {% block contenido %}
 <header class="hero">
     <h1>Importar</h1>
-    <p>Arrastra tus exports. Se leen en memoria; no se guarda ningún fichero.</p>
 </header>
 
 <form class="upload" method="post" enctype="multipart/form-data">
@@ -25,16 +24,14 @@
 </section>
 {% if fusiones %}
 <p class="sub">
-    {{ fusiones }} carrera{{ 's' if fusiones != 1 }} quedaba{{ 'n' if fusiones != 1 }}
-    duplicada{{ 's' if fusiones != 1 }} entre fuentes y se ha{{ 'n' if fusiones != 1 }}
-    ocultado, conservando la versión con más detalle. No se ha borrado nada.
+    {{ fusiones }} duplicada{{ 's' if fusiones != 1 }} entre fuentes, oculta{{ 's' if fusiones != 1 }}.
 </p>
 {% endif %}
 {% endif %}
 
 <footer class="note">
-    Se importan el JSON de My Run Stats, los <code>.fit</code> del Amazfit y los <code>.tcx</code> de Nike.
-    Reimportar el mismo fichero actualiza en lugar de duplicar. El limite por tanda son 64 MB: el export de Nike hay que subirlo en varias.
+    <code>.json</code> de My Run Stats · <code>.fit</code> del Amazfit ·
+    <code>.tcx</code> de Nike. Máximo 64 MB por tanda.
     <a href="{{ url_for('index') }}">Volver a las carreras</a>
 </footer>
 {% endblock %}
