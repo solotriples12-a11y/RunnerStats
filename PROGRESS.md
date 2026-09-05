@@ -615,3 +615,20 @@ solo para la altitud: un pulso estable sí es un dato.
 
 **Verificado**: 91 tests (4 nuevos). Se añadió a `data/nike/` una carrera de
 cinta real como muestra, porque el test que lo cubre se saltaba sin ella.
+
+---
+
+## 2026-09-05 — Hueco bajo la fecha en el detalle (móvil)
+
+**Qué**: La cabecera es un grid de tres columnas, así que su altura la marcaba
+el elemento más alto: la miniatura del recorrido. Con `height: auto` y una
+ruta vertical, la proporción llegaba a 1,6 y a 88 px de ancho ocupaba 141 de
+alto, dejando a la fecha con un hueco enorme debajo. 59 de las 158 rutas son
+más altas que anchas, así que no era un caso raro.
+
+**Arreglo**: caja de tamaño fijo (96×64, y 76×52 en móvil) dentro de la que el
+SVG se ajusta por `preserveAspectRatio`, y la fila pasa a centrar
+verticalmente. La cabecera baja de 141 px a 52.
+
+**Verificado**: medido en el DOM a 375 px de ancho — contenedor 375,
+cabecera 52 de alto y la miniatura 76×52 pegada al borde derecho.
