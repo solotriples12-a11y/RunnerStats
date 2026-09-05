@@ -534,3 +534,44 @@ ya se aplicaba al GPS derivado. Con eso los récords quedan en 1K 3:15, 5K
 **Consecuencias**: se elimina `analisis.records()` y las bandas de distancia,
 que quedan superseded. Los récords solo cubren las carreras con muestreos, y
 la UI lo dice.
+
+---
+
+## 2026-09-05 — Distancias de récord y series de distancia incompletas
+
+**Contexto**: Al añadir el 3K a los récords salió un 3K en 9:59 (3:19/km) en
+una carrera cuya media era 4:47/km, lo que obliga a que el resto fuera a
+8:10/km. Investigado sobre el fichero original.
+
+**Hallazgo**: Nike escribió incrementos de distancia cada 10 s hasta el
+segundo 850 de una carrera de 1228 s, y luego dejó de escribirlos — pero la
+suma de esos 86 incrementos da los 4282 m completos de la carrera. El resumen
+(distancia y duración) es fiable; su **línea temporal no**, porque atribuye
+toda la distancia a dos tercios del tiempo.
+
+Se comprobó que el importador no perdía nada: 243 trackpoints → 230 muestreos
+(13 fusionados por segundo) cubriendo los 1218 s, y la acumulada cierra exacta.
+El problema está en el fichero.
+
+**Decisión**: descartar la serie de distancia cuando los puntos que la llevan
+cubren menos del 85 % de la carrera. Sin serie no hay ritmo, ni parciales, ni
+récords por ventana rodante para esa carrera; el resumen se sigue mostrando.
+
+**Consecuencias**: afecta a 2 de 206 carreras. El 3K falso desaparece.
+
+**Queda un caso ambiguo sin resolver**: la carrera del 2012-03-13 (5,62 km en
+2402 s, media 7:07/km) tiene puntos de distancia en toda su duración, así que
+pasa la validación, pero concentra 5023 m en los primeros 1230 s y luego cae a
+7-8 min/km. De ahí salen los récords de 1K, 3K y 5K. Puede ser real —correr
+fuerte y luego parar— o GPS inflado al principio. No hay pulso en 2012 con el
+que contrastar. Se deja como está y se avisa al usuario, que es quien puede
+saber si aquel día corrió una carrera.
+
+---
+
+## 2026-09-05 — Distancias de récord: 1K, 3K, 5K, 10K, media y maratón
+
+**Decisión**: declarar también media maratón (21 097 m) y maratón (42 195 m).
+No aparecen hasta que alguna carrera las cubra, porque `mejor_ventana`
+devuelve None si la carrera no llega a la distancia. Así el panel las añade
+solo el día que se corran, sin tocar código.

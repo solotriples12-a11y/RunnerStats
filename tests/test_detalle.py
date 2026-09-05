@@ -176,3 +176,41 @@ def test_el_pulso_no_se_oculta_por_ser_estable():
     """El umbral es solo de la altitud: una FC plana sigue siendo un dato."""
     estable = [{"t": t, "v": 150} for t in range(300)]
     assert graficas.linea_serie(estable, 0, 299)["vacia"] is False
+
+
+def test_se_descarta_la_distancia_que_no_cubre_la_carrera():
+    """Visto en 2 de 206 carreras: Nike escribio distancia cada 10 s hasta el
+    segundo 850 y luego dejo de hacerlo, atribuyendo a ese tramo los 4282 m
+    completos. Derivar ritmo de ahi daba 3:19/km con una media real de 4:47."""
+    paso = 1000 / 300
+    ms = []
+    for t in range(1200):
+        # Distancia solo en los primeros 700 s, pero la carrera dura 1200.
+        d = t * paso if t <= 700 else None
+        ms.append({"timestamp_unix": t, "distancia_acumulada_metros": d,
+                   "latitud": None, "longitud": None, "frecuencia_cardiaca": None})
+    assert detalle._con_distancia(ms) == []
+    assert detalle.serie_ritmo(ms) == []
+    assert detalle.splits(ms) == []
+    assert detalle.ventanas(ms) == {}
+
+
+def test_una_serie_que_si_cubre_la_carrera_se_acepta():
+    paso = 1000 / 300
+    ms = [{"timestamp_unix": t, "distancia_acumulada_metros": t * paso,
+           "latitud": None, "longitud": None, "frecuencia_cardiaca": None}
+          for t in range(1200)]
+    assert len(detalle._con_distancia(ms)) == 1200
+    assert detalle.ventanas(ms)[1000][0] == pytest.approx(300, abs=1)
+
+
+def test_media_y_maraton_solo_salen_si_se_cubren():
+    """Estan declaradas pero no aparecen hasta que una carrera las cubra."""
+    assert 21097 in detalle.DISTANCIAS and 42195 in detalle.DISTANCIAS
+    paso = 1000 / 300
+    corta = [{"timestamp_unix": t, "distancia_acumulada_metros": t * paso,
+              "latitud": None, "longitud": None, "frecuencia_cardiaca": None}
+             for t in range(1800)]          # 6 km
+    v = detalle.ventanas(corta)
+    assert set(v) == {1000, 3000, 5000}
+    assert 21097 not in v and 42195 not in v

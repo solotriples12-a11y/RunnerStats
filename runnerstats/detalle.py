@@ -32,6 +32,25 @@ def muestreos(conn: sqlite3.Connection, carrera_id: str) -> list[sqlite3.Row]:
     ).fetchall()
 
 
+# Fraccion de la carrera que deben cubrir los puntos con distancia para que
+# la serie sirva de linea temporal.
+COBERTURA_MINIMA = 0.85
+
+
+def _cubre_la_carrera(puntos, ms) -> bool:
+    """La serie de distancia debe abarcar casi toda la carrera.
+
+    Visto en 2 de 206 carreras: Nike escribio distancia cada 10 s hasta el
+    segundo 850 y luego dejo de hacerlo, pero atribuyo a ese tramo los 4282 m
+    completos. El resumen de la carrera sigue siendo fiable; su linea temporal
+    no. Derivar ritmo de ahi daba 3:19/km cuando la media real era 4:47.
+    """
+    duracion = ms[-1]["timestamp_unix"] - ms[0]["timestamp_unix"]
+    if duracion <= 0:
+        return True
+    return (puntos[-1][0] - puntos[0][0]) / duracion >= COBERTURA_MINIMA
+
+
 def _con_distancia(ms) -> list[tuple[int, float]]:
     """Instantes con distancia acumulada, derivándola del GPS si hace falta.
 
@@ -42,7 +61,7 @@ def _con_distancia(ms) -> list[tuple[int, float]]:
     """
     propia = [(m["timestamp_unix"], m["distancia_acumulada_metros"])
               for m in ms if m["distancia_acumulada_metros"] is not None]
-    if len(propia) > 2:
+    if len(propia) > 2 and _cubre_la_carrera(propia, ms):
         return propia
 
     acum = geo.acumular([(m["timestamp_unix"], m["latitud"], m["longitud"])
@@ -127,7 +146,12 @@ def ruta(ms) -> list[tuple[float, float]]:
 
 
 # Distancias para las que se busca la mejor ventana dentro de una carrera.
-DISTANCIAS = (1000, 5000, 10000)
+# Media y maratón se declaran ya: no aparecen hasta que alguna carrera las
+# cubra, porque `mejor_ventana` devuelve None si no se llega a la distancia.
+DISTANCIAS = (1000, 3000, 5000, 10000, 21097, 42195)
+
+NOMBRES = {1000: "1K", 3000: "3K", 5000: "5K", 10000: "10K",
+           21097: "Media maratón", 42195: "Maratón"}
 
 
 def _sin_saltos(puntos: list[tuple[int, float]]) -> list[tuple[int, float]]:

@@ -643,3 +643,26 @@ las otras, así que el centrado lo sigue marcando solo el número.
 
 **Verificado**: 92 tests. El nuevo cubre el corte en 3600 s y que una carrera
 de 27 minutos rinde `min`.
+
+---
+
+## 2026-09-05 — 3K en los récords, y una serie de distancia mentirosa
+
+**Qué**:
+- Récords: se añade el 3K y se declaran media maratón y maratón, que
+  aparecerán solas cuando alguna carrera las cubra.
+- La fecha y la carrera de origen suben junto a la etiqueta de distancia, en
+  vez de ir en una línea aparte debajo.
+
+**Lo que destapó el 3K**: salía un 3K en 9:59 (3:19/km) dentro de una carrera
+cuya media era 4:47/km. Investigando el fichero original, Nike escribió
+distancia hasta el segundo 850 de 1228 y luego dejó de hacerlo, atribuyendo a
+ese tramo los 4282 m completos. Se descartan ahora las series de distancia que
+no cubren al menos el 85 % de la carrera: 2 de 206.
+
+Se verificó antes que el importador no perdía datos — 243 trackpoints → 230
+muestreos cubriendo los 1218 s, con la acumulada cerrando exacta.
+
+**Verificado**: 96 tests (3 nuevos), incluido uno que construye una serie que
+se corta a los 700 s de 1200 y exige que no salga ni ritmo, ni parciales, ni
+récords.

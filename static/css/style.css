@@ -243,6 +243,13 @@ code {
     border-radius: 10px;
 }
 .record-banda { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.record-cab {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-bottom: 0.15rem;
+}
 .record-linea { display: flex; align-items: baseline; gap: 0.5rem; }
 .record-tiempo { font-size: 1.35rem; font-family: var(--mono-stack); }
 .record-ritmo {
