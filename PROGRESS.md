@@ -575,3 +575,22 @@ a la media global, y que una carrera sin pulso no se inventa ninguna.
 Un test sintético falló al añadirlo porque su helper construía filas sin la
 clave del pulso. Se alineó el helper con la forma real de una fila en vez de
 hacer defensivo el código de producción: la columna siempre existe.
+
+---
+
+## 2026-09-05 — Cabecera del detalle: cifras centradas, sin tarjetas
+
+**Qué**: A petición del usuario.
+- Fila superior: botón de volver a la izquierda, fecha centrada en la página
+  y el recorrido a la derecha. La fecha se centra con un grid de tres
+  columnas de laterales iguales, para que no quede descentrada por medir
+  distinto el botón y la miniatura.
+- Debajo, centradas y en blanco: duración, distancia (algo mayor) y ritmo
+  medio. La fecha queda por debajo de las tres en tamaño.
+- Desaparecen las tres tarjetas.
+- La FC media y máxima acompañan al título de su gráfica en gris atenuado,
+  en vez de ocupar tarjetas propias.
+
+**Verificado**: 88 tests. Dos comprobaban las tarjetas eliminadas y se
+actualizaron para exigir la cabecera nueva y que no quede ninguna `.tile`.
+Retirado el `.tiles-3` del CSS, huérfano tras el cambio.

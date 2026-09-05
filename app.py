@@ -177,6 +177,15 @@ def carrera(carrera_id):
         ctx["ruta"] = graficas.ruta_svg(detalle.ruta(ms))
         ctx["splits"] = detalle.splits(ms)
 
+    # Media y maxima acompañan al titulo de su grafica en vez de ocupar
+    # tarjetas propias.
+    partes = []
+    if car["fc_media"]:
+        partes.append(f"media {car['fc_media']}")
+    if car["fc_maxima"]:
+        partes.append(f"máx {car['fc_maxima']}")
+    ctx["fc_resumen"] = " · ".join(partes) + (" ppm" if partes else "")
+
     return render_template("carrera.html", **ctx)
 
 

@@ -209,7 +209,7 @@ def test_detalle_de_una_carrera_solo_resumen(cliente):
     assert r.status_code == 200
     html = r.get_data(as_text=True)
     assert "solo tiene resumen" in html
-    assert "5.03 km" in html
+    assert "5.03" in html
 
 
 def test_detalle_completo(cliente_vacio, nike_dir):
@@ -226,9 +226,12 @@ def test_detalle_completo(cliente_vacio, nike_dir):
     # El recorrido es la miniatura de la cabecera, no una seccion.
     assert 'class="ruta-mini"' in html
     assert html.count('class="traza"') == 1
-    # Las tarjetas son solo tres.
-    assert "Ritmo medio" in html and "FC máxima" in html
-    assert "Calorías" not in html and "Desnivel" not in html
+    # Duracion, distancia y ritmo van en la cabecera, no en tarjetas.
+    assert 'class="cab-cifras"' in html
+    assert "cifra-grande" in html and "cifra-media" in html
+    assert 'class="tile"' not in html
+    # La FC acompaña al titulo de su grafica.
+    assert 'class="h2-extra"' in html
     assert "solo tiene resumen" not in html
 
 
