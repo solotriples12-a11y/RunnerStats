@@ -368,3 +368,19 @@ Un test cazó un bug real: con una agrupación desconocida la consulta caía en
 petaba. Ahora se normaliza antes de usarla en ningún sitio.
 
 **Siguiente**: vista de detalle por carrera.
+
+---
+
+## 2026-09-05 — Totales a tarjetas
+
+**Qué**: Los kilómetros totales, el número de carreras y el tiempo salen de la
+cabecera y pasan a tarjetas junto al resto de métricas. Seis tiles en dos
+filas; la cabecera se queda con el título y el periodo.
+
+**De paso, un 500 latente corregido**: `mejor_ritmo` solo mira carreras de 3 km
+o más y devuelve None si no hay ninguna. La plantilla lo pasaba al filtro de
+ritmo sin comprobarlo, así que un año filtrado con solo carreras cortas habría
+reventado. Ahora muestra un guion, y hay un test que lo cubre.
+
+**Verificado**: 55 tests. Revisado en el navegador: las seis tarjetas caen en
+dos columnas en móvil y tres en escritorio.

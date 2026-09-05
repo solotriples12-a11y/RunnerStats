@@ -58,7 +58,8 @@ def test_con_password_muestra_las_carreras(cliente):
     html = r.get_data(as_text=True)
     assert "5.03 km" in html
     assert "3.54 km" in html
-    assert "2 carreras" in html
+    # Los totales viven en las tarjetas, no en la cabecera.
+    assert "Kilómetros" in html and "Carreras" in html
 
 
 def test_marca_las_carreras_sin_detalle(cliente):
@@ -156,3 +157,29 @@ def test_sin_seleccionar_nada(cliente):
     r = cliente.post("/importar", headers=_cabecera(PASSWORD),
                      data={}, content_type="multipart/form-data")
     assert "no has seleccionado" in r.get_data(as_text=True)
+
+
+def test_un_anio_sin_carreras_largas_no_revienta(tmp_path, monkeypatch):
+    """`mejor_ritmo` solo mira carreras de 3 km o mas y puede ser None.
+
+    Sin guarda, el filtro de ritmo recibia None y devolvia un 500.
+    """
+    import json
+
+    ruta = tmp_path / "cortas.db"
+    export = tmp_path / "cortas.json"
+    export.write_text(json.dumps({
+        "app": "My Run Stats", "version": 1, "count": 1,
+        "runs": [{"id": "c1", "date": "2020-01-05", "duration": "00:10:00",
+                  "distance": 1.5, "pace": "6:40", "km_splits": None}],
+    }))
+    conn = db.conectar(ruta)
+    mrs.importar(conn, export)
+    conn.close()
+
+    monkeypatch.setattr(webapp, "RUTA_DB", str(ruta))
+    monkeypatch.setenv("RUNNERSTATS_PASSWORD", PASSWORD)
+    webapp.app.config["TESTING"] = True
+    r = webapp.app.test_client().get("/", headers=_cabecera(PASSWORD))
+    assert r.status_code == 200
+    assert "Mejor ritmo" in r.get_data(as_text=True)

@@ -4,11 +4,7 @@
 <header class="hero">
     <h1>RunnerStats</h1>
     {% if resumen.carreras %}
-    <p class="hero-num">{{ resumen.metros | km }} <span>km</span></p>
-    <p>
-        {{ resumen.carreras }} carreras · {{ (resumen.segundos / 3600) | round(1) }} h
-        {% if anio %}en {{ anio }}{% else %}desde {{ resumen.desde | fecha }}{% endif %}
-    </p>
+    <p>{% if anio %}{{ anio }}{% else %}desde {{ resumen.desde | fecha }}{% endif %}</p>
     {% else %}
     <p>Todavía no hay ninguna carrera.</p>
     {% endif %}
@@ -27,8 +23,23 @@
 
 <section class="tiles">
     <div class="tile">
+        <span class="tile-lab">Kilómetros</span>
+        <span class="tile-val">{{ resumen.metros | km }}<small>km</small></span>
+    </div>
+    <div class="tile">
+        <span class="tile-lab">Carreras</span>
+        <span class="tile-val">{{ resumen.carreras }}</span>
+    </div>
+    <div class="tile">
+        <span class="tile-lab">Tiempo</span>
+        <span class="tile-val">{{ (resumen.segundos / 3600) | round(1) }}<small>h</small></span>
+    </div>
+    <div class="tile">
         <span class="tile-lab">Mejor ritmo</span>
-        <span class="tile-val">{{ resumen.mejor_ritmo | ritmo }}<small>/km</small></span>
+        <span class="tile-val">
+            {%- if resumen.mejor_ritmo %}{{ resumen.mejor_ritmo | ritmo }}<small>/km</small>
+            {%- else %}—{% endif -%}
+        </span>
     </div>
     <div class="tile">
         <span class="tile-lab">Carrera más larga</span>

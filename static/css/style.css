@@ -189,15 +189,6 @@ code {
 
 /* ---------- Panel ---------- */
 
-.hero-num {
-    font-size: 2.75rem;
-    font-weight: 500;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-    margin: 0.5rem 0 0.25rem;
-}
-.hero-num span { font-size: 1.1rem; color: var(--text-muted); font-weight: 300; }
-
 .filtros {
     display: flex;
     flex-wrap: wrap;
@@ -294,9 +285,8 @@ code {
 .nodo { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
 
 @media (max-width: 480px) {
-    .tiles { grid-template-columns: 1fr; }
+    .tiles { grid-template-columns: repeat(2, 1fr); }
     .records { grid-template-columns: 1fr; }
-    .hero-num { font-size: 2.25rem; }
 }
 
 .sub-filtros { margin: 0 0 0.75rem; }
