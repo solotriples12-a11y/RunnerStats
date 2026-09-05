@@ -139,3 +139,33 @@ def test_records_rodantes_salen_de_dentro_de_la_carrera(conn_real, nike_dir):
 
     # Un tramo de 5 km nunca puede ser mas rapido que el mejor kilometro.
     assert recs[5000]["ritmo"] >= recs[1000]["ritmo"]
+
+
+ANCHO_ETIQUETA = 46   # "28 jul" a 9 px de fuente monoespaciada, con holgura
+
+
+def test_las_etiquetas_del_eje_no_se_pisan(conn_real, nike_dir):
+    """Se repartia cada N barras y ADEMAS se forzaba la ultima, asi que las
+    dos ultimas caian pegadas y el texto se solapaba."""
+    from runnerstats import graficas
+    from runnerstats.importers import nike_tcx as nike
+    nike.importar(conn_real, str(nike_dir / "con-fc-y-gps.tcx"))
+
+    for agr in analisis.AGRUPACIONES:
+        for anio in (None, 2012):
+            g = graficas.barras_volumen(analisis.volumen(conn_real, agr, anio))
+            if g["vacia"]:
+                continue
+            xs = [b["centro"] for b in g["barras"] if b["etiquetada"]]
+            assert xs == sorted(xs)
+            separaciones = [b - a for a, b in zip(xs, xs[1:])]
+            assert all(d >= ANCHO_ETIQUETA for d in separaciones), \
+                f"{agr}/{anio}: etiquetas a {min(separaciones):.0f}px"
+
+
+def test_el_eje_de_anios_del_ritmo_tampoco_se_pisa(conn_real):
+    from runnerstats import graficas
+    g = graficas.dispersion_ritmo(analisis.ritmos(conn_real))
+    xs = [e["x"] for e in g["ejex"]]
+    assert xs == sorted(xs), "el eje sale en orden inverso"
+    assert all(b - a >= ANCHO_ETIQUETA for a, b in zip(xs, xs[1:]))

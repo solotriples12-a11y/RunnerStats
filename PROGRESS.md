@@ -538,3 +538,23 @@ datos siguen en la base; solo salen de la pantalla.
 comprobaba que existiera la palabra "Recorrido" y la encontraba en el
 `aria-label` del SVG, así que habría seguido en verde con la sección
 eliminada. Ahora comprueba la miniatura y que la traza no esté duplicada.
+
+---
+
+## 2026-09-05 — Etiquetas de eje solapadas
+
+**Qué**: En la gráfica de volumen las dos últimas etiquetas se pisaban ("28
+jul" encima de "2 sep").
+
+**Causa**: se repartían cada N barras desde el principio **y además** se
+forzaba la última. Con 50 barras y paso 6, la penúltima caía en el índice 48
+y la forzada en el 49: pegadas.
+
+**Arreglo**: generar los índices desde el final hacia atrás. La última siempre
+sale y el espaciado queda uniforme. La gráfica de ritmo tenía la misma trampa
+en el eje de años (`a % 3 == 0 or a == max`), corregida igual; de paso se
+ordena el eje, que salía invertido.
+
+**Verificado**: 86 tests (2 nuevos). El de solape recorre las cuatro
+agrupaciones con y sin filtro de año y exige 46 px de separación mínima entre
+etiquetas, que es lo que ocupa "28 jul" a 9 px.

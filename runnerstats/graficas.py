@@ -53,10 +53,12 @@ def barras_volumen(datos: list[dict], resaltar: str | None = None) -> dict:
     hueco = HUECO if banda >= 6 else 0
     ancho = max(1.0, min(GROSOR_MAX, banda - hueco))
 
-    # Como maximo 8 etiquetas en el eje, repartidas.
+    # Como maximo 8 etiquetas, generadas desde el final hacia atras. Repartir
+    # desde el principio y ademas forzar la ultima dejaba las dos ultimas
+    # pegadas y el texto se pisaba.
     n = len(datos)
     paso = max(1, round(n / 8))
-    visibles = {i for i in range(0, n, paso)} | {n - 1}
+    visibles = set(range(n - 1, -1, -paso))
 
     barras = []
     for i, d in enumerate(datos):
@@ -145,12 +147,16 @@ def dispersion_ritmo(datos: list[dict]) -> dict:
     if actual:
         segmentos.append(actual)
 
+    # Igual que en las barras: desde el año mas reciente hacia atras, para que
+    # el ultimo siempre salga sin quedar pegado al anterior.
+    anios = sorted(por_anio)
+    paso_a = max(1, round(len(anios) / 6))
     ejex = []
-    for a in sorted(por_anio):
-        if a % 3 == 0 or a == max(por_anio):
-            ts = datetime(a, 7, 1, tzinfo=timezone.utc).timestamp()
-            if tmin <= ts <= tmax:
-                ejex.append({"x": round(fx(ts), 1), "etiqueta": str(a)})
+    for a in anios[::-1][::paso_a]:
+        ts = datetime(a, 7, 1, tzinfo=timezone.utc).timestamp()
+        if tmin <= ts <= tmax:
+            ejex.append({"x": round(fx(ts), 1), "etiqueta": str(a)})
+    ejex.sort(key=lambda e: e["x"])
 
     def mmss(s):
         return f"{int(s) // 60}:{int(s) % 60:02d}"
