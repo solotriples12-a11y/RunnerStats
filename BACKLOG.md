@@ -20,6 +20,11 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
   segundo y distancia derivada del GPS cuando falta.
 - Deduplicación entre fuentes al 5 %, marcando en vez de borrar.
 
+## Hecho (cont.)
+
+- Vista de detalle por carrera: ritmo, pulso, altitud, recorrido y parciales
+  por kilómetro, adaptándose a lo que cada fuente aporta.
+
 ## En curso
 
 1. Publicar el subdominio: DNS, app en Coolify, volumen persistente y
@@ -27,10 +32,9 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
 
 ## Próximo
 
-2. Vista de detalle: gráfica de FC + ritmo sobre los muestreos.
-3. Algoritmo de PRs por ventana rodante sobre `distancia_acumulada_metros`.
+2. Algoritmo de PRs por ventana rodante sobre `distancia_acumulada_metros`.
    Solo aplica a carreras con muestreos: la UI debe decirlo.
-4. Vista de PRs.
+3. Vista de PRs.
 
 ## Esperando
 

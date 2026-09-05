@@ -442,3 +442,30 @@ que fuera de tolerancia no se fusiona y que recalcular es idempotente.
 **Siguiente**: subir el export a producción (tres o cuatro tandas de 64 MB) y
 después la vista de detalle, que ahora sí tiene 267 carreras con muestreos y
 98 con pulso a las que sacar partido.
+
+---
+
+## 2026-09-05 — Vista de detalle por carrera
+
+**Qué**: `/carrera/<id>` con resumen, gráficas de ritmo, pulso y altitud,
+recorrido GPS y parciales por kilómetro. Las tarjetas de la lista enlazan a
+ella. Cada sección aparece solo si la carrera tiene esos datos.
+
+**Un bug gordo encontrado por el camino**: los parciales solo salían en 13 de
+296 carreras. El `DistanceMeters` de un trackpoint de Nike es el
+**incremento**, no la distancia acumulada, y yo lo estaba guardando tal cual.
+Corregido en el importador; los parciales pasan a 206 carreras. Los datos de
+producción estaban mal y hubo que reimportar los 269 ficheros.
+
+**Cobertura sobre las 296 visibles**: 206 con ritmo y parciales, 158 con
+recorrido, 98 con pulso.
+
+**Verificado**: 81 tests (13 nuevos). Entre ellos, que la distancia acumulada
+es monótona y cierra en el total, que las paradas no generan ritmos absurdos
+(techo de 33 min/km), que los kilómetros se interpolan con menos de 1,5 s de
+error, que el último tramo se marca como parcial y que un resto de 18 m no
+genera tramo. Revisado en el navegador, donde se corrigió que el lienzo del
+recorrido era cuadrado y dejaba media caja vacía.
+
+**Siguiente**: récords por ventana rodante, que ahora sí son calculables
+sobre 206 carreras con distancia acumulada fiable.

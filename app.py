@@ -7,9 +7,9 @@ from pathlib import PurePath
 
 from dotenv import load_dotenv
 from fitparse.utils import FitParseError
-from flask import Flask, Response, g, render_template, request
+from flask import Flask, Response, abort, g, render_template, request
 
-from runnerstats import analisis, consultas, db, dedup, graficas
+from runnerstats import analisis, consultas, db, dedup, detalle, graficas
 from runnerstats.importers import amazfit_fit, my_run_stats, nike_tcx
 
 load_dotenv()
@@ -150,6 +150,34 @@ def importar():
     fusiones = dedup.marcar_duplicadas(conn) if any(r[1] for r in resultados) else []
     return render_template("importar.html", resultados=resultados,
                            fusiones=len(fusiones))
+
+
+@app.route("/carrera/<path:carrera_id>")
+def carrera(carrera_id):
+    conn = get_db()
+    car = detalle.carrera(conn, carrera_id)
+    if car is None:
+        abort(404)
+
+    ms = detalle.muestreos(conn, carrera_id)
+    ctx = {"c": car, "muestreos": len(ms), "ritmo": None, "pulso": None,
+           "ruta": None, "splits": [], "altitud": None}
+
+    if ms:
+        t0, t1 = ms[0]["timestamp_unix"], ms[-1]["timestamp_unix"]
+        serie = [{"t": x["t"], "v": x["ritmo"]} for x in detalle.serie_ritmo(ms)]
+        # El ritmo se invierte: mas rapido, mas arriba.
+        ctx["ritmo"] = graficas.linea_serie(serie, t0, t1, invertir=True,
+                                            formato=f_ritmo)
+        ctx["pulso"] = graficas.linea_serie(
+            detalle.serie(ms, "frecuencia_cardiaca"), t0, t1)
+        ctx["altitud"] = graficas.linea_serie(
+            detalle.serie(ms, "altitud_metros"), t0, t1,
+            formato=lambda v: f"{v:.0f} m")
+        ctx["ruta"] = graficas.ruta_svg(detalle.ruta(ms))
+        ctx["splits"] = detalle.splits(ms)
+
+    return render_template("carrera.html", **ctx)
 
 
 @app.route("/")

@@ -445,3 +445,61 @@ cae dentro del ruido que ya hay entre dispositivos.
 **Consecuencias**: se recupera esa carrera (4102 m a 5:40/km, que además
 cuadra con los 4,11 km que My Run Stats tenía ese día). Y queda el módulo
 listo para el importador de Huawei, cuyo TCX no trae distancia por punto.
+
+---
+
+## 2026-09-05 — El `DistanceMeters` de un trackpoint de Nike es un incremento
+
+**Contexto**: Al construir la vista de detalle, los parciales por kilómetro
+solo salían en 13 de 296 carreras. Los valores de
+`distancia_acumulada_metros` eran de 13-68 m y no eran monótonos.
+
+**Hallazgo**: el `DistanceMeters` de un `Trackpoint` de Nike es la distancia
+**desde el punto anterior**, no la acumulada que manda el estándar TCX.
+Verificado: la suma de los 910 incrementos de una carrera da 6018,0 m, que es
+exactamente el `DistanceMeters` de su `Lap`.
+
+**Decisión**: acumular los incrementos al importar. Y al fusionar trackpoints
+del mismo segundo, los incrementos se **suman** en vez de quedarse con el
+primero, que perdería el resto del metraje de ese segundo.
+
+**Consecuencias**:
+- Los parciales por kilómetro pasan de 13 a 206 carreras.
+- Los datos ya subidos a producción tenían esa columna mal y hubo que
+  reimportar los 269 ficheros.
+- **Una librería de TCX no habría evitado esto, lo habría escondido**:
+  `python-tcxparser` sobre el mismo fichero devuelve `distance = 12.22` en
+  vez de 6018 m, porque coge el último valor asumiendo que es acumulado. El
+  resto de campos sí los da bien, así que el error habría pasado
+  desapercibido. El fichero de Nike no cumple el estándar TCX.
+
+---
+
+## 2026-09-05 — Vista de detalle: dos gráficas apiladas, no un eje doble
+
+**Contexto**: La vista de una carrera tiene que enseñar ritmo y pulso sobre
+el mismo tiempo.
+
+**Decisión**: gráficas **apiladas** compartiendo el eje X, nunca superpuestas
+con dos ejes Y. Dos escalas distintas en un mismo plot inventan una
+correlación que no está en los datos.
+
+**Otras decisiones de la vista**:
+- El ritmo se calcula sobre una ventana móvil de 20 s: el ritmo instantáneo
+  entre dos muestras es puro ruido.
+- **Las paradas no son un ritmo.** Si en toda la ventana no se cubren 10 m,
+  estabas parado; incluirlo daba ejes de hasta 522 min/km que aplastaban la
+  serie real contra el borde.
+- La escala se recorta a los percentiles 2-98 por el mismo motivo.
+- Los kilómetros se **interpolan** entre muestras. A 2,2 s de muestreo,
+  redondear a la muestra más cercana mete varios segundos de error por
+  kilómetro.
+- El último tramo se marca como parcial y no se compara con los demás: es la
+  misma trampa que ya nos mordió con los splits de My Run Stats. Por debajo de
+  50 m ni se muestra.
+- **El recorrido se dibuja en local**, con proyección equirectangular. Pedir
+  teselas a un servidor de mapas enviaría a un tercero las coordenadas de por
+  dónde corre el usuario. El lienzo toma la proporción del recorrido.
+- La página se adapta a lo que hay: de las 296 visibles, 206 tienen ritmo y
+  parciales, 158 recorrido y 98 pulso. Una carrera de cinta con pulsómetro
+  tiene 855 puntos de FC y ni GPS ni distancia.

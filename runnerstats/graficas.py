@@ -171,3 +171,86 @@ def dispersion_ritmo(datos: list[dict]) -> dict:
         ],
         "ejex": ejex,
     }
+
+
+ALTO_DETALLE = 130
+
+
+def linea_serie(puntos: list[dict], t0: int, t1: int, invertir: bool = False,
+                formato=None) -> dict:
+    """Serie temporal de una carrera: x = segundos desde el inicio.
+
+    Las dos gráficas de detalle comparten el eje X para poder leerse juntas.
+    Van apiladas y no superpuestas a propósito: ritmo y pulso tienen escalas
+    distintas, y un segundo eje Y inventaría una correlación que no está en
+    los datos.
+
+    `invertir` pone los valores bajos arriba, que es como se lee un ritmo.
+    """
+    if len(puntos) < 2:
+        return {"vacia": True}
+
+    # La escala se recorta a los percentiles 2-98: un unico pico deja el
+    # resto de la serie aplastado contra el eje.
+    orden = sorted(p["v"] for p in puntos)
+    vmin = orden[int(len(orden) * 0.02)]
+    vmax = orden[min(len(orden) - 1, int(len(orden) * 0.98))]
+    if vmax <= vmin:
+        vmin, vmax = orden[0], orden[-1] or orden[0] + 1
+    if vmax == vmin:
+        vmax = vmin + 1
+
+    alto = ALTO_DETALLE
+    fx = _escala(t0, t1 or t0 + 1, PAD_IZQ, ANCHO - PAD_DER)
+    fy = (_escala(vmin, vmax, PAD_SUP, alto - PAD_INF) if invertir
+          else _escala(vmin, vmax, alto - PAD_INF, PAD_SUP))
+
+    fmt = formato or (lambda v: f"{v:.0f}")
+    return {
+        "vacia": False,
+        "ancho": ANCHO, "alto": alto,
+        "linea": " ".join(
+            f"{fx(p['t']):.1f},{fy(min(max(p['v'], vmin), vmax)):.1f}"
+            for p in puntos),
+        "rejilla": [{"y": round(fy(v), 1), "etiqueta": fmt(v)}
+                    for v in (vmin, (vmin + vmax) / 2, vmax)],
+        "ejex": [{"x": round(fx(t0 + (t1 - t0) * f), 1),
+                  "etiqueta": f"{int((t1 - t0) * f) // 60}'"}
+                 for f in (0.25, 0.5, 0.75, 1.0)],
+        "min": vmin, "max": vmax,
+    }
+
+
+def ruta_svg(puntos: list[tuple[float, float]], lado: int = 320) -> dict:
+    """Traza GPS proyectada, ajustada al lienzo conservando proporciones.
+
+    Proyección equirectangular con corrección por latitud: a escala de una
+    carrera el error es despreciable y evita depender de una librería de
+    mapas. Se dibuja en local a propósito: pedir teselas a un servidor
+    externo enviaría las coordenadas de dónde corres a un tercero.
+    """
+    if len(puntos) < 2:
+        return {"vacia": True}
+
+    import math
+    lat0 = sum(p[0] for p in puntos) / len(puntos)
+    k = math.cos(math.radians(lat0))
+    xs = [p[1] * k for p in puntos]
+    ys = [-p[0] for p in puntos]          # norte arriba
+
+    x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+    ancho_g, alto_g = (x1 - x0) or 1e-9, (y1 - y0) or 1e-9
+
+    # El lienzo toma la proporcion del recorrido en vez de ser cuadrado: una
+    # ruta apaisada dejaba media caja vacia. Se limita para que una traza casi
+    # recta no salga como una tira de un pixel.
+    proporcion = min(max(alto_g / ancho_g, 0.45), 1.6)
+    ancho_c, alto_c = lado, lado * proporcion
+    escala = min((ancho_c - 16) / ancho_g, (alto_c - 16) / alto_g)
+    dx = (ancho_c - ancho_g * escala) / 2
+    dy = (alto_c - alto_g * escala) / 2
+
+    pts = [f"{(x - x0) * escala + dx:.1f},{(y - y0) * escala + dy:.1f}"
+           for x, y in zip(xs, ys)]
+    return {"vacia": False, "ancho": round(ancho_c), "alto": round(alto_c),
+            "linea": " ".join(pts), "inicio": pts[0], "fin": pts[-1]}

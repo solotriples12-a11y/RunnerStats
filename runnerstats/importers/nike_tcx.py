@@ -104,7 +104,11 @@ def leer(origen) -> tuple[Carrera, list[Muestreo]]:
             continue
         pos = tp.find(f"{T}Position")
         campos = {
-            "distancia_acumulada_metros": _num(tp, f"{T}DistanceMeters"),
+            # OJO: el DistanceMeters de un trackpoint de Nike es el
+            # INCREMENTO desde el punto anterior, no la distancia acumulada.
+            # Verificado: la suma de los 910 incrementos de una carrera da
+            # 6018,0 m, exactamente el DistanceMeters de su Lap.
+            "_delta": _num(tp, f"{T}DistanceMeters"),
             "frecuencia_cardiaca": _positivo(
                 _num(tp, f"{T}HeartRateBpm/{T}Value", int)),
             # Sin doblar: Nike ya da pasos por minuto.
@@ -116,11 +120,24 @@ def leer(origen) -> tuple[Carrera, list[Muestreo]]:
         }
         acumulado = por_segundo.setdefault(_unix(t), {})
         for k, v in campos.items():
-            if v is not None and acumulado.get(k) is None:
+            if v is None:
+                continue
+            if k == "_delta":
+                # Los incrementos se SUMAN; quedarse con el primero perderia
+                # el resto del metraje de ese segundo.
+                acumulado[k] = acumulado.get(k, 0.0) + v
+            elif acumulado.get(k) is None:
                 acumulado[k] = v
 
-    muestreos = [Muestreo(timestamp_unix=seg, **campos)
-                 for seg, campos in sorted(por_segundo.items())]
+    muestreos, recorrido = [], 0.0
+    for seg, campos in sorted(por_segundo.items()):
+        delta = campos.pop("_delta", None)
+        if delta is not None:
+            recorrido += delta
+        muestreos.append(Muestreo(
+            timestamp_unix=seg,
+            distancia_acumulada_metros=recorrido if delta is not None else None,
+            **campos))
 
     # Nike a veces guarda la traza pero no la distancia (visto en 1 de 269:
     # 465 puntos, 321 con GPS y DistanceMeters a 0). Se deriva del GPS en vez

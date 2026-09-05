@@ -190,3 +190,37 @@ def test_un_anio_sin_carreras_largas_no_revienta(tmp_path, monkeypatch):
     r = webapp.app.test_client().get("/", headers=_cabecera(PASSWORD))
     assert r.status_code == 200
     assert "Mejor ritmo" in r.get_data(as_text=True)
+
+
+def test_el_detalle_requiere_auth(cliente):
+    assert cliente.get("/carrera/loquesea").status_code == 401
+
+
+def test_detalle_de_carrera_inexistente_da_404(cliente):
+    r = cliente.get("/carrera/no-existe", headers=_cabecera(PASSWORD))
+    assert r.status_code == 404
+
+
+def test_detalle_de_una_carrera_solo_resumen(cliente):
+    """Las de My Run Stats no tienen muestreos: la pagina debe decirlo en vez
+    de enseñar graficas vacias."""
+    cid = "my_run_stats:aaaa-1111"
+    r = cliente.get(f"/carrera/{cid}", headers=_cabecera(PASSWORD))
+    assert r.status_code == 200
+    html = r.get_data(as_text=True)
+    assert "solo tiene resumen" in html
+    assert "5.03 km" in html
+
+
+def test_detalle_completo(cliente_vacio, nike_dir):
+    from runnerstats.importers import nike_tcx as nike
+    conn = db.conectar(webapp.RUTA_DB)
+    nike.importar(conn, str(nike_dir / "con-fc-y-gps.tcx"))
+    cid = conn.execute("SELECT id FROM carrera").fetchone()["id"]
+    conn.close()
+
+    html = cliente_vacio.get(f"/carrera/{cid}",
+                             headers=_cabecera(PASSWORD)).get_data(as_text=True)
+    for seccion in ("Ritmo", "Frecuencia cardíaca", "Recorrido", "Parciales"):
+        assert seccion in html, f"falta la seccion {seccion}"
+    assert "solo tiene resumen" not in html

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block titulo %}{{ c.fecha_inicio_unix | fecha }} · RunnerStats{% endblock %}
+
+{% block contenido %}
+<header class="hero">
+    <h1>{{ c.distancia_metros | km }} km</h1>
+    <p>{{ c.fecha_inicio_unix | fecha }} · {{ c.duracion_segundos | duracion }} ·
+       {{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }}/km</p>
+    <p class="acciones"><a href="{{ url_for('index') }}">← Volver</a></p>
+</header>
+
+<section class="tiles">
+    {% if c.fc_media %}
+    <div class="tile"><span class="tile-lab">FC media</span>
+        <span class="tile-val">{{ c.fc_media }}<small>ppm</small></span></div>
+    {% endif %}
+    {% if c.fc_maxima %}
+    <div class="tile"><span class="tile-lab">FC máxima</span>
+        <span class="tile-val">{{ c.fc_maxima }}<small>ppm</small></span></div>
+    {% endif %}
+    {% if c.desnivel_positivo_metros %}
+    <div class="tile"><span class="tile-lab">Desnivel +</span>
+        <span class="tile-val">{{ c.desnivel_positivo_metros | round | int }}<small>m</small></span></div>
+    {% endif %}
+    {% if c.calorias %}
+    <div class="tile"><span class="tile-lab">Calorías</span>
+        <span class="tile-val">{{ c.calorias }}</span></div>
+    {% endif %}
+    <div class="tile"><span class="tile-lab">Muestreos</span>
+        <span class="tile-val">{{ muestreos }}</span></div>
+    {% if c.dispositivo %}
+    <div class="tile"><span class="tile-lab">Fuente</span>
+        <span class="tile-val dispositivo">{{ c.dispositivo }}</span></div>
+    {% endif %}
+</section>
+
+{% if not muestreos %}
+<p class="note">
+    Esta carrera solo tiene resumen: la fuente no guardó muestreos, así que no
+    hay ritmo, pulso ni ruta que enseñar.
+</p>
+{% endif %}
+
+{% macro grafica(g, titulo, sub) %}
+{% if g and not g.vacia %}
+<section class="bloque">
+    <h2>{{ titulo }}</h2>
+    {% if sub %}<p class="sub">{{ sub }}</p>{% endif %}
+    <svg class="gr" viewBox="0 0 {{ g.ancho }} {{ g.alto }}" role="img" aria-label="{{ titulo }}">
+        {% for r in g.rejilla %}
+        <line class="rejilla" x1="34" y1="{{ r.y }}" x2="{{ g.ancho - 8 }}" y2="{{ r.y }}"/>
+        <text class="ejeY" x="28" y="{{ r.y + 3 }}">{{ r.etiqueta }}</text>
+        {% endfor %}
+        {% for e in g.ejex %}
+        <text class="ejeX" x="{{ e.x }}" y="{{ g.alto - 6 }}">{{ e.etiqueta }}</text>
+        {% endfor %}
+        <polyline class="linea" points="{{ g.linea }}"/>
+    </svg>
+</section>
+{% endif %}
+{% endmacro %}
+
+{{ grafica(ritmo, "Ritmo", "Media móvil de 20 s. Las paradas no cuentan como ritmo.") }}
+{{ grafica(pulso, "Frecuencia cardíaca", None) }}
+{{ grafica(altitud, "Altitud", None) }}
+
+{% if ruta and not ruta.vacia %}
+<section class="bloque">
+    <h2>Recorrido</h2>
+    <p class="sub">Dibujado en local: pedir mapas a un servidor externo enviaría
+       fuera las coordenadas de por dónde corres.</p>
+    <svg class="ruta" viewBox="0 0 {{ ruta.ancho }} {{ ruta.alto }}" role="img"
+         aria-label="Recorrido de la carrera">
+        <polyline class="traza" points="{{ ruta.linea }}"/>
+        <circle class="hito inicio" cx="{{ ruta.inicio.split(',')[0] }}" cy="{{ ruta.inicio.split(',')[1] }}" r="4"/>
+        <circle class="hito fin" cx="{{ ruta.fin.split(',')[0] }}" cy="{{ ruta.fin.split(',')[1] }}" r="4"/>
+    </svg>
+</section>
+{% endif %}
+
+{% if splits %}
+<section class="bloque">
+    <h2>Parciales</h2>
+    <div class="splits">
+        {% set mejor = splits | rejectattr('parcial') | map(attribute='segundos') | min %}
+        {% for s in splits %}
+        <div class="split{% if not s.parcial and s.segundos == mejor %} mejor{% endif %}">
+            <span class="split-km">{% if s.parcial %}último{% else %}km {{ s.km }}{% endif %}</span>
+            <span class="split-t">{{ s.segundos | duracion }}</span>
+            {% if s.parcial %}<span class="split-nota">{{ s.metros | round | int }} m</span>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    <p class="sub">El último tramo no es un kilómetro completo y no se compara
+       con los demás.</p>
+</section>
+{% endif %}
+{% endblock %}

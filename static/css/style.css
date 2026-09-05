@@ -64,7 +64,8 @@ a:hover { text-decoration: underline; }
     transition: border-color 0.15s ease;
 }
 
-.run-card:hover { border-color: var(--accent); }
+.run-card:hover { border-color: var(--accent); text-decoration: none; }
+.run-card, .run-card:hover { color: inherit; }
 
 .run-date {
     flex: 0 0 6.5rem;
@@ -290,3 +291,53 @@ code {
 }
 
 .sub-filtros { margin: 0 0 0.75rem; }
+
+/* ---------- Detalle de carrera ---------- */
+
+.tile-val.dispositivo { font-size: 0.85rem; font-family: var(--font-stack); }
+
+.ruta {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    height: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+.traza {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+/* Anillo en color de superficie: inicio y fin suelen solaparse con la traza. */
+.hito { stroke: var(--surface); stroke-width: 2; }
+.hito.inicio { fill: var(--text); }
+.hito.fin { fill: var(--accent); }
+
+.splits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; }
+
+.split {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.55rem 0.6rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+.split.mejor { border-color: var(--accent); }
+.split-km { font-size: 0.7rem; color: var(--text-muted); }
+.split-t { font-family: var(--mono-stack); font-size: 0.95rem; }
+.split-nota { font-size: 0.65rem; color: var(--text-muted); }
+
+.run-card a.run-link { display: contents; color: inherit; }
+.run-card { cursor: pointer; }
+.run-card:hover .run-date { color: var(--text); }
+
+@media (max-width: 480px) {
+    .splits { grid-template-columns: repeat(3, 1fr); }
+}
