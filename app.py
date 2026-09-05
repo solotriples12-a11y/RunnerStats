@@ -7,9 +7,10 @@ from pathlib import PurePath
 
 from dotenv import load_dotenv
 from fitparse.utils import FitParseError
-from flask import Flask, Response, abort, g, render_template, request
+from flask import (Flask, Response, abort, g, redirect, render_template,
+                   request, url_for)
 
-from runnerstats import analisis, consultas, db, dedup, detalle, graficas
+from runnerstats import analisis, auth, consultas, db, dedup, detalle, graficas
 from runnerstats.importers import amazfit_fit, my_run_stats, nike_tcx
 
 load_dotenv()
@@ -27,27 +28,65 @@ MESES = ("ene", "feb", "mar", "abr", "may", "jun",
          "jul", "ago", "sep", "oct", "nov", "dic")
 
 
-def _auth_ok() -> bool:
-    esperado = os.environ.get("RUNNERSTATS_PASSWORD", "")
-    auth = request.authorization
-    return bool(esperado) and auth is not None and auth.password == esperado
+PUBLICAS = {"login", "static"}
 
 
 @app.before_request
 def _exigir_auth():
-    """Toda la web va detrás de auth.
+    """Toda la web va detrás de sesión.
 
-    A diferencia de javimendoza.com, aquí no hay ninguna parte pública: son
-    15 años de entrenamientos, frecuencia cardíaca y trazas GPS del
-    domicilio. Por eso el guard es global y no ruta por ruta.
+    Aquí no hay ninguna parte pública: son 15 años de entrenamientos,
+    frecuencia cardíaca y trazas GPS del domicilio. Por eso el guard es
+    global y no ruta por ruta.
 
-    Falla cerrado: sin `RUNNERSTATS_PASSWORD` configurado nadie entra.
+    Falla cerrado: sin `RUNNERSTATS_PASSWORD` configurada no se sirve nada.
     """
-    if not _auth_ok():
-        return Response(
-            "Auth required", 401,
-            {"WWW-Authenticate": 'Basic realm="RunnerStats"'},
-        )
+    if request.endpoint in PUBLICAS:
+        return None
+    if not auth.configurada():
+        return Response("Auth no configurada", 503)
+    if auth.sesion_valida(request.cookies.get(auth.COOKIE)):
+        return None
+    destino = request.full_path if request.query_string else request.path
+    return redirect(url_for("login", next=destino))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if not auth.configurada():
+        return Response("Auth no configurada", 503)
+
+    siguiente = request.args.get("next", "/")
+    # Solo rutas internas: un `next` absoluto seria un redirector abierto.
+    if not siguiente.startswith("/") or siguiente.startswith("//"):
+        siguiente = "/"
+
+    if request.method == "GET":
+        if auth.sesion_valida(request.cookies.get(auth.COOKIE)):
+            return redirect(siguiente)
+        return render_template("login.html", error=None)
+
+    if not auth.password_correcta(request.form.get("password", "")):
+        return render_template("login.html", error="Contraseña incorrecta"), 401
+
+    resp = redirect(siguiente)
+    resp.set_cookie(
+        auth.COOKIE, auth.token(),
+        max_age=60 * 60 * 24 * auth.DIAS,
+        httponly=True,
+        samesite="Lax",
+        # Detras de Traefik la peticion llega por HTTP; la cabecera dice si
+        # el cliente venia por HTTPS.
+        secure=request.headers.get("X-Forwarded-Proto", request.scheme) == "https",
+    )
+    return resp
+
+
+@app.route("/salir", methods=["POST"])
+def salir():
+    resp = redirect(url_for("login"))
+    resp.delete_cookie(auth.COOKIE)
+    return resp
 
 
 def get_db() -> sqlite3.Connection:

@@ -695,3 +695,22 @@ que sale. Medido: desviación mediana −0,1 %, ninguna fuera del ±13 %.
 
 **Lección**: comprobar los extremos de una serie no dice nada de lo que hay
 en medio.
+
+---
+
+## 2026-09-05 — Login con pantalla propia, solo contraseña
+
+**Qué**: Se sustituye el basic auth del navegador por una pantalla de login
+con la identidad del sitio. **No pide usuario**, solo contraseña, siguiendo
+el patrón de Notyo: cookie de sesión con un token HMAC derivado de la propia
+contraseña, sin estado que guardar.
+
+La variable de entorno no cambia (`RUNNERSTATS_PASSWORD`), así que no hay que
+tocar Coolify. Cambiarla invalida todas las sesiones.
+
+**Verificado**: 104 tests. Los de autenticación se reescribieron para el flujo
+real —entrar por el formulario— en vez de mandar cabeceras. Cubren que sin
+sesión se redirige al login, que el formulario no pide usuario, que una
+contraseña mala devuelve 401 y no da acceso, que salir cierra la sesión, que
+sin contraseña configurada se responde 503, y que un `next` absoluto no
+convierte el login en un redirector abierto.

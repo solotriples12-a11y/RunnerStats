@@ -21,14 +21,18 @@ Mismo patrón que el resto de subdominios de javimendoza.com.
 - Subdominio `run.javimendoza.com`. Pasos en `DEPLOY.md`.
 
 ### Autenticación
-Basic auth **en la aplicación**, con la contraseña en `RUNNERSTATS_PASSWORD`.
-Es la convención que ya usa `javimendoza.com` para `/stats` y `/enlaces`.
+Sesión por cookie con **una sola contraseña, sin usuario**, igual que Notyo.
+La contraseña vive en `RUNNERSTATS_PASSWORD`; al acertarla se entrega una
+cookie con un token HMAC derivado de esa misma contraseña, así que no hay
+estado de sesión que guardar y cambiarla invalida todas las sesiones.
 
-Dos diferencias respecto a aquella:
-- El guard es global (`before_request`), no ruta por ruta: aquí no hay
-  ninguna parte pública.
-- Falla cerrado. Sin la variable configurada la web devuelve 401 a todo, para
+- El guard es global (`before_request`): aquí no hay ninguna parte pública.
+- Falla cerrado. Sin la variable configurada la web devuelve 503 a todo, para
   que un despiste de configuración no publique el histórico.
+- La cookie va `HttpOnly`, `SameSite=Lax` y `Secure` cuando el cliente llegó
+  por HTTPS (se lee de `X-Forwarded-Proto`, porque Traefik proxea en claro).
+- El `next` del login solo admite rutas internas: uno absoluto convertiría el
+  login en un redirector abierto.
 
 ### Persistencia en producción
 El SQLite vive en un volumen montado en `/app/data`. Sin volumen, cada

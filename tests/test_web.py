@@ -1,7 +1,6 @@
 """Tests de la capa web. El foco está en la autenticación: la web sirve datos
 de salud y no tiene ninguna parte pública."""
 
-import base64
 import io
 
 import pytest
@@ -13,47 +12,83 @@ from runnerstats.importers import my_run_stats as mrs
 PASSWORD = "secreto-de-prueba"
 
 
-def _cabecera(password: str) -> dict:
-    cred = base64.b64encode(f"javi:{password}".encode()).decode()
-    return {"Authorization": f"Basic {cred}"}
+def _entrar(cliente, password: str = PASSWORD):
+    """Inicia sesion por el formulario, como haria el navegador."""
+    return cliente.post("/login", data={"password": password})
 
 
 @pytest.fixture
-def cliente(tmp_path, export_sintetico, monkeypatch):
+def cliente_sin_sesion(tmp_path, export_sintetico, monkeypatch):
     ruta = tmp_path / "web.db"
     conn = db.conectar(ruta)
     mrs.importar(conn, export_sintetico)
     conn.close()
-
     monkeypatch.setattr(webapp, "RUTA_DB", str(ruta))
     monkeypatch.setenv("RUNNERSTATS_PASSWORD", PASSWORD)
     webapp.app.config["TESTING"] = True
     return webapp.app.test_client()
 
 
-def test_sin_credenciales_401(cliente):
-    r = cliente.get("/")
+@pytest.fixture
+def cliente(cliente_sin_sesion):
+    _entrar(cliente_sin_sesion)
+    return cliente_sin_sesion
+
+
+def test_sin_sesion_redirige_al_login(cliente_sin_sesion):
+    r = cliente_sin_sesion.get("/")
+    assert r.status_code == 302
+    assert "/login" in r.headers["Location"]
+
+
+def test_el_login_no_pide_usuario(cliente_sin_sesion):
+    html = cliente_sin_sesion.get("/login").get_data(as_text=True)
+    assert 'name="password"' in html
+    assert 'name="usuario"' not in html and 'name="username"' not in html
+
+
+def test_password_incorrecta(cliente_sin_sesion):
+    r = cliente_sin_sesion.post("/login", data={"password": "otra"})
     assert r.status_code == 401
-    assert "Basic" in r.headers["WWW-Authenticate"]
+    assert "Contraseña incorrecta" in r.get_data(as_text=True)
+    assert cliente_sin_sesion.get("/").status_code == 302
 
 
-def test_password_incorrecta_401(cliente):
-    assert cliente.get("/", headers=_cabecera("otra")).status_code == 401
+def test_password_correcta_da_sesion(cliente_sin_sesion):
+    r = _entrar(cliente_sin_sesion)
+    assert r.status_code == 302
+    assert cliente_sin_sesion.get("/").status_code == 200
 
 
-def test_sin_password_configurada_no_entra_nadie(cliente, monkeypatch):
+def test_el_next_solo_admite_rutas_internas(cliente_sin_sesion):
+    """Un `next` absoluto convertiria el login en un redirector abierto."""
+    r = cliente_sin_sesion.post("/login?next=https://evil.example/x",
+                                data={"password": PASSWORD})
+    assert r.headers["Location"] in ("/", "http://localhost/")
+    r = cliente_sin_sesion.post("/login?next=//evil.example",
+                                data={"password": PASSWORD})
+    assert "evil.example" not in r.headers["Location"]
+
+
+def test_salir_cierra_la_sesion(cliente):
+    assert cliente.get("/").status_code == 200
+    cliente.post("/salir")
+    assert cliente.get("/").status_code == 302
+
+
+def test_sin_password_configurada_no_entra_nadie(cliente_sin_sesion, monkeypatch):
     """Falla cerrado: si falta la variable de entorno, nadie pasa.
 
-    Lo contrario (abrir la web cuando no hay password) publicaría el
-    histórico entero en internet por un despiste de configuración.
+    Lo contrario (abrir la web cuando no hay password) publicaria el
+    historico entero en internet por un despiste de configuracion.
     """
     monkeypatch.setenv("RUNNERSTATS_PASSWORD", "")
-    assert cliente.get("/", headers=_cabecera("")).status_code == 401
-    assert cliente.get("/", headers=_cabecera(PASSWORD)).status_code == 401
+    assert cliente_sin_sesion.get("/").status_code == 503
+    assert cliente_sin_sesion.post("/login", data={"password": ""}).status_code == 503
 
 
 def test_con_password_muestra_las_carreras(cliente):
-    r = cliente.get("/", headers=_cabecera(PASSWORD))
+    r = cliente.get("/")
     assert r.status_code == 200
     html = r.get_data(as_text=True)
     assert "5.03 km" in html
@@ -64,7 +99,7 @@ def test_con_password_muestra_las_carreras(cliente):
 
 def test_marca_las_carreras_sin_detalle(cliente):
     """Ninguna carrera de My Run Stats tiene muestreos: no debe haber badge."""
-    html = cliente.get("/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
+    html = cliente.get("/").get_data(as_text=True)
     assert 'class="run-card"' in html
     assert "has-detail" not in html
 
@@ -77,14 +112,15 @@ def cliente_vacio(tmp_path, monkeypatch):
     monkeypatch.setattr(webapp, "RUTA_DB", str(ruta))
     monkeypatch.setenv("RUNNERSTATS_PASSWORD", PASSWORD)
     webapp.app.config["TESTING"] = True
-    return webapp.app.test_client()
+    c = webapp.app.test_client()
+    _entrar(c)
+    return c
 
 
 def _subir(cliente, contenido: bytes, nombre: str):
     return cliente.post(
         "/importar",
-        headers=_cabecera(PASSWORD),
-        data={"ficheros": (io.BytesIO(contenido), nombre)},
+                data={"ficheros": (io.BytesIO(contenido), nombre)},
         content_type="multipart/form-data",
     )
 
@@ -92,18 +128,18 @@ def _subir(cliente, contenido: bytes, nombre: str):
 def test_base_vacia_no_revienta(cliente_vacio):
     """Sin carreras los agregados de SQL son NULL y los filtros recibirian
     None. La portada tiene que seguir rindiendo."""
-    r = cliente_vacio.get("/", headers=_cabecera(PASSWORD))
+    r = cliente_vacio.get("/")
     assert r.status_code == 200
     assert "Todavía no hay ninguna carrera" in r.get_data(as_text=True)
 
 
-def test_importar_requiere_auth(cliente):
-    assert cliente.get("/importar").status_code == 401
-    assert cliente.post("/importar").status_code == 401
+def test_importar_requiere_sesion(cliente_sin_sesion):
+    assert cliente_sin_sesion.get("/importar").status_code == 302
+    assert cliente_sin_sesion.post("/importar").status_code == 302
 
 
 def test_formulario_se_muestra(cliente):
-    r = cliente.get("/importar", headers=_cabecera(PASSWORD))
+    r = cliente.get("/importar")
     assert r.status_code == 200
     assert 'name="ficheros"' in r.get_data(as_text=True)
 
@@ -114,7 +150,7 @@ def test_subir_json_importa(cliente_vacio, export_sintetico):
     assert "2 carreras importadas" in r.get_data(as_text=True)
     # Y ya se ven en la portada.
     assert "5.03 km" in cliente_vacio.get(
-        "/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
+        "/").get_data(as_text=True)
 
 
 def test_subir_fit_corrupto_da_error_y_no_entra_nada(cliente_vacio):
@@ -122,7 +158,7 @@ def test_subir_fit_corrupto_da_error_y_no_entra_nada(cliente_vacio):
     assert r.status_code == 200
     assert "no se pudo leer el .fit" in r.get_data(as_text=True)
     assert "Todavía no hay ninguna carrera" in cliente_vacio.get(
-        "/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
+        "/").get_data(as_text=True)
 
 
 def test_subir_fit_real_importa_con_muestreos(cliente_vacio, fit_real):
@@ -131,7 +167,7 @@ def test_subir_fit_real_importa_con_muestreos(cliente_vacio, fit_real):
     assert "1 carrera importada" in r.get_data(as_text=True)
 
     # Y en la portada aparece marcada como carrera con detalle.
-    html = cliente_vacio.get("/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
+    html = cliente_vacio.get("/").get_data(as_text=True)
     assert "has-detail" in html
     assert "148 ppm" in html
 
@@ -161,7 +197,7 @@ def test_subir_tcx_que_no_es_de_nike_da_error_claro(cliente_vacio):
 
 
 def test_sin_seleccionar_nada(cliente):
-    r = cliente.post("/importar", headers=_cabecera(PASSWORD),
+    r = cliente.post("/importar",
                      data={}, content_type="multipart/form-data")
     assert "no has seleccionado" in r.get_data(as_text=True)
 
@@ -187,17 +223,20 @@ def test_un_anio_sin_carreras_largas_no_revienta(tmp_path, monkeypatch):
     monkeypatch.setattr(webapp, "RUTA_DB", str(ruta))
     monkeypatch.setenv("RUNNERSTATS_PASSWORD", PASSWORD)
     webapp.app.config["TESTING"] = True
-    r = webapp.app.test_client().get("/", headers=_cabecera(PASSWORD))
+    c = webapp.app.test_client()
+    _entrar(c)
+    r = c.get("/")
     assert r.status_code == 200
-    assert "Mejor ritmo" in r.get_data(as_text=True)
+    assert "Carreras" in r.get_data(as_text=True)
 
 
-def test_el_detalle_requiere_auth(cliente):
-    assert cliente.get("/carrera/loquesea").status_code == 401
+def test_el_detalle_requiere_sesion(cliente_sin_sesion):
+    r = cliente_sin_sesion.get("/carrera/loquesea")
+    assert r.status_code == 302 and "/login" in r.headers["Location"]
 
 
 def test_detalle_de_carrera_inexistente_da_404(cliente):
-    r = cliente.get("/carrera/no-existe", headers=_cabecera(PASSWORD))
+    r = cliente.get("/carrera/no-existe")
     assert r.status_code == 404
 
 
@@ -205,7 +244,7 @@ def test_detalle_de_una_carrera_solo_resumen(cliente):
     """Las de My Run Stats no tienen muestreos: la pagina debe decirlo en vez
     de enseñar graficas vacias."""
     cid = "my_run_stats:aaaa-1111"
-    r = cliente.get(f"/carrera/{cid}", headers=_cabecera(PASSWORD))
+    r = cliente.get(f"/carrera/{cid}")
     assert r.status_code == 200
     html = r.get_data(as_text=True)
     assert "solo tiene resumen" in html
@@ -220,7 +259,7 @@ def test_detalle_completo(cliente_vacio, nike_dir):
     conn.close()
 
     html = cliente_vacio.get(f"/carrera/{cid}",
-                             headers=_cabecera(PASSWORD)).get_data(as_text=True)
+                             ).get_data(as_text=True)
     for seccion in ("Ritmo", "Frecuencia cardíaca", "Parciales"):
         assert seccion in html, f"falta la seccion {seccion}"
     # El recorrido es la miniatura de la cabecera, no una seccion.
@@ -238,7 +277,7 @@ def test_detalle_completo(cliente_vacio, nike_dir):
 def test_la_lista_enlaza_al_detalle(cliente):
     """Se colo una vez: la sustitucion en la plantilla no coincidio por la
     indentacion y fallo en silencio, dejando las tarjetas sin enlace."""
-    html = cliente.get("/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
+    html = cliente.get("/").get_data(as_text=True)
     assert 'href="/carrera/' in html
     assert "<article class=\"run-card" not in html
 
@@ -263,7 +302,7 @@ def test_una_carrera_de_cinta_no_enseña_altitud_ni_ritmo(cliente_vacio, nike_di
         pytest.skip("no hay ninguna muestra sin GPS")
 
     html = cliente_vacio.get(f"/carrera/{cid}",
-                             headers=_cabecera(PASSWORD)).get_data(as_text=True)
+                             ).get_data(as_text=True)
     assert ">Altitud" not in html
     assert ">Ritmo" not in html
     assert 'class="ruta-mini"' not in html
@@ -278,7 +317,7 @@ def test_la_duracion_lleva_su_unidad_mayor(cliente):
 
     # 00:27:55 en el export sintetico -> min
     html = cliente.get("/carrera/my_run_stats:aaaa-1111",
-                       headers=_cabecera(PASSWORD)).get_data(as_text=True)
+                       ).get_data(as_text=True)
     assert '<span class="uni">min</span>' in html
 
 
@@ -290,7 +329,7 @@ def test_los_records_llevan_el_ritmo_junto_al_tiempo(cliente_vacio, nike_dir):
     dedup.marcar_duplicadas(conn)
     conn.close()
 
-    html = cliente_vacio.get("/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
+    html = cliente_vacio.get("/").get_data(as_text=True)
     assert 'class="record-linea"' in html
     # Tiempo y ritmo en el mismo contenedor, no en lineas separadas.
     bloque = html.split('class="record-linea"')[1].split("</span>\n            </span>")[0]

@@ -63,7 +63,7 @@ Es el mismo problema que ya tuviste en `javimendoza.com` con `tracker.db`.
 
 | Variable | Valor |
 |---|---|
-| `RUNNERSTATS_PASSWORD` | la contraseña de acceso (usuario: cualquiera) |
+| `RUNNERSTATS_PASSWORD` | la contraseña de acceso (no hay usuario) |
 | `RUNNERSTATS_DB` | `/app/data/runnerstats.db` |
 
 `RUNNERSTATS_PASSWORD` **no puede quedar vacía**: la app falla cerrado y
