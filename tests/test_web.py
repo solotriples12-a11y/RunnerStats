@@ -268,3 +268,15 @@ def test_una_carrera_de_cinta_no_enseña_altitud_ni_ritmo(cliente_vacio, nike_di
     assert ">Ritmo" not in html
     assert 'class="ruta-mini"' not in html
     assert "Frecuencia cardíaca" in html
+
+
+def test_la_duracion_lleva_su_unidad_mayor(cliente):
+    """Como el km: 'h' si pasa de la hora, 'min' si no."""
+    assert webapp.f_unidad_duracion(3599) == "min"
+    assert webapp.f_unidad_duracion(3600) == "h"
+    assert webapp.f_unidad_duracion(7200) == "h"
+
+    # 00:27:55 en el export sintetico -> min
+    html = cliente.get("/carrera/my_run_stats:aaaa-1111",
+                       headers=_cabecera(PASSWORD)).get_data(as_text=True)
+    assert '<span class="uni">min</span>' in html

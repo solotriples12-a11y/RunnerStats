@@ -81,6 +81,12 @@ def f_km(metros: float) -> str:
     return f"{metros / 1000:.2f}"
 
 
+@app.template_filter("unidad_duracion")
+def f_unidad_duracion(segundos: int) -> str:
+    """La unidad mayor que aplica, para acompañar a la cifra como el km."""
+    return "h" if segundos >= 3600 else "min"
+
+
 @app.template_filter("ritmo")
 def f_ritmo(seg_por_km: float) -> str:
     m, s = divmod(round(seg_por_km), 60)

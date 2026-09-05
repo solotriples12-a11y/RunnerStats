@@ -632,3 +632,14 @@ verticalmente. La cabecera baja de 141 px a 52.
 
 **Verificado**: medido en el DOM a 375 px de ancho — contenedor 375,
 cabecera 52 de alto y la miniatura 76×52 pegada al borde derecho.
+
+---
+
+## 2026-09-05 — Unidad en la duración del detalle
+
+**Qué**: La duración lleva su unidad al lado, como ya hacían la distancia y el
+ritmo: `h` cuando pasa de la hora y `min` cuando no. Sale del flujo igual que
+las otras, así que el centrado lo sigue marcando solo el número.
+
+**Verificado**: 92 tests. El nuevo cubre el corte en 3600 s y que una carrera
+de 27 minutos rinde `min`.
