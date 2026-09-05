@@ -221,8 +221,14 @@ def test_detalle_completo(cliente_vacio, nike_dir):
 
     html = cliente_vacio.get(f"/carrera/{cid}",
                              headers=_cabecera(PASSWORD)).get_data(as_text=True)
-    for seccion in ("Ritmo", "Frecuencia cardíaca", "Recorrido", "Parciales"):
+    for seccion in ("Ritmo", "Frecuencia cardíaca", "Parciales"):
         assert seccion in html, f"falta la seccion {seccion}"
+    # El recorrido es la miniatura de la cabecera, no una seccion.
+    assert 'class="ruta-mini"' in html
+    assert html.count('class="traza"') == 1
+    # Las tarjetas son solo tres.
+    assert "Ritmo medio" in html and "FC máxima" in html
+    assert "Calorías" not in html and "Desnivel" not in html
     assert "solo tiene resumen" not in html
 
 

@@ -516,3 +516,25 @@ El porqué de cada cálculo sigue en `DECISIONS.md`, que es su sitio.
 
 **Huérfanos retirados**: `analisis.carreras_con_muestreos()` y el parámetro
 `sub` del macro de gráficas, que solo existían para los textos eliminados.
+
+---
+
+## 2026-09-05 — Reordenada la vista de detalle
+
+**Qué**: A petición del usuario.
+- Cabecera a la izquierda en tres líneas: distancia, duración (en blanco, con
+  el mismo peso que la distancia) y fecha (apagada).
+- El recorrido sube a la cabecera como **miniatura** a la derecha; deja de ser
+  una sección propia.
+- Tarjetas reducidas a tres: ritmo medio, FC media y FC máxima. El ritmo
+  medio sale de la cabecera y pasa a tarjeta.
+- Los parciales suben justo detrás de las tarjetas y pasan de tarjetas a
+  **filas**, con el mejor en color de acento.
+
+**Nota**: se dejan de mostrar desnivel, calorías, muestreos y dispositivo. Los
+datos siguen en la base; solo salen de la pantalla.
+
+**Verificado**: 84 tests. Se corrigió uno que pasaba por casualidad —
+comprobaba que existiera la palabra "Recorrido" y la encontraba en el
+`aria-label` del SVG, así que habría seguido en verde con la sección
+eliminada. Ahora comprueba la miniatura y que la traza no esté duplicada.

@@ -2,37 +2,47 @@
 {% block titulo %}{{ c.fecha_inicio_unix | fecha }} · RunnerStats{% endblock %}
 
 {% block contenido %}
-<header class="hero">
-    <h1>{{ c.distancia_metros | km }} km</h1>
-    <p>{{ c.fecha_inicio_unix | fecha }} · {{ c.duracion_segundos | duracion }} ·
-       {{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }}/km</p>
-    <p class="acciones"><a href="{{ url_for('index') }}">← Volver</a></p>
+<header class="hero detalle">
+    <div class="cabecera-datos">
+        <h1>{{ c.distancia_metros | km }} km</h1>
+        <p class="cab-dur">{{ c.duracion_segundos | duracion }}</p>
+        <p class="cab-fecha">{{ c.fecha_inicio_unix | fecha }}</p>
+        <p class="acciones"><a href="{{ url_for('index') }}">← Volver</a></p>
+    </div>
+    {% if ruta and not ruta.vacia %}
+    <svg class="ruta-mini" viewBox="0 0 {{ ruta.ancho }} {{ ruta.alto }}" role="img"
+         aria-label="Recorrido de la carrera">
+        <polyline class="traza" points="{{ ruta.linea }}"/>
+        <circle class="hito inicio" cx="{{ ruta.inicio.split(',')[0] }}" cy="{{ ruta.inicio.split(',')[1] }}" r="4"/>
+        <circle class="hito fin" cx="{{ ruta.fin.split(',')[0] }}" cy="{{ ruta.fin.split(',')[1] }}" r="4"/>
+    </svg>
+    {% endif %}
 </header>
 
-<section class="tiles">
-    {% if c.fc_media %}
+<section class="tiles tiles-3">
+    <div class="tile"><span class="tile-lab">Ritmo medio</span>
+        <span class="tile-val">{{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }}<small>/km</small></span></div>
     <div class="tile"><span class="tile-lab">FC media</span>
-        <span class="tile-val">{{ c.fc_media }}<small>ppm</small></span></div>
-    {% endif %}
-    {% if c.fc_maxima %}
+        <span class="tile-val">{% if c.fc_media %}{{ c.fc_media }}<small>ppm</small>{% else %}—{% endif %}</span></div>
     <div class="tile"><span class="tile-lab">FC máxima</span>
-        <span class="tile-val">{{ c.fc_maxima }}<small>ppm</small></span></div>
-    {% endif %}
-    {% if c.desnivel_positivo_metros %}
-    <div class="tile"><span class="tile-lab">Desnivel +</span>
-        <span class="tile-val">{{ c.desnivel_positivo_metros | round | int }}<small>m</small></span></div>
-    {% endif %}
-    {% if c.calorias %}
-    <div class="tile"><span class="tile-lab">Calorías</span>
-        <span class="tile-val">{{ c.calorias }}</span></div>
-    {% endif %}
-    <div class="tile"><span class="tile-lab">Muestreos</span>
-        <span class="tile-val">{{ muestreos }}</span></div>
-    {% if c.dispositivo %}
-    <div class="tile"><span class="tile-lab">Fuente</span>
-        <span class="tile-val dispositivo">{{ c.dispositivo }}</span></div>
-    {% endif %}
+        <span class="tile-val">{% if c.fc_maxima %}{{ c.fc_maxima }}<small>ppm</small>{% else %}—{% endif %}</span></div>
 </section>
+
+{% if splits %}
+<section class="bloque">
+    <h2>Parciales</h2>
+    <ol class="splits">
+        {% set mejor = splits | rejectattr('parcial') | map(attribute='segundos') | min %}
+        {% for s in splits %}
+        <li class="split{% if not s.parcial and s.segundos == mejor %} mejor{% endif %}">
+            <span class="split-km">{% if s.parcial %}último{% else %}km {{ s.km }}{% endif %}</span>
+            {% if s.parcial %}<span class="split-nota">{{ s.metros | round | int }} m</span>{% endif %}
+            <span class="split-t">{{ s.segundos | duracion }}</span>
+        </li>
+        {% endfor %}
+    </ol>
+</section>
+{% endif %}
 
 {% if not muestreos %}
 <p class="note">Sin muestreos: esta carrera solo tiene resumen.</p>
@@ -60,31 +70,7 @@
 {{ grafica(pulso, "Frecuencia cardíaca") }}
 {{ grafica(altitud, "Altitud") }}
 
-{% if ruta and not ruta.vacia %}
-<section class="bloque">
-    <h2>Recorrido</h2>
-    <svg class="ruta" viewBox="0 0 {{ ruta.ancho }} {{ ruta.alto }}" role="img"
-         aria-label="Recorrido de la carrera">
-        <polyline class="traza" points="{{ ruta.linea }}"/>
-        <circle class="hito inicio" cx="{{ ruta.inicio.split(',')[0] }}" cy="{{ ruta.inicio.split(',')[1] }}" r="4"/>
-        <circle class="hito fin" cx="{{ ruta.fin.split(',')[0] }}" cy="{{ ruta.fin.split(',')[1] }}" r="4"/>
-    </svg>
-</section>
-{% endif %}
 
-{% if splits %}
-<section class="bloque">
-    <h2>Parciales</h2>
-    <div class="splits">
-        {% set mejor = splits | rejectattr('parcial') | map(attribute='segundos') | min %}
-        {% for s in splits %}
-        <div class="split{% if not s.parcial and s.segundos == mejor %} mejor{% endif %}">
-            <span class="split-km">{% if s.parcial %}último{% else %}km {{ s.km }}{% endif %}</span>
-            <span class="split-t">{{ s.segundos | duracion }}</span>
-            {% if s.parcial %}<span class="split-nota">{{ s.metros | round | int }} m</span>{% endif %}
-        </div>
-        {% endfor %}
-    </div>
-</section>
-{% endif %}
+
+
 {% endblock %}

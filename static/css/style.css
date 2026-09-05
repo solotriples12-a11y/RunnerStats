@@ -287,6 +287,7 @@ code {
 
 @media (max-width: 480px) {
     .tiles { grid-template-columns: repeat(2, 1fr); }
+    .tiles-3 { grid-template-columns: repeat(3, 1fr); }
     .records { grid-template-columns: 1fr; }
 }
 
@@ -318,21 +319,27 @@ code {
 .hito.inicio { fill: var(--text); }
 .hito.fin { fill: var(--accent); }
 
-.splits { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; }
+/* Parciales en filas, no en tarjetas. */
+.splits {
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
 
 .split {
     display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    padding: 0.55rem 0.6rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.5rem 0.9rem;
+    border-top: 1px solid var(--border);
 }
-.split.mejor { border-color: var(--accent); }
-.split-km { font-size: 0.7rem; color: var(--text-muted); }
-.split-t { font-family: var(--mono-stack); font-size: 0.95rem; }
-.split-nota { font-size: 0.65rem; color: var(--text-muted); }
+.split:first-child { border-top: 0; }
+.split-km { flex: 0 0 4.5rem; font-size: 0.8rem; color: var(--text-muted); }
+.split-nota { font-size: 0.75rem; color: var(--text-muted); }
+.split-t { margin-left: auto; font-family: var(--mono-stack); font-size: 0.95rem; }
+.split.mejor .split-t { color: var(--accent); }
 
 .run-card a.run-link { display: contents; color: inherit; }
 .run-card { cursor: pointer; }
@@ -344,3 +351,34 @@ code {
 
 .record { color: inherit; }
 .record:hover { border-color: var(--accent); text-decoration: none; }
+
+
+/* ---------- Cabecera del detalle ---------- */
+
+.hero.detalle {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    text-align: left;
+    margin-bottom: 2rem;
+}
+.cabecera-datos { min-width: 0; }
+.hero.detalle h1 { font-size: 2rem; margin: 0; }
+.cab-dur { font-size: 1.15rem; color: var(--text); margin-top: 0.15rem; }
+.cab-fecha { color: var(--text-muted); margin-top: 0.1rem; }
+.hero.detalle .acciones { margin-top: 0.9rem; }
+
+/* La ruta pasa a ser una miniatura de referencia, no la pieza principal. */
+.ruta-mini {
+    flex: 0 0 auto;
+    width: 120px;
+    height: auto;
+    max-height: 110px;
+}
+.ruta-mini .traza { stroke-width: 3; }
+.ruta-mini .hito { r: 10; stroke-width: 4; }
+
+@media (max-width: 480px) {
+    .ruta-mini { width: 96px; }
+}
