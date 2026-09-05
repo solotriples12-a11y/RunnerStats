@@ -171,9 +171,12 @@ def carrera(carrera_id):
                                             formato=f_ritmo)
         ctx["pulso"] = graficas.linea_serie(
             detalle.serie(ms, "frecuencia_cardiaca"), t0, t1)
+        # Sin desnivel real no hay nada que enseñar: una carrera de cinta
+        # trae la altitud como -1 constante.
         ctx["altitud"] = graficas.linea_serie(
             detalle.serie(ms, "altitud_metros"), t0, t1,
-            formato=lambda v: f"{v:.0f} m")
+            formato=lambda v: f"{v:.0f} m",
+            rango_minimo=graficas.RANGO_MINIMO["altitud_metros"])
         ctx["ruta"] = graficas.ruta_svg(detalle.ruta(ms))
         ctx["splits"] = detalle.splits(ms)
 

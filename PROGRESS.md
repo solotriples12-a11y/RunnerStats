@@ -594,3 +594,24 @@ hacer defensivo el código de producción: la columna siempre existe.
 **Verificado**: 88 tests. Dos comprobaban las tarjetas eliminadas y se
 actualizaron para exigir la cabecera nueva y que no quede ninguna `.tile`.
 Retirado el `.tiles-3` del CSS, huérfano tras el cambio.
+
+---
+
+## 2026-09-05 — Altitud plana oculta, y cifras centradas por el número
+
+**Qué**:
+- La gráfica de altitud desaparece cuando no hay desnivel real. En una
+  carrera de cinta la altitud llega como **-1 constante**: un centinela, no
+  una medición. Afecta a 14 de las 296 carreras, exactamente las que no
+  tienen GPS.
+- En la cabecera, la unidad (`km`, `/km`) sale del flujo con posicionamiento
+  absoluto para que el centrado lo marque solo el número. Antes se centraba
+  el bloque entero y la cifra quedaba desplazada a la izquierda.
+
+**Por qué así**: el criterio no es "es de cinta" sino "el dato no varía". Una
+raya plana no dice nada, venga de una cinta o de un llano perfecto, y evita
+tener que deducir el tipo de carrera desde la ausencia de GPS. El umbral es
+solo para la altitud: un pulso estable sí es un dato.
+
+**Verificado**: 91 tests (4 nuevos). Se añadió a `data/nike/` una carrera de
+cinta real como muestra, porque el test que lo cubre se saltaba sin ella.

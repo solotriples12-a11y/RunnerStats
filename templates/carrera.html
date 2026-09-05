@@ -16,9 +16,9 @@
 </header>
 
 <section class="cab-cifras">
-    <p class="cifra-media">{{ c.duracion_segundos | duracion }}</p>
-    <p class="cifra-grande">{{ c.distancia_metros | km }} <span>km</span></p>
-    <p class="cifra-media">{{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }} <span>/km</span></p>
+    <p class="cifra-media"><span class="num">{{ c.duracion_segundos | duracion }}</span></p>
+    <p class="cifra-grande"><span class="num">{{ c.distancia_metros | km }}<span class="uni">km</span></span></p>
+    <p class="cifra-media"><span class="num">{{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }}<span class="uni">/km</span></span></p>
 </section>
 
 {% if splits %}

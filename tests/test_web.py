@@ -241,3 +241,30 @@ def test_la_lista_enlaza_al_detalle(cliente):
     html = cliente.get("/", headers=_cabecera(PASSWORD)).get_data(as_text=True)
     assert 'href="/carrera/' in html
     assert "<article class=\"run-card" not in html
+
+
+def test_una_carrera_de_cinta_no_enseña_altitud_ni_ritmo(cliente_vacio, nike_dir):
+    """Sin GPS no hay ritmo ni recorrido, y la altitud llega como -1 fijo."""
+    import glob
+    from runnerstats.importers import nike_tcx as nike
+    conn = db.conectar(webapp.RUTA_DB)
+
+    # Cualquier TCX de los de muestra que no traiga GPS.
+    cid = None
+    for f in glob.glob(str(nike_dir / "*.tcx")):
+        try:
+            car, ms = nike.leer(f)
+        except Exception:
+            continue
+        if ms and not any(m.latitud for m in ms) and any(m.frecuencia_cardiaca for m in ms):
+            nike.importar(conn, f); cid = car.id; break
+    conn.close()
+    if cid is None:
+        pytest.skip("no hay ninguna muestra sin GPS")
+
+    html = cliente_vacio.get(f"/carrera/{cid}",
+                             headers=_cabecera(PASSWORD)).get_data(as_text=True)
+    assert ">Altitud" not in html
+    assert ">Ritmo" not in html
+    assert 'class="ruta-mini"' not in html
+    assert "Frecuencia cardíaca" in html

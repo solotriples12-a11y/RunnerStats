@@ -391,7 +391,20 @@ code {
     letter-spacing: -0.02em;
 }
 .cifra-media { font-size: 1.5rem; font-weight: 400; }
-.cab-cifras span { color: var(--text-muted); font-size: 0.9rem; font-weight: 300; }
+/* La unidad se saca del flujo para que el centrado lo marque solo el numero:
+   con "km" dentro, "10.06 km" se centraba como bloque y la cifra quedaba
+   desplazada a la izquierda. */
+.cab-cifras .num { position: relative; display: inline-block; }
+.cab-cifras .uni {
+    position: absolute;
+    left: 100%;
+    bottom: 0.15em;
+    margin-left: 0.3em;
+    white-space: nowrap;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 300;
+}
 
 /* La media y la maxima acompañan al titulo, sin robarle peso. */
 .h2-extra {

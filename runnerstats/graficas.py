@@ -182,8 +182,13 @@ def dispersion_ritmo(datos: list[dict]) -> dict:
 ALTO_DETALLE = 130
 
 
+# Por debajo de este recorrido, una serie no dibuja nada legible: es una raya.
+# Lo tipico es una carrera de cinta, donde la altitud viene como -1 constante.
+RANGO_MINIMO = {"altitud_metros": 3.0}
+
+
 def linea_serie(puntos: list[dict], t0: int, t1: int, invertir: bool = False,
-                formato=None) -> dict:
+                formato=None, rango_minimo: float = 0.0) -> dict:
     """Serie temporal de una carrera: x = segundos desde el inicio.
 
     Las dos gráficas de detalle comparten el eje X para poder leerse juntas.
@@ -194,6 +199,10 @@ def linea_serie(puntos: list[dict], t0: int, t1: int, invertir: bool = False,
     `invertir` pone los valores bajos arriba, que es como se lee un ritmo.
     """
     if len(puntos) < 2:
+        return {"vacia": True}
+
+    vals_todos = [p["v"] for p in puntos]
+    if max(vals_todos) - min(vals_todos) < rango_minimo:
         return {"vacia": True}
 
     # La escala se recorta a los percentiles 2-98: un unico pico deja el

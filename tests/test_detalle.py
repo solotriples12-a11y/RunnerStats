@@ -159,3 +159,20 @@ def test_sin_pulso_los_parciales_no_lo_inventan():
            "frecuencia_cardiaca": None, "latitud": None, "longitud": None}
           for t, d in p]
     assert all(s["fc"] is None for s in detalle.splits(ms))
+
+
+def test_una_altitud_plana_no_dibuja_grafica():
+    """En cinta la altitud viene como -1 constante: un centinela, no una
+    medida. Dibujar una raya no aporta nada."""
+    plana = [{"t": t, "v": -1.0} for t in range(300)]
+    assert graficas.linea_serie(plana, 0, 299, rango_minimo=3.0)["vacia"] is True
+
+    # Con desnivel real si se dibuja.
+    real = [{"t": t, "v": 20 + t / 30} for t in range(300)]
+    assert graficas.linea_serie(real, 0, 299, rango_minimo=3.0)["vacia"] is False
+
+
+def test_el_pulso_no_se_oculta_por_ser_estable():
+    """El umbral es solo de la altitud: una FC plana sigue siendo un dato."""
+    estable = [{"t": t, "v": 150} for t in range(300)]
+    assert graficas.linea_serie(estable, 0, 299)["vacia"] is False
