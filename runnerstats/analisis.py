@@ -34,7 +34,7 @@ def anios(conn: sqlite3.Connection) -> list[int]:
         int(r[0])
         for r in conn.execute(
             "SELECT DISTINCT strftime('%Y', fecha_inicio_unix, 'unixepoch') a"
-            " FROM carrera ORDER BY a DESC"
+            " FROM carrera WHERE sustituida_por IS NULL ORDER BY a DESC"
         )
     ]
 
@@ -48,7 +48,7 @@ def resumen(conn: sqlite3.Connection, anio: int | None = None) -> dict:
                SUM(duracion_segundos) AS segundos,
                MAX(distancia_metros)  AS mas_larga,
                MIN(fecha_inicio_unix) AS desde
-        FROM carrera WHERE 1=1 {filtro}
+        FROM carrera WHERE sustituida_por IS NULL {filtro}
         """,
         params,
     ).fetchone()
@@ -56,7 +56,7 @@ def resumen(conn: sqlite3.Connection, anio: int | None = None) -> dict:
     mejor = conn.execute(
         f"""
         SELECT duracion_segundos * 1000.0 / distancia_metros AS ritmo
-        FROM carrera WHERE distancia_metros >= 3000 {filtro}
+        FROM carrera WHERE sustituida_por IS NULL AND distancia_metros >= 3000 {filtro}
         ORDER BY ritmo LIMIT 1
         """,
         params,
@@ -87,7 +87,8 @@ def records(conn: sqlite3.Connection, anio: int | None = None) -> list[dict]:
             SELECT id, fecha_inicio_unix, distancia_metros, duracion_segundos,
                    duracion_segundos * 1000.0 / distancia_metros AS ritmo
             FROM carrera
-            WHERE distancia_metros >= ? AND distancia_metros < ? {filtro}
+            WHERE sustituida_por IS NULL
+              AND distancia_metros >= ? AND distancia_metros < ? {filtro}
             ORDER BY ritmo LIMIT 1
             """,
             [minimo * 1000, maximo * 1000] + params,
@@ -145,7 +146,7 @@ def volumen(conn: sqlite3.Connection, agrupacion: str = "anio",
                COUNT(*)                 AS carreras,
                SUM(distancia_metros)/1000 AS km,
                MIN(fecha_inicio_unix)   AS inicio
-        FROM carrera WHERE 1=1 {filtro}
+        FROM carrera WHERE sustituida_por IS NULL {filtro}
         GROUP BY clave ORDER BY inicio
         """,
         params,
@@ -223,7 +224,7 @@ def ritmos(conn: sqlite3.Connection) -> list[dict]:
                    distancia_metros,
                    duracion_segundos * 1000.0 / distancia_metros AS ritmo
             FROM carrera
-            WHERE distancia_metros >= 1000
+            WHERE sustituida_por IS NULL AND distancia_metros >= 1000
             ORDER BY fecha_inicio_unix
             """
         )

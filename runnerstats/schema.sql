@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS carrera (
     desnivel_negativo_metros  REAL,
     calorias                  INTEGER,
     dispositivo               TEXT,
+    -- Id de la carrera que la supersede cuando dos fuentes traen la misma
+    -- carrera. No se borra nada: se oculta de las consultas.
+    sustituida_por            TEXT,
     importado_en              INTEGER NOT NULL
 );
 

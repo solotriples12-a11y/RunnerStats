@@ -16,6 +16,9 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
   minuto y los muestreos a 1 Hz en la tabla `muestreo`.
 - Selector de agrupación en la gráfica de volumen: año, mes, semana y
   carrera. Récords con el tiempo real además del ritmo.
+- Importador de Nike Run Club (269 carreras) con fusión de trackpoints por
+  segundo y distancia derivada del GPS cuando falta.
+- Deduplicación entre fuentes al 5 %, marcando en vez de borrar.
 
 ## En curso
 
@@ -31,6 +34,9 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
 
 ## Esperando
 
+- **Importar el export de Nike en producción**: 269 ficheros, 152 MB. El
+  límite por tanda son 64 MB, así que van tres o cuatro tandas desde
+  `/importar`.
 - **Export de privacidad de Huawei**: solicitado el 2026-09-04, avisan de 7
   días. Al llegar, mirar si `Motion path detail data` trae FC. Si la trae,
   escribir el importador; si no, descartar Huawei como fuente y quedarse con

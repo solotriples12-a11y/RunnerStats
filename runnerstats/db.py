@@ -14,4 +14,18 @@ def conectar(ruta: str | Path) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(ESQUEMA.read_text())
+    _migrar(conn)
     return conn
+
+
+# Columnas añadidas despues de que la base existiera en produccion.
+# CREATE TABLE IF NOT EXISTS no toca una tabla que ya esta creada.
+COLUMNAS_NUEVAS = {"sustituida_por": "TEXT"}
+
+
+def _migrar(conn: sqlite3.Connection) -> None:
+    existentes = {f["name"] for f in conn.execute("PRAGMA table_info(carrera)")}
+    for col, tipo in COLUMNAS_NUEVAS.items():
+        if col not in existentes:
+            conn.execute(f"ALTER TABLE carrera ADD COLUMN {col} {tipo}")
+    conn.commit()

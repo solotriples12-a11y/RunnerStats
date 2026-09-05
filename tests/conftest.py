@@ -67,3 +67,12 @@ def fit_real() -> Path:
     if not ficheros:
         pytest.skip("no hay ningun .fit en data/")
     return ficheros[0]
+
+
+@pytest.fixture
+def nike_dir() -> Path:
+    """Muestras representativas del export de Nike, si estan en data/nike/."""
+    d = DATA / "nike"
+    if not d.is_dir() or not list(d.glob("*.tcx")):
+        pytest.skip("no hay TCX de Nike en data/nike/")
+    return d

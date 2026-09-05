@@ -44,9 +44,14 @@ Todas son ficheros exportados a mano. No hay sincronización automática.
 
 | Fuente | Carreras | Periodo | Fidelidad |
 |---|---|---|---|
+| **Nike Run Club (`.tcx`)** | 269 | 2011-12 → 2026-07 | Variable: 202 con distancia por punto, 158 con GPS, 99 con cadencia, 98 con FC |
 | My Run Stats (JSON) | 207 | 2011-12 → 2026-05 | Solo resumen |
 | Amazfit Cheetah 2 Pro (`.fit`) | 9 | 2026 | Completa, 1 Hz |
 | Huawei (export de privacidad) | ? | ? | Por confirmar |
+
+Nike es casi un superconjunto de My Run Stats: comparten 199 fechas, 65
+carreras solo están en Nike y 5 solo en My Run Stats. Rellena 2019 entero,
+que en My Run Stats no existía.
 
 El detalle verificado de cada formato está en `DECISIONS.md` (entrada
 "Tres fuentes de datos con niveles de fidelidad distintos").
@@ -107,12 +112,26 @@ Ambas verificadas sobre datos reales. Detalle completo en `DECISIONS.md`.
 
 - **Cadencia FIT**: los `record` vienen por pierna (×2 para pasos por
   minuto); los `lap` vienen ya en pasos por minuto.
+- **Cadencia Nike**: ya viene en pasos por minuto (media 153,9 en el corpus).
+  Misma etiqueta que el FIT, convención distinta. Doblarla daría ~300 spm.
 - **Splits de My Run Stats**: descartados por no fiables.
 
 ## Deduplicación
-Las fuentes se solapan: la carrera del 2026-09-02 está en Huawei y en el
-Amazfit. Regla: misma fecha y distancia aproximada. Ante un duplicado gana la
-fuente de mayor fidelidad.
+Las fuentes se solapan mucho: 199 fechas de Nike coinciden con My Run Stats.
+
+Regla: **mismo día y distancia dentro del 5 %** → gana la carrera con más
+muestreos. La perdedora **no se borra**, se marca con `sustituida_por` y las
+consultas la ocultan (`WHERE sustituida_por IS NULL`). Así la decisión es
+reversible y no se pierde nada.
+
+Sobre el corpus real: 180 fusiones, todas ganadas por Nike. Quedan 296
+carreras visibles de 476 importadas.
+
+## Distancia derivada del GPS
+`geo.py` calcula distancia acumulada por haversine cuando la fuente no la
+trae. Validado contra dos ficheros con distancia declarada: 0,32 % de error
+en un TCX de Nike y 0,49 % en uno de Huawei — dentro del ruido que ya hay
+entre los dos relojes sobre la misma carrera (1,2 %).
 
 ## Capa de análisis y gráficas
 - `analisis.py` — solo cálculos que se sostienen con el resumen (fecha,

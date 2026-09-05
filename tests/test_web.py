@@ -149,8 +149,15 @@ def test_json_con_otra_forma_no_da_500(cliente_vacio):
 
 
 def test_extension_no_soportada(cliente_vacio):
-    r = _subir(cliente_vacio, b"lo que sea", "ruta.tcx")
+    r = _subir(cliente_vacio, b"lo que sea", "ruta.gpx")
     assert "formato no soportado" in r.get_data(as_text=True)
+
+
+def test_subir_tcx_que_no_es_de_nike_da_error_claro(cliente_vacio):
+    r = _subir(cliente_vacio, b"<x/>", "otro.tcx")
+    assert r.status_code == 200
+    assert "XML invalido" in r.get_data(as_text=True) or \
+           "no parece un TCX de Nike" in r.get_data(as_text=True)
 
 
 def test_sin_seleccionar_nada(cliente):

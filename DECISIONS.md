@@ -348,3 +348,100 @@ consolidado, y que `javimendoza.com` ya es Flask + gunicorn en Docker.
   `.gitignore` y `.dockerignore` excluyan `data/` y `*.db` sin excepción.
 - Queda un hueco conocido: no hay formulario de subida, así que la primera
   carga en producción es copiar el SQLite al volumen a mano.
+
+---
+
+## 2026-09-05 — Nike Run Club como fuente principal del histórico
+
+**Contexto**: Llegó el export completo de Nike: 269 TCX, 152 MB, del
+2011-12-26 al 2026-07-28. Analizado el corpus entero, no un fichero suelto.
+
+**Corrección de una entrada anterior**: el 2026-09-04 anoté, a partir de un
+único TCX de 2013, que Nike no traía frecuencia cardíaca. **Falso para el
+conjunto**: 98 de las 269 carreras tienen FC real (media 153 ppm), sobre todo
+de 2021 en adelante. Aquel fichero era de una época sin sensor.
+
+**Hallazgos**:
+- Cobertura: 202/269 con distancia por punto, 158 con GPS, 99 con cadencia,
+  98 con FC, 49 con pausas marcadas.
+- Muestreo mediano: un punto cada 2,2 s. 368.828 puntos en total.
+- Nike es casi un superconjunto de My Run Stats: 199 fechas comunes, 65
+  carreras solo en Nike, **5 solo en My Run Stats**. Rellena 2019 entero (9
+  carreras; My Run Stats tenía cero) y llega tres meses más lejos.
+- Las distancias concuerdan: mediana de 26 m de diferencia en las 199 fechas
+  comunes.
+
+**Decisión**: Nike pasa a ser la fuente principal del histórico. My Run Stats
+se conserva por las carreras que solo están ahí.
+
+**Consecuencias**: el histórico pasa de 207 carreras solo-resumen a 296
+visibles con 267 con muestreos y 98 con frecuencia cardíaca.
+
+---
+
+## 2026-09-05 — Fusionar los trackpoints de Nike por segundo
+
+**Contexto**: Nike escribe **un trackpoint por sensor**, no un punto completo
+por instante: uno lleva solo el pulso, el siguiente solo la posición. Y con
+marca de milisegundos.
+
+**Problema**: la clave primaria de `muestreo` es `(carrera_id, timestamp_unix)`
+en segundos. Medido sobre 40 ficheros, **el 41 % de los puntos caían en un
+segundo ya ocupado** y se habrían perdido en silencio con `INSERT OR REPLACE`.
+
+**Decisión**: agrupar por segundo y combinar campos, quedándose con el primer
+valor no nulo de cada uno.
+
+**Consecuencias**: cero colisiones, ningún valor perdido, y la densidad sube
+de 1,13 a 2,37 campos con dato por fila. Un fichero de 3768 trackpoints queda
+en 1807 muestreos más completos.
+
+---
+
+## 2026-09-05 — Deduplicación: marcar, no borrar; tolerancia del 5 %
+
+**Contexto**: Con Nike dentro, 199 fechas están duplicadas contra My Run
+Stats. Hacía falta una regla y decidir si se borra o se oculta.
+
+**Opciones consideradas**:
+- Borrar la peor al importar. Rápido, pero irreversible y destruye datos del
+  usuario ante una regla que es un juicio, no un hecho.
+- Deduplicar en cada consulta. No pierde nada pero complica todas las queries.
+- Marcar la perdedora con una columna y filtrarla. Una cláusula por consulta.
+
+**Decisión**: marcar con `sustituida_por`. Tolerancia del **5 %** sobre la
+distancia, mismo día natural en UTC. Gana la carrera con más muestreos;
+desempate por prioridad de fuente.
+
+**Consecuencias**:
+- 180 fusiones sobre el corpus real, todas ganadas por Nike (178 sobre My Run
+  Stats, 2 duplicados internos del propio export de Nike).
+- Quedan 29 carreras de My Run Stats visibles. De ellas, 5 no tienen ninguna
+  carrera de otra fuente ese día; las otras 24 comparten día pero difieren más
+  del 5 %.
+- **Sensibilidad de la tolerancia**: con 10 % se fusionarían 14 más, con 15 %
+  otras 19. Se deja en 5 % porque diferencias del 20-40 % en el mismo día
+  suelen ser carreras distintas, no la misma medida por dos sistemas.
+- `marcar_duplicadas` recalcula desde cero, así que es idempotente y cambiar
+  la tolerancia no deja marcas viejas.
+
+---
+
+## 2026-09-05 — Distancia derivada del GPS como respaldo
+
+**Contexto**: Una de las 269 carreras de Nike (2016-08-29) trae 465 puntos,
+321 con GPS y frecuencia cardíaca, pero `DistanceMeters` a 0. El importador
+la rechazaba.
+
+**Decisión**: `geo.py` deriva la distancia acumulada por haversine cuando la
+fuente no la trae, descartando saltos por encima de 12 m/s (43 km/h) como
+error de GPS.
+
+**Por qué se puede**: validado contra dos ficheros con distancia declarada —
+0,32 % de error en un TCX de Nike y 0,49 % en uno de Huawei. Los dos relojes
+discrepan entre sí un 1,2 % sobre la misma carrera, así que el valor derivado
+cae dentro del ruido que ya hay entre dispositivos.
+
+**Consecuencias**: se recupera esa carrera (4102 m a 5:40/km, que además
+cuadra con los 4,11 km que My Run Stats tenía ese día). Y queda el módulo
+listo para el importador de Huawei, cuyo TCX no trae distancia por punto.

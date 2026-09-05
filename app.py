@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import PurePath
 
@@ -8,16 +9,17 @@ from dotenv import load_dotenv
 from fitparse.utils import FitParseError
 from flask import Flask, Response, g, render_template, request
 
-from runnerstats import analisis, consultas, db, graficas
-from runnerstats.importers import amazfit_fit, my_run_stats
+from runnerstats import analisis, consultas, db, dedup, graficas
+from runnerstats.importers import amazfit_fit, my_run_stats, nike_tcx
 
 load_dotenv()
 
 app = Flask(__name__)
 
-# El export mas grande visto hasta ahora ronda los 2 MB. 32 evita que una
-# subida enorme agote la memoria del contenedor.
-app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024
+# El export de Nike son 269 TCX y 152 MB en total, con ficheros sueltos de
+# hasta 3,2 MB. 64 permite tandas comodas sin que una subida enorme agote la
+# memoria del contenedor, que buferea la peticion entera.
+app.config["MAX_CONTENT_LENGTH"] = 64 * 1024 * 1024
 
 RUTA_DB = os.environ.get("RUNNERSTATS_DB") or "data/runnerstats.db"
 
@@ -102,6 +104,14 @@ def _importar_uno(conn, fichero) -> tuple[str, int | None, str | None]:
         except (FitParseError, KeyError, TypeError, ValueError) as e:
             return nombre, None, f"no se pudo leer el .fit ({e})"
 
+    if ext == ".tcx":
+        try:
+            return nombre, nike_tcx.importar(conn, fichero.stream), None
+        except nike_tcx.TcxInvalido as e:
+            return nombre, None, str(e)
+        except ET.ParseError as e:
+            return nombre, None, f"XML invalido ({e})"
+
     if ext != ".json":
         return nombre, None, f"formato no soportado ({ext or 'sin extension'})"
 
@@ -117,27 +127,29 @@ def _importar_uno(conn, fichero) -> tuple[str, int | None, str | None]:
 def _demasiado_grande(_):
     return render_template(
         "importar.html",
-        resultados=[("", None, "el fichero supera el limite de 32 MB")],
+        resultados=[("", None, "la tanda supera el limite de 64 MB, subela en varias veces")],
+        fusiones=0,
     ), 413
 
 
 @app.route("/importar", methods=["GET", "POST"])
 def importar():
     if request.method == "GET":
-        return render_template("importar.html", resultados=None)
+        return render_template("importar.html", resultados=None, fusiones=0)
 
     ficheros = [f for f in request.files.getlist("ficheros") if f.filename]
     if not ficheros:
         return render_template(
             "importar.html",
             resultados=[("", None, "no has seleccionado ningun fichero")],
+            fusiones=0,
         )
 
     conn = get_db()
-    return render_template(
-        "importar.html",
-        resultados=[_importar_uno(conn, f) for f in ficheros],
-    )
+    resultados = [_importar_uno(conn, f) for f in ficheros]
+    fusiones = dedup.marcar_duplicadas(conn) if any(r[1] for r in resultados) else []
+    return render_template("importar.html", resultados=resultados,
+                           fusiones=len(fusiones))
 
 
 @app.route("/")

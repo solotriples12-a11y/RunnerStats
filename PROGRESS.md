@@ -405,3 +405,40 @@ actualiza sola en ~20 s, sin entrar al panel de Coolify.
 **Verificado**: entrega con firma → 200 → producción sirviendo los totales en
 tarjetas ~20 s después, sin intervención manual. Quedaban dos commits sin
 desplegar (`39adf0b` y `262398a`) y han subido los dos.
+
+---
+
+## 2026-09-05 — Importador de Nike y deduplicación entre fuentes
+
+**Qué**: Llegó el export completo de Nike (269 TCX, 152 MB, 2011-2026). Se
+escribió el importador, un módulo de deduplicación y otro de distancia por
+GPS.
+
+**Resultado sobre el corpus real**: de 476 carreras importadas quedan **296
+visibles**, 1539 km. Antes eran 207 carreras y 1099 km, todas solo-resumen.
+Ahora **267 tienen muestreos y 98 frecuencia cardíaca**.
+
+**Tres cosas que solo se vieron mirando los datos**:
+- **Corregida una afirmación mía anterior**: dije que Nike no traía pulso
+  basándome en un único fichero de 2013. En el corpus, 98 de 269 sí lo traen.
+- **El 41 % de los trackpoints se habrían perdido en silencio.** Nike escribe
+  un punto por sensor con marca de milisegundos, y la clave de `muestreo` es
+  el segundo. Fusionarlos arregla la colisión y dobla la densidad de campos
+  por fila (1,13 → 2,37).
+- **La cadencia de Nike ya viene en pasos por minuto**, al revés que en el
+  `.fit` del Amazfit. Misma etiqueta, convención opuesta.
+
+**Deduplicación**: 180 fusiones al 5 %, todas ganadas por Nike. Se marca con
+`sustituida_por`, no se borra. Quedan 29 carreras de My Run Stats visibles:
+5 son únicas de ese día y 24 comparten día pero difieren más del 5 %.
+
+**Verificado**: 68 tests (13 nuevos). Los del importador van contra ficheros
+reales del export: que la cadencia cae en rango humano sin doblar, que no
+quedan segundos repetidos, que la distancia derivada es monótona y da un
+ritmo plausible, y que un TCX de Huawei se rechaza en vez de colarse
+etiquetado como Nike. Los de deduplicación comprueban que no se borra nada,
+que fuera de tolerancia no se fusiona y que recalcular es idempotente.
+
+**Siguiente**: subir el export a producción (tres o cuatro tandas de 64 MB) y
+después la vista de detalle, que ahora sí tiene 267 carreras con muestreos y
+98 con pulso a las que sacar partido.

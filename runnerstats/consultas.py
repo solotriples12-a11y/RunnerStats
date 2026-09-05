@@ -10,7 +10,7 @@ def listar_carreras(conn: sqlite3.Connection, anio: int | None = None) -> list[s
     """
     filtro, params = "", []
     if anio is not None:
-        filtro = "WHERE strftime('%Y', c.fecha_inicio_unix, 'unixepoch') = ?"
+        filtro = "AND strftime('%Y', c.fecha_inicio_unix, 'unixepoch') = ?"
         params = [str(anio)]
 
     return conn.execute(
@@ -20,7 +20,7 @@ def listar_carreras(conn: sqlite3.Connection, anio: int | None = None) -> list[s
                EXISTS (SELECT 1 FROM muestreo m WHERE m.carrera_id = c.id)
                    AS tiene_detalle
         FROM carrera c
-        {filtro}
+        WHERE c.sustituida_por IS NULL {filtro}
         ORDER BY c.fecha_inicio_unix DESC
         """,
         params,
