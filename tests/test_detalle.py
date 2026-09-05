@@ -60,7 +60,7 @@ def _falsos(metros_totales: int, ritmo_s_km: float = 300):
     """Muestreos sinteticos a 1 Hz con ritmo constante."""
     paso = 1000 / ritmo_s_km
     return [{"timestamp_unix": t, "distancia_acumulada_metros": t * paso,
-             "latitud": None, "longitud": None}
+             "latitud": None, "longitud": None, "frecuencia_cardiaca": None}
             for t in range(int(metros_totales / paso) + 1)]
 
 
@@ -134,3 +134,28 @@ def test_los_saltos_imposibles_no_inventan_records():
     limpio = detalle._sin_saltos(p)
     v = detalle.mejor_ventana(limpio, 1000)
     assert v is not None and v[0] > 280, f"el salto se ha colado: {v}"
+
+
+def test_cada_parcial_lleva_su_fc_media(conn_carrera):
+    conn, cid = conn_carrera
+    ms = detalle.muestreos(conn, cid)
+    sp = detalle.splits(ms)
+    con_fc = [s for s in sp if s["fc"]]
+    assert len(con_fc) == len(sp), "faltan parciales sin FC en una carrera que si la tiene"
+
+    # Cada media cae dentro del rango real de la carrera.
+    pulsos = [m["frecuencia_cardiaca"] for m in ms if m["frecuencia_cardiaca"]]
+    assert all(min(pulsos) <= s["fc"] <= max(pulsos) for s in con_fc)
+
+    # Y la media de las medias se parece a la media global.
+    global_ = sum(pulsos) / len(pulsos)
+    medias = sum(s["fc"] for s in con_fc) / len(con_fc)
+    assert abs(medias - global_) < 12
+
+
+def test_sin_pulso_los_parciales_no_lo_inventan():
+    p = [(t, t * (1000 / 300)) for t in range(900)]
+    ms = [{"timestamp_unix": t, "distancia_acumulada_metros": d,
+           "frecuencia_cardiaca": None, "latitud": None, "longitud": None}
+          for t, d in p]
+    assert all(s["fc"] is None for s in detalle.splits(ms))

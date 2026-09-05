@@ -81,7 +81,7 @@ def serie(ms, campo: str) -> list[dict]:
 
 
 def splits(ms) -> list[dict]:
-    """Parciales por kilómetro completo.
+    """Parciales por kilómetro completo, con la FC media de cada tramo.
 
     Interpola el instante exacto de cada corte en vez de quedarse con la
     muestra más cercana: a 2,2 s de muestreo, redondear mete varios segundos
@@ -91,6 +91,13 @@ def splits(ms) -> list[dict]:
     if len(puntos) < 2:
         return []
 
+    pulsos = [(m["timestamp_unix"], m["frecuencia_cardiaca"]) for m in ms
+              if m["frecuencia_cardiaca"] is not None]
+
+    def fc_media(t0: float, t1: float) -> int | None:
+        dentro = [v for t, v in pulsos if t0 <= t <= t1]
+        return round(sum(dentro) / len(dentro)) if dentro else None
+
     salida = []
     objetivo = 1000.0
     anterior_t = puntos[0][0]
@@ -98,7 +105,8 @@ def splits(ms) -> list[dict]:
         while d0 <= objetivo <= d1 and d1 > d0:
             t = t0 + (t1 - t0) * (objetivo - d0) / (d1 - d0)
             salida.append({"km": int(objetivo // 1000),
-                           "segundos": t - anterior_t, "parcial": False})
+                           "segundos": t - anterior_t, "parcial": False,
+                           "fc": fc_media(anterior_t, t)})
             anterior_t = t
             objetivo += 1000.0
 
@@ -108,7 +116,8 @@ def splits(ms) -> list[dict]:
     sobra = fin_d - (objetivo - 1000.0)
     if sobra > 50:
         salida.append({"km": len(salida) + 1, "segundos": fin_t - anterior_t,
-                       "parcial": True, "metros": sobra})
+                       "parcial": True, "metros": sobra,
+                       "fc": fc_media(anterior_t, fin_t)})
     return salida
 
 

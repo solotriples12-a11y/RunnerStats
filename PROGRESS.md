@@ -558,3 +558,20 @@ ordena el eje, que salía invertido.
 **Verificado**: 86 tests (2 nuevos). El de solape recorre las cuatro
 agrupaciones con y sin filtro de año y exige 46 px de separación mínima entre
 etiquetas, que es lo que ocupa "28 jul" a 9 px.
+
+---
+
+## 2026-09-05 — FC media por parcial
+
+**Qué**: Cada parcial muestra la frecuencia cardíaca media de su tramo,
+ocupando el hueco que quedaba entre el kilómetro y el tiempo. Se promedian
+los muestreos entre los dos cortes interpolados, así que el tramo coincide
+exactamente con el que se cronometra.
+
+**Verificado**: 88 tests (2 nuevos). Se comprueba que cada media cae dentro
+del rango real de pulso de la carrera y que la media de las medias se parece
+a la media global, y que una carrera sin pulso no se inventa ninguna.
+
+Un test sintético falló al añadirlo porque su helper construía filas sin la
+clave del pulso. Se alineó el helper con la forma real de una fila en vez de
+hacer defensivo el código de producción: la columna siempre existe.

@@ -338,7 +338,16 @@ code {
 .split:first-child { border-top: 0; }
 .split-km { flex: 0 0 4.5rem; font-size: 0.8rem; color: var(--text-muted); }
 .split-nota { font-size: 0.75rem; color: var(--text-muted); }
+/* La FC va centrada en el hueco que quedaba entre el km y el tiempo. */
+.split-fc {
+    margin-left: auto;
+    font-family: var(--mono-stack);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+.split-fc small { font-size: 0.65rem; margin-left: 0.15rem; }
 .split-t { margin-left: auto; font-family: var(--mono-stack); font-size: 0.95rem; }
+.split-fc + .split-t { margin-left: 0; flex: 0 0 3.5rem; text-align: right; }
 .split.mejor .split-t { color: var(--accent); }
 
 .run-card a.run-link { display: contents; color: inherit; }

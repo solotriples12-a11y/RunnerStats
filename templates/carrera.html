@@ -37,6 +37,7 @@
         <li class="split{% if not s.parcial and s.segundos == mejor %} mejor{% endif %}">
             <span class="split-km">{% if s.parcial %}último{% else %}km {{ s.km }}{% endif %}</span>
             {% if s.parcial %}<span class="split-nota">{{ s.metros | round | int }} m</span>{% endif %}
+            {% if s.fc %}<span class="split-fc">{{ s.fc }}<small>ppm</small></span>{% endif %}
             <span class="split-t">{{ s.segundos | duracion }}</span>
         </li>
         {% endfor %}
