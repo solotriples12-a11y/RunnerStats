@@ -43,14 +43,6 @@ def test_anios_disponibles_no_inventa_huecos(conn_real, crudo):
     assert 2019 not in analisis.anios(conn_real)
 
 
-def test_mejor_ritmo_coincide_con_el_calculo_directo(conn_real, crudo):
-    mejor = min(
-        mrs.a_segundos(c["duration"]) / c["distance"]
-        for c in crudo if c["distance"] >= 3
-    )
-    assert abs(analisis.resumen(conn_real)["mejor_ritmo"] - mejor) < 1
-
-
 def test_volumen_por_anio_suma_el_total(conn_real, crudo):
     v = analisis.volumen(conn_real, "anio")
     assert round(sum(x["km"] for x in v), 1) == round(sum(c["distance"] for c in crudo), 1)
@@ -107,7 +99,6 @@ def test_resumen_vacio_no_revienta(tmp_path):
     c = db.conectar(tmp_path / "v.db")
     r = analisis.resumen(c)
     assert r["carreras"] == 0 and r["metros"] == 0
-    assert r["mejor_ritmo"] is None
     assert analisis.records_rodantes(c) == []
     assert analisis.volumen(c) == []
 

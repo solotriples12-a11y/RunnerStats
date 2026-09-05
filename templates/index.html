@@ -3,12 +3,9 @@
 {% block contenido %}
 <header class="hero">
     <h1>RunnerStats</h1>
-    {% if resumen.carreras %}
-    <p>{% if anio %}{{ anio }}{% else %}desde {{ resumen.desde | fecha }}{% endif %}</p>
-    {% else %}
+    {% if not resumen.carreras %}
     <p>Todavía no hay ninguna carrera.</p>
     {% endif %}
-    <p class="acciones"><a href="{{ url_for('importar') }}">Importar carreras</a></p>
 </header>
 
 {% if resumen.carreras %}

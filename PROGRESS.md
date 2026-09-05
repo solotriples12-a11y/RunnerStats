@@ -755,3 +755,21 @@ mediana −1,16 % frente a la duración de Nike, 163 de 183 dentro del ±5 %.
 
 **Verificado**: 109 tests, dos nuevos: que la portada tenga exactamente tres
 tarjetas y que "Más larga" abra los récords sin rastro del 3K.
+
+---
+
+## 2026-09-05 — Cabecera de la portada al mínimo
+
+**Qué**: Fuera la línea "desde 26 dic 2011" y el enlace a importar. La
+cabecera se queda solo con el título; `/importar` sigue accesible por URL,
+que es como el usuario quiere usarlo.
+
+**Huérfanos retirados**: al quitar tarjetas en los dos últimos cambios,
+`resumen()` había quedado devolviendo tres campos que ya no consumía nadie.
+Se eliminan `mejor_ritmo` —que además era una consulta entera muerta— y
+`mas_larga`, que ahora cubre `carrera_mas_larga()`. Se conserva `segundos`,
+que lo usa un test de auditoría contra el JSON y no cuesta nada en el mismo
+agregado.
+
+**Verificado**: 103 tests. Bajan seis porque se retiran los que cubrían los
+campos eliminados.

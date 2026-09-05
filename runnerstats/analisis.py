@@ -34,19 +34,8 @@ def resumen(conn: sqlite3.Connection, anio: int | None = None) -> dict:
         f"""
         SELECT COUNT(*)               AS carreras,
                SUM(distancia_metros)  AS metros,
-               SUM(duracion_segundos) AS segundos,
-               MAX(distancia_metros)  AS mas_larga,
-               MIN(fecha_inicio_unix) AS desde
+               SUM(duracion_segundos) AS segundos
         FROM carrera WHERE sustituida_por IS NULL {filtro}
-        """,
-        params,
-    ).fetchone()
-
-    mejor = conn.execute(
-        f"""
-        SELECT duracion_segundos * 1000.0 / distancia_metros AS ritmo
-        FROM carrera WHERE sustituida_por IS NULL AND distancia_metros >= 3000 {filtro}
-        ORDER BY ritmo LIMIT 1
         """,
         params,
     ).fetchone()
@@ -55,9 +44,6 @@ def resumen(conn: sqlite3.Connection, anio: int | None = None) -> dict:
         "carreras": fila["carreras"] or 0,
         "metros": fila["metros"] or 0,
         "segundos": fila["segundos"] or 0,
-        "mas_larga": fila["mas_larga"] or 0,
-        "desde": fila["desde"],
-        "mejor_ritmo": mejor["ritmo"] if mejor else None,
     }
 
 
