@@ -91,10 +91,24 @@ El webhook está dado de alta en el repo (id `674567388`, evento `push`,
 content-type JSON) apuntando a
 `https://coolify.javimendoza.com/webhooks/source/github/events/manual`.
 
+**Verificado funcionando el 2026-09-05**: push a `main` y producción se
+actualiza sola en ~20 s.
+
 **Marcar "auto-deploy" en Coolify no basta**: un repo público necesita el
 webhook creado a mano en GitHub Y el *Webhook secret* de Coolify copiado al
 campo Secret del webhook. Sin el secreto, Coolify recibe el envío y lo
 descarta.
+
+Dos trampas que costaron una tarde:
+
+1. **El Payload URL y el Secret son campos distintos.** Pegar en Payload URL
+   el enlace a la propia página de ajustes del webhook hace que GitHub se
+   haga POST a sí mismo: 403 y una página de error de GitHub como respuesta.
+   El Payload URL correcto es el de `coolify.javimendoza.com`.
+2. **`PATCH` sobre el hook borra el secreto.** Cambiar `config.url` por la
+   API de GitHub sin reenviar `config.secret` lo deja vacío, y hay que
+   volver a pegarlo. Comprobar después con
+   `gh api repos/OWNER/REPO/hooks/ID --jq '.config.secret'`.
 
 **Trampa al verificarlo**: GitHub marca la entrega en verde con 200 OK aunque
 Coolify la haya descartado. El 200 no prueba nada. La única comprobación

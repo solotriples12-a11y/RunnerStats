@@ -384,3 +384,24 @@ reventado. Ahora muestra un guion, y hay un test que lo cubre.
 
 **Verificado**: 55 tests. Revisado en el navegador: las seis tarjetas caen en
 dos columnas en móvil y tres en escritorio.
+
+---
+
+## 2026-09-05 — Auto-deploy funcionando
+
+**Qué**: El webhook de GitHub queda operativo. Push a `main` y producción se
+actualiza sola en ~20 s, sin entrar al panel de Coolify.
+
+**Lo que costó descubrirlo**, anotado en `DEPLOY.md`:
+- Coolify contesta **200 OK a cualquier POST** y descarta por dentro lo que no
+  lleve firma válida. El verde de GitHub nunca fue prueba de nada; la única
+  comprobación válida es mirar si el sitio cambia.
+- El webhook acabó apuntando a la propia página de ajustes de GitHub en vez de
+  al endpoint de Coolify, así que GitHub se hacía POST a sí mismo y devolvía
+  403 con su propia página de error.
+- Reparar la URL por la API **borra el secreto**: un `PATCH` de `config` sin
+  reenviar `config.secret` lo deja vacío.
+
+**Verificado**: entrega con firma → 200 → producción sirviendo los totales en
+tarjetas ~20 s después, sin intervención manual. Quedaban dos commits sin
+desplegar (`39adf0b` y `262398a`) y han subido los dos.
