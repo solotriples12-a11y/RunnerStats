@@ -248,9 +248,11 @@ def index():
     if anio not in disponibles:
         anio = None
 
-    agr = request.args.get("agr", "anio")
-    if agr not in analisis.AGRUPACIONES:
-        agr = "anio"
+    # Con un año elegido, agrupar por año pintaria los quince: la grafica
+    # tiene que hablar del año filtrado, y su unidad natural es el mes.
+    agr = request.args.get("agr", "")
+    if agr not in analisis.AGRUPACIONES or (anio and agr == "anio"):
+        agr = "mes" if anio else "anio"
 
     datos = analisis.volumen(conn, agr, anio)
     return render_template(
@@ -263,11 +265,8 @@ def index():
         anio=anio,
         agr=agr,
         recortado=bool(datos and datos[0]["recortado"]),
-        # Agrupando por año la gráfica mantiene la vista larga y resalta el
-        # año filtrado: 15 años de contexto valen más que un año aislado.
-        volumen=graficas.barras_volumen(
-            datos, resaltar=str(anio) if anio and agr == "anio" else None),
-        evolucion=graficas.dispersion_ritmo(analisis.ritmos(conn)),
+        volumen=graficas.barras_volumen(datos),
+        evolucion=graficas.dispersion_ritmo(analisis.ritmos(conn, anio), anio),
     )
 
 

@@ -773,3 +773,41 @@ agregado.
 
 **Verificado**: 103 tests. Bajan seis porque se retiran los que cubrían los
 campos eliminados.
+
+---
+
+## 2026-09-05 — Los récords se precalculan al importar
+
+**Qué**: nueva tabla `record_ventana` con la mejor ventana de cada distancia
+dentro de cada carrera, rellenada por `detalle.recalcular_records()` desde
+`/importar`. `analisis.records_rodantes()` pasa de recorrer los muestreos a
+una consulta con función de ventana.
+
+**Por qué**: 304 ms de los 306 que tardaba la portada se iban en ese barrido.
+
+**Verificado**: 304 ms → 0,41 ms, con los mismos récords (1K 4:00, 5K 22:01,
+10K 46:54). Las bases ya existentes se rellenan solas al abrirse (315 ms una
+vez). Los tests que importan pasan a llamar a `recalcular_records()`, igual
+que hace la web: la caché no se actualiza sola y eso tenía que quedar visible.
+
+---
+
+## 2026-09-05 — Las gráficas obedecen al filtro de año
+
+**Qué**:
+- Con un año elegido, la gráfica de kilómetros se agrupa por mes (el chip
+  "Año" desaparece: pintaría los quince) y el eje son los doce meses del
+  calendario. Un mes sin carreras deja su hueco vacío en vez de no existir.
+- La nube de ritmos solo pinta las carreras del año, y su mediana pasa a ser
+  mensual en vez de anual.
+
+**Huérfano retirado**: el resaltado de barra (`resaltar`, `.barra.apagada` y
+el token `--marca-contexto`) solo servía para marcar el año elegido dentro de
+la vista de quince años, que ya no existe.
+
+**Verificado**: 115 tests, 12 nuevos. Los que importan: 2015 —cinco meses con
+carreras— sale con los doce meses y las barras solo en enero, febrero, junio,
+julio y agosto; 2011, con una sola fila, también sale entero (era justo el
+caso en el que el relleno se rendía); la mediana de 2015 da ene-feb-jun-jul-ago
+con la línea partida en el hueco de marzo a mayo; y forzar `?agr=anio` con un
+año elegido cae en mes.

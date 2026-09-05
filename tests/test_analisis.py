@@ -83,6 +83,33 @@ def test_agrupar_por_mes_respeta_el_filtro_de_anio(conn_real):
     assert not v[0]["recortado"]
 
 
+def test_un_año_filtrado_pinta_los_doce_meses(conn_real):
+    """En 2015 solo se corrio en enero, febrero, junio, julio y agosto. El eje
+    tiene que ser el año entero: empezar en enero y acabar en agosto esconde
+    que de septiembre a diciembre no se salio."""
+    v = analisis.volumen(conn_real, "mes", 2015)
+    assert [x["clave"] for x in v] == [f"2015-{m:02d}" for m in range(1, 13)]
+    assert [x["etiqueta"] for x in v] == list(analisis.MESES_CORTOS)
+    con_datos = {x["clave"] for x in v if x["carreras"]}
+    assert con_datos == {"2015-01", "2015-02", "2015-06", "2015-07", "2015-08"}
+    assert all(x["km"] == 0 for x in v if x["clave"] not in con_datos)
+
+
+def test_un_año_con_un_solo_mes_tambien_sale_entero(conn_real):
+    """2011 solo tiene diciembre: una sola fila, que es justo el caso en el
+    que el relleno de huecos se rendia y devolvia la lista tal cual."""
+    v = analisis.volumen(conn_real, "mes", 2011)
+    assert len(v) == 12
+    assert sum(x["carreras"] for x in v) == v[11]["carreras"] > 0
+
+
+def test_sin_filtro_los_meses_siguen_yendo_del_primero_al_ultimo(conn_real):
+    """El relleno del año entero es solo para el año filtrado: en el
+    histórico completo no hay año al que estirarse."""
+    v = analisis.volumen(conn_real, "mes")
+    assert v[0]["carreras"] > 0 and v[-1]["carreras"] > 0
+
+
 def test_sin_anio_las_agrupaciones_finas_se_recortan(conn_real):
     """El histórico completo por semanas serian ~770 barras ilegibles."""
     for agr, tope in (("mes", 36), ("semana", 52)):
@@ -107,10 +134,35 @@ def test_la_linea_de_medianas_no_cruza_anios_vacios(conn_real):
     """2019 no tiene carreras: la linea debe partirse, no puentearlo."""
     from runnerstats import graficas
     g = graficas.dispersion_ritmo(analisis.ritmos(conn_real))
-    anios = [m["anio"] for m in g["medianas"]]
+    anios = [m["periodo"] for m in g["medianas"]]
     assert 2019 not in anios
     # Hay huecos, luego tiene que haber mas de un segmento.
     assert len(g["segmentos"]) + len(g["sueltos"]) > 1
+
+
+def test_el_ritmo_respeta_el_filtro_de_anio(conn_real, crudo):
+    from datetime import datetime, timezone
+    r = analisis.ritmos(conn_real, 2015)
+    assert r, "2015 tiene carreras"
+    assert len(r) < len(analisis.ritmos(conn_real))
+    for c in r:
+        assert datetime.fromtimestamp(
+            c["fecha_inicio_unix"], timezone.utc).year == 2015
+
+
+def test_dentro_de_un_anio_la_mediana_es_mensual(conn_real):
+    """Una sola mediana anual para un año no dibuja ninguna evolución."""
+    from runnerstats import graficas
+    g = graficas.dispersion_ritmo(analisis.ritmos(conn_real, 2015), 2015)
+    assert not g["vacia"]
+    # 2015: enero, febrero, junio, julio y agosto.
+    assert [m["periodo"] for m in g["medianas"]] == [1, 2, 6, 7, 8]
+    assert [m["etiqueta"] for m in g["medianas"]] == ["ene", "feb", "jun", "jul", "ago"]
+    # Y la linea se parte en el hueco de marzo a mayo.
+    assert len(g["segmentos"]) == 2
+    # El eje etiqueta meses, no años. Agosto se cae porque su dia 15 queda
+    # despues de la ultima carrera del año (4 de agosto).
+    assert [e["etiqueta"] for e in g["ejex"]] == ["ene", "feb", "jun", "jul"]
 
 
 def test_records_rodantes_salen_de_dentro_de_la_carrera(conn_real, nike_dir):
@@ -156,9 +208,10 @@ def test_las_etiquetas_del_eje_no_se_pisan(conn_real, nike_dir):
                 f"{agr}/{anio}: etiquetas a {min(separaciones):.0f}px"
 
 
-def test_el_eje_de_anios_del_ritmo_tampoco_se_pisa(conn_real):
+@pytest.mark.parametrize("anio", [None, 2012, 2015, 2022])
+def test_el_eje_del_ritmo_tampoco_se_pisa(conn_real, anio):
     from runnerstats import graficas
-    g = graficas.dispersion_ritmo(analisis.ritmos(conn_real))
+    g = graficas.dispersion_ritmo(analisis.ritmos(conn_real, anio), anio)
     xs = [e["x"] for e in g["ejex"]]
     assert xs == sorted(xs), "el eje sale en orden inverso"
     assert all(b - a >= ANCHO_ETIQUETA for a, b in zip(xs, xs[1:]))

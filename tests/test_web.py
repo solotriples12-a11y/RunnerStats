@@ -289,3 +289,34 @@ def test_la_carrera_mas_larga_abre_los_records(cliente_vacio, nike_dir):
     # Y va antes que cualquier record de distancia.
     assert bloque.index("Más larga") < bloque.index(">1K<")
     assert ">3K<" not in bloque
+
+
+def test_al_filtrar_un_año_el_grafico_pasa_a_meses(cliente):
+    """El export sintetico solo tiene una carrera en 2026, en mayo."""
+    html = cliente.get("/?anio=2026").get_data(as_text=True)
+    assert 'class="chip on">Mes<' in html
+    # Agrupar por año con un año elegido pintaria los quince: el chip se va.
+    assert ">Año<" not in html
+
+    barras = html.split('aria-label="Kilómetros recorridos por periodo"')[1]
+    # El eje llega a diciembre aunque no se corriera despues de mayo.
+    assert ">dic<" in barras
+
+
+def test_sin_filtro_se_sigue_agrupando_por_anio(cliente):
+    html = cliente.get("/").get_data(as_text=True)
+    assert 'class="chip on">Año<' in html
+
+
+def test_forzar_agr_anio_con_un_año_elegido_no_cuela(cliente):
+    """Por URL se podia pedir la vista de quince años dentro de un filtro."""
+    html = cliente.get("/?anio=2026&agr=anio").get_data(as_text=True)
+    assert 'class="chip on">Mes<' in html
+
+
+def test_la_evolucion_del_ritmo_solo_pinta_el_año(cliente):
+    """El sintetico tiene una carrera en 2024 y otra en 2026: con 2026
+    filtrado queda un solo punto y no hay evolución que dibujar."""
+    assert "Evolución del ritmo" in cliente.get("/").get_data(as_text=True)
+    assert "Evolución del ritmo" not in cliente.get(
+        "/?anio=2026").get_data(as_text=True)

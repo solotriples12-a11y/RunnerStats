@@ -24,17 +24,11 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
 
 - Vista de detalle por carrera: ritmo, pulso, altitud, recorrido y parciales
   por kilómetro, adaptándose a lo que cada fuente aporta.
-
-## En curso
-
-1. Publicar el subdominio: DNS, app en Coolify, volumen persistente y
-   variables de entorno. Pasos en `DEPLOY.md`. Requiere acceso al panel.
-
-## Próximo
-
-2. Algoritmo de PRs por ventana rodante sobre `distancia_acumulada_metros`.
-   Solo aplica a carreras con muestreos: la UI debe decirlo.
-3. Vista de PRs.
+- Récords por ventana rodante (1K, 5K, 10K, media, maratón) precalculados en
+  `record_ventana` al importar, con la carrera más larga a la cabeza.
+- Login con pantalla propia, solo contraseña.
+- Las gráficas obedecen al filtro de año: kilómetros por mes sobre los doce
+  del calendario y nube de ritmos con mediana mensual.
 
 ## Esperando
 

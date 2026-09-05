@@ -8,6 +8,8 @@ usan los tokens de texto.
 
 from datetime import datetime, timezone
 
+from .analisis import MESES_CORTOS
+
 ANCHO = 640
 ALTO = 190
 PAD_IZQ = 34
@@ -35,7 +37,7 @@ def _ticks(vmax: float, n: int = 3) -> list[float]:
     return [t for t in (paso * i for i in range(n + 2)) if t <= vmax * 1.05]
 
 
-def barras_volumen(datos: list[dict], resaltar: str | None = None) -> dict:
+def barras_volumen(datos: list[dict]) -> dict:
     """Columnas de km por periodo.
 
     El numero de barras varia mucho segun la agrupacion (16 años, 52 semanas,
@@ -87,16 +89,18 @@ def barras_volumen(datos: list[dict], resaltar: str | None = None) -> dict:
         "ancho": ANCHO, "alto": ALTO,
         "base": ALTO - PAD_INF,
         "barras": barras,
-        "resaltar": resaltar,
         "rejilla": [{"y": round(y(t), 1), "etiqueta": f"{int(t)}"} for t in _ticks(kmax)],
     }
 
 
-def dispersion_ritmo(datos: list[dict]) -> dict:
-    """Ritmo de cada carrera en el tiempo, con la mediana anual encima.
+def dispersion_ritmo(datos: list[dict], anio: int | None = None) -> dict:
+    """Ritmo de cada carrera en el tiempo, con la mediana encima.
 
     Los puntos son contexto (gris) y la mediana es la historia (acento): es
     el patrón de énfasis, no dos series que compitan.
+
+    Sin filtro la mediana es anual. Con un año elegido pasa a ser mensual:
+    una sola mediana para todo el año no dibujaria ninguna evolución.
     """
     if len(datos) < 2:
         return {"vacia": True}
@@ -119,43 +123,55 @@ def dispersion_ritmo(datos: list[dict]) -> dict:
         "km": d["distancia_metros"] / 1000,
     } for d in datos]
 
-    # Mediana por año.
-    por_anio: dict[str, list] = {}
+    # Mediana por periodo: mes dentro de un año, año en el histórico.
+    def periodo(ts: int) -> int:
+        d = datetime.fromtimestamp(ts, timezone.utc)
+        return d.month if anio else d.year
+
+    def etiqueta(p: int) -> str:
+        return MESES_CORTOS[p - 1] if anio else str(p)
+
+    def centro_de(p: int) -> float:
+        """Timestamp del centro del periodo, para colocar su etiqueta."""
+        return (datetime(anio, p, 15, tzinfo=timezone.utc) if anio
+                else datetime(p, 7, 1, tzinfo=timezone.utc)).timestamp()
+
+    por_periodo: dict[int, list] = {}
     for d in datos:
-        a = datetime.fromtimestamp(d["fecha_inicio_unix"], timezone.utc).year
-        por_anio.setdefault(a, []).append((d["fecha_inicio_unix"], d["ritmo"]))
+        por_periodo.setdefault(periodo(d["fecha_inicio_unix"]), []).append(
+            (d["fecha_inicio_unix"], d["ritmo"]))
 
     medianas = []
-    for a in sorted(por_anio):
-        vals = sorted(v for _, v in por_anio[a])
+    for p in sorted(por_periodo):
+        vals = sorted(v for _, v in por_periodo[p])
         med = vals[len(vals) // 2]
-        centro = sum(t for t, _ in por_anio[a]) / len(por_anio[a])
+        centro = sum(t for t, _ in por_periodo[p]) / len(por_periodo[p])
         medianas.append({
-            "anio": a, "ritmo": med,
+            "periodo": p, "etiqueta": etiqueta(p), "ritmo": med,
             "x": round(fx(centro), 1),
             "y": round(fy(min(med, rmax)), 1),
         })
 
-    # Parte la linea en los anios sin carreras: unir 2018 con 2020 dibujaria
-    # continuidad donde no hay ni un dato (2019 esta vacio).
+    # Parte la linea en los periodos sin carreras: unir 2018 con 2020
+    # dibujaria continuidad donde no hay ni un dato (2019 esta vacio).
     segmentos, actual = [], []
     for m in medianas:
-        if actual and m["anio"] != actual[-1]["anio"] + 1:
+        if actual and m["periodo"] != actual[-1]["periodo"] + 1:
             segmentos.append(actual)
             actual = []
         actual.append(m)
     if actual:
         segmentos.append(actual)
 
-    # Igual que en las barras: desde el año mas reciente hacia atras, para que
-    # el ultimo siempre salga sin quedar pegado al anterior.
-    anios = sorted(por_anio)
-    paso_a = max(1, round(len(anios) / 6))
+    # Igual que en las barras: desde el periodo mas reciente hacia atras, para
+    # que el ultimo siempre salga sin quedar pegado al anterior.
+    periodos = sorted(por_periodo)
+    paso_p = max(1, round(len(periodos) / 6))
     ejex = []
-    for a in anios[::-1][::paso_a]:
-        ts = datetime(a, 7, 1, tzinfo=timezone.utc).timestamp()
+    for p in periodos[::-1][::paso_p]:
+        ts = centro_de(p)
         if tmin <= ts <= tmax:
-            ejex.append({"x": round(fx(ts), 1), "etiqueta": str(a)})
+            ejex.append({"x": round(fx(ts), 1), "etiqueta": etiqueta(p)})
     ejex.sort(key=lambda e: e["x"])
 
     def mmss(s):

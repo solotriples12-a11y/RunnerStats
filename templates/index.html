@@ -72,21 +72,22 @@
 <section class="bloque">
     <h2>Kilómetros</h2>
     <nav class="filtros sub-filtros" aria-label="Agrupar por">
-        {% for clave, nombre in [('anio','Año'),('mes','Mes'),('semana','Semana'),('carrera','Carrera')] %}
+        {% for clave, nombre in ([('mes','Mes'),('semana','Semana'),('carrera','Carrera')] if anio
+                                 else [('anio','Año'),('mes','Mes'),('semana','Semana'),('carrera','Carrera')]) %}
         <a href="{{ url_for('index', anio=anio, agr=clave) }}"
            class="chip{% if agr == clave %} on{% endif %}">{{ nombre }}</a>
         {% endfor %}
     </nav>
     {% if recortado %}<p class="sub">Últimos {{ volumen.barras | length }} periodos.</p>{% endif %}
     <svg class="gr" viewBox="0 0 {{ volumen.ancho }} {{ volumen.alto }}"
-         role="img" aria-label="Kilómetros recorridos por año">
+         role="img" aria-label="Kilómetros recorridos por periodo">
         {% for g in volumen.rejilla %}
         <line class="rejilla" x1="34" y1="{{ g.y }}" x2="{{ volumen.ancho - 8 }}" y2="{{ g.y }}"/>
         <text class="ejeY" x="28" y="{{ g.y + 3 }}">{{ g.etiqueta }}</text>
         {% endfor %}
         {% for b in volumen.barras %}
         {% if b.d %}
-        <path class="barra{% if volumen.resaltar and b.clave != volumen.resaltar %} apagada{% endif %}" d="{{ b.d }}">
+        <path class="barra" d="{{ b.d }}">
             <title>{{ b.etiqueta }}: {{ b.km | round(1) }} km en {{ b.carreras }} carrera{{ 's' if b.carreras != 1 }}</title>
         </path>
         {% endif %}
@@ -117,7 +118,7 @@
         {% endfor %}
         {% for m in evolucion.medianas %}
         <circle class="nodo" cx="{{ m.x }}" cy="{{ m.y }}" r="4">
-            <title>Mediana {{ m.anio }}: {{ m.ritmo | ritmo }}/km</title>
+            <title>Mediana {{ m.etiqueta }}: {{ m.ritmo | ritmo }}/km</title>
         </circle>
         {% endfor %}
         {% for e in evolucion.ejex %}

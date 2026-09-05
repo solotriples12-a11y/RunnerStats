@@ -654,3 +654,57 @@ cambio entran 183 carreras en vez de 180.
 
 **Sesgo conocido**: queda un −1,2 % sistemático, porque el umbral también
 descarta momentos lentos legítimos. Es conservador y está medido.
+
+---
+
+## 2026-09-05 — Los récords se guardan en una tabla derivada
+
+**Contexto**: la portada tardaba 1,6 s en producción. El perfil era
+inequívoco: `records_rodantes()` se comía 304 ms de los 306 que costaba
+renderizar, porque recorría los 222.000 muestreos en cada visita para
+recalcular la mejor ventana de cada distancia.
+
+**Opciones consideradas**:
+- Cachear en memoria del proceso. Se pierde en cada despliegue y no vale
+  para varios workers de gunicorn.
+- Precalcular al importar y guardar en SQLite.
+- Dejarlo y aceptar la latencia.
+
+**Decisión**: tabla `record_ventana` (carrera, distancia, segundos, inicio),
+rellenada por `detalle.recalcular_records()` al importar, junto a la
+deduplicación. La consulta pasa a 0,41 ms y devuelve exactamente los mismos
+récords (1K 4:00, 5K 22:01, 10K 46:54).
+
+**Consecuencias**: es una caché, así que puede quedarse rancia. Quien importe
+sin recalcular verá récords viejos; los tests lo replican llamando a
+`recalcular_records()` igual que hace la web, y esa es la única disciplina
+que hay. Las bases anteriores a la tabla se rellenan solas la primera vez
+que se abren (`db._rellenar_records`, 315 ms de una vez).
+
+---
+
+## 2026-09-05 — Al filtrar un año, las gráficas hablan de ese año
+
+**Contexto**: al elegir un año solo cambiaban las tarjetas, los récords y la
+lista. La gráfica de volumen seguía enseñando los quince años con la barra
+del año elegido resaltada, y la de ritmo seguía pintando las 207 carreras.
+
+**Decisión**: el filtro manda sobre las dos gráficas.
+
+- Con un año elegido, agrupar por año deja de ofrecerse (pintaría los
+  quince) y la agrupación por defecto pasa a ser el mes. Con eso el resaltado
+  de barra se queda sin uso y desaparece.
+- Los meses de un año filtrado son **los doce del calendario**, no del primero
+  al último con carreras. Un mes sin salir no dibuja barra, pero ocupa su
+  hueco. Es lo contrario que en la vista "Todo", donde no hay año al que
+  estirarse y el eje va del primer dato al último.
+- La mediana de la nube de ritmos pasa a ser **mensual**: una sola mediana
+  anual para un año no dibuja ninguna evolución. El eje X etiqueta meses.
+
+**Consecuencia**: la vista de año ya no da contexto histórico. Es
+deliberado: para comparar años está la vista "Todo", y mezclar las dos cosas
+hacía que el filtro no significara nada.
+
+**No cambia**: la agrupación por semana con un año elegido sigue yendo de la
+primera semana con carreras a la última. Solo se pidió el año entero para
+los meses, y 52 huecos vacíos de enero no aportan lo que aportan doce.

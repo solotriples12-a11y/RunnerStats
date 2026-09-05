@@ -77,10 +77,10 @@ def volumen(conn: sqlite3.Connection, agrupacion: str = "anio",
             anio: int | None = None) -> list[dict]:
     """Kilometros agrupados por año, mes, semana o carrera.
 
-    Agrupar por año ignora el filtro a proposito: 15 años de contexto valen
-    mas que un año aislado, y la barra del año elegido se resalta. El resto
-    de agrupaciones si lo respetan, porque el histórico completo por semanas
-    serian ~770 barras y no se lee nada.
+    Agrupar por año solo tiene sentido sin filtro: con un año elegido la
+    grafica pinta ese año, no los quince. Las demas agrupaciones respetan el
+    filtro; sin el, el histórico completo por semanas serian ~770 barras y
+    no se lee nada.
     """
     # Normalizar aqui y no solo al elegir el SQL: el relleno de huecos
     # tambien se ramifica por esta clave.
@@ -104,7 +104,7 @@ def volumen(conn: sqlite3.Connection, agrupacion: str = "anio",
     un_solo_anio = anio is not None and agrupacion != "anio"
     datos = [dict(f) for f in filas]
     if agrupacion != "carrera":
-        datos = _rellenar_huecos(agrupacion, datos)
+        datos = _rellenar_huecos(agrupacion, datos, anio)
 
     # Sin año filtrado, las agrupaciones finas darian cientos de barras
     # ilegibles (el histórico completo por semanas son ~770). Se recorta a
@@ -124,19 +124,26 @@ def volumen(conn: sqlite3.Connection, agrupacion: str = "anio",
 TOPES = {"mes": 36, "semana": 52, "carrera": 50}
 
 
-def _rellenar_huecos(agrupacion: str, datos: list[dict]) -> list[dict]:
+def _rellenar_huecos(agrupacion: str, datos: list[dict],
+                     anio: int | None = None) -> list[dict]:
     """Inserta periodos a cero entre el primero y el ultimo con datos.
 
     Sin esto el eje miente: un mes vacio simplemente no aparece y su vecino
     de dos meses despues sale pegado, como si fueran consecutivos.
-    """
-    if len(datos) < 2:
-        return datos
 
+    Con un año filtrado los meses son los doce del calendario, no del primero
+    al ultimo con carreras: al mirar un año se espera ver el año entero, y
+    empezar en abril porque en marzo no se salio a correr esconde ese dato.
+    """
     porclave = {d["clave"]: d for d in datos}
     salida = []
 
-    if agrupacion == "anio":
+    if agrupacion == "mes" and anio is not None:
+        claves = [(f"{anio:04d}-{m:02d}", datetime(anio, m, 1, tzinfo=timezone.utc))
+                  for m in range(1, 13)]
+    elif len(datos) < 2:
+        return datos
+    elif agrupacion == "anio":
         claves = [(str(a), datetime(a, 1, 1, tzinfo=timezone.utc))
                   for a in range(int(datos[0]["clave"]), int(datos[-1]["clave"]) + 1)]
     elif agrupacion == "mes":
@@ -163,19 +170,21 @@ def _rellenar_huecos(agrupacion: str, datos: list[dict]) -> list[dict]:
     return salida
 
 
-def ritmos(conn: sqlite3.Connection) -> list[dict]:
+def ritmos(conn: sqlite3.Connection, anio: int | None = None) -> list[dict]:
     """Una entrada por carrera, para la nube de puntos de evolución."""
+    filtro, params = _where(anio)
     return [
         dict(r)
         for r in conn.execute(
-            """
+            f"""
             SELECT fecha_inicio_unix,
                    distancia_metros,
                    duracion_segundos * 1000.0 / distancia_metros AS ritmo
             FROM carrera
-            WHERE sustituida_por IS NULL AND distancia_metros >= 1000
+            WHERE sustituida_por IS NULL AND distancia_metros >= 1000 {filtro}
             ORDER BY fecha_inicio_unix
-            """
+            """,
+            params,
         )
     ]
 
