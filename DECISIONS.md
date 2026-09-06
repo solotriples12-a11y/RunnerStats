@@ -836,3 +836,40 @@ que todas las fechas empezaban en la misma x y se leían en vertical. Al
 centrar cada fila esa alineación se pierde, y una carrera sin pulsómetro
 —una métrica menos— queda un poco desplazada respecto a sus vecinas. Es el
 precio de no tener el hueco muerto a la derecha.
+
+---
+
+## 2026-09-06 — Favicon: la transparencia se recorta con geometría, no por color
+
+**Contexto**: el icono llega como PNG de 1254 px, una zapatilla sobre un
+cuadrado azul redondeado, con el resto de la lámina en blanco. Hay que dejar
+ese blanco transparente.
+
+**Lo que no funciona**: relleno por inundación desde los bordes ("todo el
+blanco conectado con el borde"). Con umbral bajo (45) no basta: el icono
+tiene un halo azulado clarísimo que llega hasta el borde inferior de la
+lámina, así que sobrevive una banda gris. Y subiendo el umbral hasta
+tragárselo (180), el relleno **se cuela por dentro**: el borde derecho del
+icono tiene un resplandor casi blanco, y desde ahí inunda la zapatilla, que
+es de un azul pálido. El resultado se ve bien sobre fondo claro y se
+descubre solo sobre fondo oscuro: la zapatilla sale negra.
+
+**Decisión**: máscara geométrica. Se recorta a la caja del cuerpo del icono,
+medida sobre la imagen (lo que se aleja del blanco más de 250 en suma de
+canales): `(42, 40, 1210, 1204)`. Y se enmascara con una superelipse:
+
+- radio **0,2226** del lado, medido bajando por el borde izquierdo hasta que
+  alcanza su x mínima (260 px sobre un lado de 1168);
+- exponente **2,2**, ajustado sobre siete puntos del borde —la esquina es más
+  plana que un círculo, es un *squircle*, como los iconos de iOS—;
+- 2 px hacia dentro, porque el píxel del borde ya está mezclado con blanco y
+  dejaría una orla clara;
+- máscara generada a 4x y reducida, que suaviza el borde sin desenfocarlo.
+
+**Comprobado**: alfa 255 en todo el interior (nada se ha colado), 42.688
+píxeles a 0 (las esquinas) y 11.496 intermedios (el borde suavizado). Y
+mirado a 16, 32, 64 y 180 px sobre fondo claro y oscuro.
+
+**Se guarda `favicon.ico` con 16/32/48** y un `icono-180.png` para
+`apple-touch-icon`. No se guarda el original de 1254 px: el de 180 basta para
+regenerar cualquier tamaño menor, y el maestro son estas medidas.

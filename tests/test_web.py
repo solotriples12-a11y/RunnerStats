@@ -343,3 +343,18 @@ def test_los_puntos_del_ritmo_tienen_blanco_de_dedo(cliente):
     assert nube.count('class="marca"') == nube.count('class="punto"') + \
         nube.count('class="nodo"')
     assert nube.count('class="zona"') == nube.count('class="marca"')
+
+
+def test_el_favicon_esta_declarado_y_se_sirve(cliente_sin_sesion):
+    """El login tambien lo lleva: es la primera pagina que se ve, y el icono
+    se sirve sin sesion porque `static` es publico."""
+    for ruta, entrar_antes in (("/login", False), ("/", True)):
+        if entrar_antes:
+            _entrar(cliente_sin_sesion)
+        html = cliente_sin_sesion.get(ruta).get_data(as_text=True)
+        assert 'rel="icon" href="/static/favicon.ico"' in html, ruta
+        assert 'rel="apple-touch-icon"' in html, ruta
+
+    r = cliente_sin_sesion.get("/static/favicon.ico")
+    assert r.status_code == 200
+    assert r.data[:4] == b"\x00\x00\x01\x00"   # cabecera ICO

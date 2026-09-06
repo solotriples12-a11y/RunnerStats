@@ -889,3 +889,22 @@ comparar la tinta y no las cajas:
 
 Y en móvil de 375 px, sin desbordamiento horizontal en ninguna de las dos
 vistas.
+
+---
+
+## 2026-09-06 — Favicon
+
+**Qué**: el icono de la zapatilla como favicon, con el blanco de alrededor
+transparente. `static/favicon.ico` (16/32/48) y `static/img/icono-180.png`
+para el `apple-touch-icon`, declarados en `base.html`, así que el login
+también lo lleva.
+
+**Cómo**: la transparencia no sale de quitar blanco por color —el relleno por
+inundación se colaba por el resplandor claro del borde derecho e inundaba la
+zapatilla, que solo se nota sobre fondo oscuro— sino de recortar la caja del
+icono y enmascararla con la superelipse medida sobre la imagen. El detalle,
+en `DECISIONS.md`.
+
+**Verificado**: los tres tamaños del .ico con esquina transparente y centro
+opaco, el `.ico` se sirve con sesión y sin ella (`static` es público), y un
+test nuevo comprueba las dos etiquetas en portada y en login. 120 tests.
