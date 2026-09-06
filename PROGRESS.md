@@ -1037,3 +1037,26 @@ tiraba la versión del Amazfit, con el pulso segundo a segundo, en favor de la
 de Huawei, con el pulso cada cinco. La regla de desempate contaba filas. Ahora
 cuenta valores; el detalle, en `DECISIONS.md`. 138 tests, uno nuevo que fija
 la regla con el caso real.
+
+---
+
+## 2026-09-06 — Huawei, importado en producción
+
+**Qué**: los 24 ficheros del export, metidos en la base de producción por SSH
+en vez de por `/importar`. Copia de seguridad antes (`runnerstats.db.antes-de-huawei`,
+en el mismo volumen) y ficheros borrados del servidor al terminar, que son
+datos de salud.
+
+**Resultado en producción**: **296 → 312 carreras visibles**, 1.627 km. De
+las 37 de Huawei, 23 son nuevas y 7 versiones peores quedan desplazadas. Las
+201 fusiones y las 311 ventanas de récord se recalcularon en el mismo paso.
+
+**El reparto de las 23 fusiones que tocan a Huawei**: 13 las gana Nike, que
+trae el pulso cada segundo donde Huawei lo da cada cinco; 9 las gana Huawei,
+donde Nike no trae pulso o apenas trae puntos; y la del 2026-09-02 la gana el
+Amazfit por 21.380 valores contra 9.374, que es justo lo que la regla vieja
+hacía mal.
+
+**Comprobado** que la vista de detalle sale bien con esta fuente: una carrera
+con GPS pinta recorrido, parciales, ritmo, altitud y pulso; una de cinta
+enseña solo el pulso, como las de cinta de Nike.

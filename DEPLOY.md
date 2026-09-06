@@ -130,3 +130,31 @@ cp .env.example .env    # y pon una RUNNERSTATS_PASSWORD
 ```
 
 Tests: `./.venv/bin/python -m pytest tests/ -q`
+
+## Operar la base de producción por SSH
+
+El acceso está montado como `ssh hetzner` (alias en `~/.ssh/config` a
+`javier@178.105.168.93`). La aplicación corre en un contenedor cuyo nombre
+lleva el id de Coolify y cambia en cada despliegue, así que se busca por la
+imagen en vez de fijarlo:
+
+```
+C=$(ssh hetzner 'docker ps --format "{{.Names}}" | grep -v coolify | head -1')
+```
+
+El volumen persistente está en `/app/data` y ahí vive `runnerstats.db`. Para
+una importación grande —el export de Huawei son 43 MB en 24 ficheros— sale
+mejor por aquí que por `/importar`, que tiene el límite de 64 MB por tanda y
+va por HTTP:
+
+1. `scp` de los ficheros a `/tmp` del servidor y `docker cp` al contenedor.
+2. **Copia de la base antes de tocarla**: `docker exec "$C" cp
+   /app/data/runnerstats.db /app/data/runnerstats.db.antes-de-<lo-que-sea>`.
+3. Un script que use los importadores de la propia imagen (`sys.path` a
+   `/app`), y que llame a `dedup.marcar_duplicadas` y
+   `detalle.recalcular_records` al terminar, que es lo que hace `/importar`.
+4. **Borrar los ficheros del servidor y del contenedor**: son datos de salud
+   y no pintan nada en `/tmp`.
+
+No hace falta parar el contenedor: SQLite aguanta la escritura mientras
+gunicorn sirve, y la aplicación abre la base en cada petición.

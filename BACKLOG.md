@@ -31,12 +31,8 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
   del calendario y nube de ritmos con mediana mensual.
 - Importador de Huawei Health (37 carreras, 2025-05 a 2026-09) desde el
   export de privacidad. Trae FC, cadencia, altitud y GPS.
-
-## Esperando
-
-- **Importar el export de Nike en producción**: 269 ficheros, 152 MB. El
-  límite por tanda son 64 MB, así que van tres o cuatro tandas desde
-  `/importar`.
+- Las tres fuentes importadas en producción: 312 carreras visibles de 513
+  filas, 1.627 km.
 
 ## Después
 
