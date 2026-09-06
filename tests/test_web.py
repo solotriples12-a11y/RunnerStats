@@ -358,3 +358,57 @@ def test_el_favicon_esta_declarado_y_se_sirve(cliente_sin_sesion):
     r = cliente_sin_sesion.get("/static/favicon.ico")
     assert r.status_code == 200
     assert r.data[:4] == b"\x00\x00\x01\x00"   # cabecera ICO
+
+
+def test_las_barras_llevan_a_su_periodo(cliente):
+    """Tocar una barra filtra: al año, al mes, o al detalle de la carrera."""
+    import re
+    def enlaces(agr):
+        html = cliente.get(f"/?agr={agr}").get_data(as_text=True)
+        return re.findall(r'<a class="banda" href="([^"]+)"', html)
+
+    assert all(e.startswith("/?anio=") for e in enlaces("anio"))
+    assert all(e.startswith("/periodo/mes/") for e in enlaces("mes"))
+    assert all(e.startswith("/periodo/semana/") for e in enlaces("semana"))
+    # El sintetico tiene una carrera en mayo de 2026 y otra en agosto de 2024.
+    assert sorted(enlaces("mes")) == ["/periodo/mes/2024-08", "/periodo/mes/2026-05"]
+    # Agrupando por carrera se va directo a su detalle.
+    assert all(e.startswith("/carrera/") for e in enlaces("carrera"))
+
+
+def test_un_periodo_vacio_no_es_clicable(cliente):
+    """2025 no tiene carreras: su barra existe pero no lleva a ningun sitio."""
+    html = cliente.get("/?agr=anio").get_data(as_text=True)
+    assert '<g class="banda"' in html          # sin href
+    assert "/?anio=2025" not in html
+
+
+def test_la_pagina_de_un_mes_lista_solo_ese_mes(cliente):
+    r = cliente.get("/periodo/mes/2026-05")
+    assert r.status_code == 200
+    html = r.get_data(as_text=True)
+    assert "Mayo de 2026" in html
+    assert html.count('class="run-card"') == 1
+    assert "5.03 km" in html and "3.54 km" not in html
+    # Y se vuelve al año, que es la vista con el resto del contexto.
+    assert 'href="/?anio=2026"' in html
+
+
+def test_un_periodo_sin_carreras_lo_dice(cliente):
+    html = cliente.get("/periodo/mes/2026-06").get_data(as_text=True)
+    assert "No hay ninguna carrera" in html
+    assert 'class="run-card"' not in html
+
+
+def test_periodos_que_no_existen_dan_404(cliente):
+    # El año tiene su propia vista, la portada filtrada.
+    assert cliente.get("/periodo/anio/2026").status_code == 404
+    assert cliente.get("/periodo/mes/2026-13").status_code == 404
+    assert cliente.get("/periodo/mes/pepe").status_code == 404
+    # Las semanas empiezan en lunes; 2026-05-05 es martes.
+    assert cliente.get("/periodo/semana/2026-05-05").status_code == 404
+
+
+def test_la_pagina_de_periodo_pide_sesion(cliente_sin_sesion):
+    r = cliente_sin_sesion.get("/periodo/mes/2026-05")
+    assert r.status_code == 302 and "/login" in r.headers["Location"]

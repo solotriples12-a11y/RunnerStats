@@ -211,6 +211,28 @@ def importar():
                            fusiones=len(fusiones))
 
 
+@app.route("/periodo/<agrupacion>/<clave>")
+def periodo(agrupacion, clave):
+    """Las carreras de un mes o de una semana, al tocar su barra.
+
+    El año no llega aqui: ya tiene su propia vista, la portada filtrada, que
+    ademas trae records y graficas.
+    """
+    tramo = analisis.rango(agrupacion, clave) if agrupacion != "anio" else None
+    if tramo is None:
+        abort(404)
+
+    carreras = consultas.carreras_en(get_db(), *tramo)
+    metros = sum(c["distancia_metros"] for c in carreras)
+    return render_template(
+        "periodo.html",
+        titulo=analisis.titulo_periodo(agrupacion, clave),
+        anio=datetime.fromtimestamp(tramo[0], timezone.utc).year,
+        carreras=carreras,
+        resumen={"carreras": len(carreras), "metros": metros},
+    )
+
+
 @app.route("/carrera/<path:carrera_id>")
 def carrera(carrera_id):
     conn = get_db()

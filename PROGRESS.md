@@ -974,3 +974,23 @@ octubre a diciembre) pasa de dos segmentos y un punto suelto a una sola
 línea; 2015 sigue partiéndose, porque de marzo a mayo son tres meses
 seguidos; y la vista larga sigue separando 2018 de 2020 por el 2019 vacío.
 122 tests.
+
+---
+
+## 2026-09-06 — La gráfica de kilómetros filtra
+
+**Qué**: cada barra es un enlace. Por año a la portada filtrada, por mes y
+semana a `/periodo/<agrupacion>/<clave>` —página nueva, con el resumen del
+tramo y su lista— y por carrera a su detalle. La barra de un periodo vacío no
+enlaza a nada.
+
+**Verificado en el navegador**: clic sobre la barra de diciembre de 2022 en
+la vista por meses y el navegador va a `/periodo/mes/2022-12`, o sea que el
+`<a>` dentro del SVG hace lo que tiene que hacer. Y la página de un mes sale
+con su cabecera ("Enero de 2022"), el "← 2022" de vuelta, las tres tarjetas y
+las cuatro carreras del mes.
+
+**128 tests**, seis nuevos: a dónde apunta cada agrupación, que un periodo
+vacío no sea clicable, que la página de un mes liste solo ese mes, que un
+periodo sin carreras lo diga, los 404 —incluida una semana que no empieza en
+lunes— y que la ruta exija sesión.

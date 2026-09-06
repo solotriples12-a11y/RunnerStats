@@ -169,6 +169,11 @@ entre los dos relojes sobre la misma carrera (1,2 %).
   pisen. Por eso caben los doce meses y los dieciséis años, y las 52 semanas
   no. En la nube de ritmos cada etiqueta va bajo su nodo de mediana, que no
   están repartidos por igual, así que ahí se salta la que no quepa.
+- **La gráfica de volumen es un filtro**: cada barra es un enlace. Por año va
+  a la portada filtrada (`/?anio=`), que ya existe y trae récords y gráficas;
+  por mes y por semana, a `/periodo/<agrupacion>/<clave>`, una página con el
+  resumen de ese tramo y su lista; y por carrera, directa a su detalle. Un
+  periodo vacío no es un enlace: se pinta como `<g>` en vez de `<a>`.
 - **Tooltips propios**, `static/js/tip.js`: unas 50 líneas sin dependencias,
   el único JavaScript del proyecto. Supersede a los `<title>` nativos de SVG,
   que el navegador pintaba con casi un segundo de retardo y que en táctil no

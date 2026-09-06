@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }} · RunnerStats{% endblock %}
+
+{% block contenido %}
+<header class="cab-detalle">
+    <a class="cab-volver" href="{{ url_for('index', anio=anio) }}">← {{ anio }}</a>
+    <p class="cab-fecha">{{ titulo }}</p>
+</header>
+
+{% if resumen.carreras %}
+<section class="tiles">
+    <div class="tile">
+        <span class="tile-lab">Carreras</span>
+        <span class="tile-val">{{ resumen.carreras }}</span>
+    </div>
+    <div class="tile">
+        <span class="tile-lab">Kilómetros</span>
+        <span class="tile-val">{{ resumen.metros | km }}<small>km</small></span>
+    </div>
+    <div class="tile">
+        <span class="tile-lab">Media por carrera</span>
+        <span class="tile-val">{{ (resumen.metros / resumen.carreras) | km }}<small>km</small></span>
+    </div>
+</section>
+
+{% include "_carreras.html" %}
+{% else %}
+<p class="note">No hay ninguna carrera en este periodo.</p>
+{% endif %}
+{% endblock %}

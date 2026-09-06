@@ -948,3 +948,39 @@ parte con **dos meses seguidos** en blanco; uno solo no.
 una evolución que no está medida. Se asume porque el error de lectura del
 otro lado —"esto está roto"— es peor, y porque el punto de cada mediana sigue
 dibujado: los meses que existen se ven, y los que no, no.
+
+---
+
+## 2026-09-06 — Las barras de la gráfica son enlaces
+
+**Contexto**: la gráfica enseñaba cuánto se corrió en cada periodo, pero para
+ver *qué* carreras eran había que bajar a la lista y buscarlas a ojo.
+
+**Decisión**: cada barra lleva a su periodo, y el destino depende de la
+agrupación.
+
+- **Año** → `/?anio=2024`, la portada filtrada. Ya existía, es la misma vista
+  que dan los chips de arriba, y trae récords y gráficas del año. Crear una
+  página de "periodo año" habría sido una versión peor de algo que ya está.
+- **Mes y semana** → `/periodo/<agrupacion>/<clave>`, página nueva: cabecera
+  con el periodo, las tres mismas tarjetas de la portada y la lista de ese
+  tramo. No lleva gráficas: un mes son cuatro barras y no dicen nada.
+- **Carrera** → su detalle, directo.
+
+La clave de la URL es la misma que produce el SQL de `AGRUPACIONES`
+(`2024-02`, o el lunes `2024-02-05`), así que la gráfica y la ruta hablan el
+mismo idioma y no hay traducción que mantener. `analisis.rango()` la valida y
+devuelve `None` si no cuadra —incluida una semana que no empiece en lunes—,
+que es lo que llega por URL manipulada; la ruta responde 404.
+
+**En la página de periodo los kilómetros llevan decimales**, al contrario que
+en la portada. La razón para quitarlos era la magnitud ("son números
+grandes"), y el total de un mes son dos cifras: ahí el decimal sí dice algo.
+
+**Consecuencia en táctil**: tocar una barra ahora navega, así que en el móvil
+ya no se puede leer el tooltip sin irse de la página. Se acepta porque la
+página de destino enseña lo mismo y más.
+
+**La lista de carreras pasa a ser una parcial** (`_carreras.html`) compartida
+por la portada y el periodo, para que no se separen: acababa de cambiarles el
+orden de las métricas y habría habido que hacerlo dos veces.

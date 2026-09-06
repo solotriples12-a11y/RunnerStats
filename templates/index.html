@@ -85,11 +85,16 @@
         <text class="ejeY" x="28" y="{{ g.y + 3 }}">{{ g.etiqueta }}</text>
         {% endfor %}
         {% for b in volumen.barras %}
-        <g class="banda" data-tip="{% if b.carreras %}{{ b.etiqueta }}: {{ b.km | round(1) }} km en {{ b.carreras }} carrera{{ 's' if b.carreras != 1 }}{% else %}{{ b.etiqueta }}: sin carreras{% endif %}">
+        {% set destino = none if not b.carreras
+           else url_for('index', anio=b.clave) if agr == 'anio'
+           else url_for('carrera', carrera_id=b.clave) if agr == 'carrera'
+           else url_for('periodo', agrupacion=agr, clave=b.clave) %}
+        <{{ 'a' if destino else 'g' }} class="banda"{% if destino %} href="{{ destino }}"{% endif %}
+           data-tip="{% if b.carreras %}{{ b.etiqueta }}: {{ b.km | round(1) }} km en {{ b.carreras }} carrera{{ 's' if b.carreras != 1 }}{% else %}{{ b.etiqueta }}: sin carreras{% endif %}">
             <rect class="zona" x="{{ b.banda_x }}" y="{{ volumen.banda_y }}"
                   width="{{ volumen.banda_ancho }}" height="{{ volumen.banda_alto }}"/>
             {% if b.d %}<path class="barra" d="{{ b.d }}"/>{% endif %}
-        </g>
+        </{{ 'a' if destino else 'g' }}>
         {% if b.etiquetada %}
         <text class="ejeX" x="{{ b.centro }}" y="{{ volumen.alto - 6 }}">{{ b.etiqueta }}</text>
         {% endif %}
@@ -131,21 +136,7 @@
 
 <section class="bloque">
     <h2>{% if anio %}Carreras de {{ anio }}{% else %}Todas las carreras{% endif %}</h2>
-    <div class="run-list">
-        {% for c in carreras %}
-        <a class="run-card" href="{{ url_for('carrera', carrera_id=c.id) }}">
-            <div class="run-date">{{ c.fecha_inicio_unix | fecha }}</div>
-            <div class="run-metrics">
-                <span class="metric">{{ c.duracion_segundos | duracion }}</span>
-                <span class="metric primary">{{ c.distancia_metros | km }} km</span>
-                <span class="metric">
-                    {{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }}/km
-                </span>
-                {% if c.fc_media %}<span class="metric">{{ c.fc_media }} ppm</span>{% endif %}
-            </div>
-        </a>
-        {% endfor %}
-    </div>
+    {% include "_carreras.html" %}
 </section>
 {% endif %}
 {% endblock %}

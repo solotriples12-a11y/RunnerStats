@@ -50,6 +50,47 @@ def resumen(conn: sqlite3.Connection, anio: int | None = None) -> dict:
 MESES_CORTOS = ("ene", "feb", "mar", "abr", "may", "jun",
                 "jul", "ago", "sep", "oct", "nov", "dic")
 
+MESES = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+         "agosto", "septiembre", "octubre", "noviembre", "diciembre")
+
+
+def rango(agrupacion: str, clave: str) -> tuple[int, int] | None:
+    """Tramo [inicio, fin) en unix de un periodo, para poder listarlo.
+
+    La clave es la misma que devuelve `volumen`, o sea la que produce el SQL
+    de `AGRUPACIONES`: "2024", "2024-02" o el lunes "2024-02-05". Devuelve
+    None si no cuadra, que es lo que llega por URL manipulada.
+    """
+    try:
+        if agrupacion == "anio":
+            d0 = datetime(int(clave), 1, 1, tzinfo=timezone.utc)
+            d1 = d0.replace(year=d0.year + 1)
+        elif agrupacion == "mes":
+            a, m = (int(x) for x in clave.split("-"))
+            d0 = datetime(a, m, 1, tzinfo=timezone.utc)
+            d1 = datetime(a + (m == 12), m % 12 + 1, 1, tzinfo=timezone.utc)
+        elif agrupacion == "semana":
+            d0 = datetime.fromisoformat(clave).replace(tzinfo=timezone.utc)
+            if d0.weekday() != 0:
+                return None          # las semanas empiezan en lunes
+            d1 = d0 + timedelta(days=7)
+        else:
+            return None
+    except ValueError:
+        return None
+    return int(d0.timestamp()), int(d1.timestamp())
+
+
+def titulo_periodo(agrupacion: str, clave: str) -> str:
+    """Como se lee ese periodo en la cabecera de su pagina."""
+    inicio, _ = rango(agrupacion, clave)
+    d = datetime.fromtimestamp(inicio, timezone.utc)
+    if agrupacion == "anio":
+        return clave
+    if agrupacion == "mes":
+        return f"{MESES[d.month - 1].capitalize()} de {d.year}"
+    return f"Semana del {d.day} de {MESES[d.month - 1]} de {d.year}"
+
 # Clave de agrupacion -> expresion SQL.
 #
 # La semana empieza en lunes. SQLite no tiene "inicio de semana", asi que se

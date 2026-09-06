@@ -274,6 +274,8 @@ code {
 /* Zona sensible del tooltip: invisible pero clicable (con `fill: none` no
    recibiria el puntero). Da un blanco de dedo a marcas de 3 px. */
 .zona { fill: transparent; }
+/* La banda entera lleva al periodo que representa. */
+.banda[href] { cursor: pointer; }
 .banda:hover .barra { fill: var(--text); }
 
 /* Los puntos son contexto; la mediana es la historia. */
