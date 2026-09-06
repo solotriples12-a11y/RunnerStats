@@ -984,3 +984,56 @@ página de destino enseña lo mismo y más.
 **La lista de carreras pasa a ser una parcial** (`_carreras.html`) compartida
 por la portada y el periodo, para que no se separen: acababa de cambiarles el
 orden de las métricas y habría habido que hacerlo dos veces.
+
+---
+
+## 2026-09-06 — Huawei entra como fuente: el export sí trae frecuencia cardíaca
+
+Cierra la pregunta que quedó abierta al pedir el export de privacidad el
+2026-09-04: si `Motion path detail data` traía FC. **La trae**, y además GPS,
+cadencia y altitud.
+
+**Qué hay dentro**: 104 actividades de 2025-05-05 a 2026-09-02, de las que 37
+son carreras. El resumen va en campos normales, pero **todo el detalle se
+esconde dentro de un único campo de texto**, `attribute`, con una línea por
+muestra: `tp=<tipo>;k=<clave>;v=<valor>;`. Las series son `h-r` (pulso, cada
+5 s), `alti` (altitud), `s-r` (cadencia), `rs` (velocidad) y `lbs` (GPS a
+1 Hz, con `lat`, `lon` y su propio instante `t`).
+
+**Dos trampas del formato**, las dos comprobadas contra el export real:
+
+- **No es JSON válido.** `partTimeMap` trae las claves numéricas sin comillas
+  (`{1.0:380.0}`). Se entrecomillan con una expresión regular antes de
+  parsear; solo aparecen ahí, en 8 a 71 sitios por fichero.
+- **Cada actividad viene repetida tres veces** repartida entre los 24
+  ficheros. Como el id sale del instante de inicio, el `INSERT OR REPLACE`
+  las colapsa solo.
+
+**Qué es una carrera**: el export no documenta `sportType`, así que se
+identifica por los datos. El 4 son 26 actividades de 5,1 km de mediana a
+6:25/km y con GPS; el 101, otras 11 de 5,0 km a 6:23/km y sin GPS, o sea la
+cinta. El 5 y el 102 van a 20:00/km: paseos, fuera. Que el 4 es correr lo
+confirma que diez de esas fechas y distancias ya estaban en el histórico
+propio.
+
+**Verificación independiente**: Huawei trae sus propios tiempos por kilómetro
+en `partTimeMap`, calculados por el reloj. No se importan —los parciales se
+siguen calculando desde el GPS— pero sirven de contraste. De las 21 carreras
+comparables, **las 13 sin tiempo parado cuadran con una mediana de 10 s y un
+máximo de 27 s de desvío acumulado** sobre recorridos de 5 a 9 km, o sea
+menos del 0,8 %. Las 8 con paradas se desvían justo lo que dura la parada
+(407 s descartados → 339 s de desvío), que es la política que ya se decidió
+en "El tiempo parado no se cronometra".
+
+**Lo que no se importa, y por qué**:
+
+- `partTimeMap` (parciales del reloj): habría dos caminos para lo mismo, y el
+  nuestro está validado y es común a todas las fuentes.
+- **Serie de distancia para la cinta.** `rs` es velocidad en decímetros por
+  segundo, e integrarla reproduce la distancia declarada con un +1,6 % de
+  exceso constante. Escalándola al total daría parciales y récords a las 11
+  carreras de cinta, que hoy no tienen ninguno. Pero una serie escalada al
+  resumen cuadra con el resumen por construcción, así que `_serie_fiable`
+  dejaría de ser una comprobación independiente. Se guarda `velocidad_ms`
+  cruda en los muestreos, que es dato de la fuente, y la decisión queda para
+  cuando se quiera de verdad.

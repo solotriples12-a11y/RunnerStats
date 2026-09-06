@@ -29,17 +29,14 @@ Ordenado. Los ítems salen al completarse o al matarse explícitamente.
 - Login con pantalla propia, solo contraseña.
 - Las gráficas obedecen al filtro de año: kilómetros por mes sobre los doce
   del calendario y nube de ritmos con mediana mensual.
+- Importador de Huawei Health (37 carreras, 2025-05 a 2026-09) desde el
+  export de privacidad. Trae FC, cadencia, altitud y GPS.
 
 ## Esperando
 
 - **Importar el export de Nike en producción**: 269 ficheros, 152 MB. El
   límite por tanda son 64 MB, así que van tres o cuatro tandas desde
   `/importar`.
-- **Export de privacidad de Huawei**: solicitado el 2026-09-04, avisan de 7
-  días. Al llegar, mirar si `Motion path detail data` trae FC. Si la trae,
-  escribir el importador; si no, descartar Huawei como fuente y quedarse con
-  las rutas para el mapa. Existe [Hitrava](https://github.com/CTHRU/Hitrava),
-  que ya parsea ese formato, como referencia.
 
 ## Después
 

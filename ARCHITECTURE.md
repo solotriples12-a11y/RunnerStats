@@ -51,11 +51,15 @@ Todas son ficheros exportados a mano. No hay sincronización automática.
 | **Nike Run Club (`.tcx`)** | 269 | 2011-12 → 2026-07 | Variable: 202 con distancia por punto, 158 con GPS, 99 con cadencia, 98 con FC |
 | My Run Stats (JSON) | 207 | 2011-12 → 2026-05 | Solo resumen |
 | Amazfit Cheetah 2 Pro (`.fit`) | 9 | 2026 | Completa, 1 Hz |
-| Huawei (export de privacidad) | ? | ? | Por confirmar |
+| **Huawei Health (JSON)** | 37 | 2025-05 → 2026-09 | Completa: 37 con FC y cadencia a 0,2 Hz, 26 con GPS a 1 Hz |
 
 Nike es casi un superconjunto de My Run Stats: comparten 199 fechas, 65
 carreras solo están en Nike y 5 solo en My Run Stats. Rellena 2019 entero,
 que en My Run Stats no existía.
+
+Huawei cubre el otro extremo, lo reciente: de sus 37 carreras, 27 no estaban
+en ninguna otra fuente y las 10 que sí estaban solo constaban como resumen,
+así que la deduplicación las sustituye por la versión con muestreos.
 
 El detalle verificado de cada formato está en `DECISIONS.md` (entrada
 "Tres fuentes de datos con niveles de fidelidad distintos").
@@ -67,7 +71,9 @@ diseño Android, ahora con tres implementaciones reales.
 Los ficheros se suben desde `/importar` y se leen **en memoria**: nada se
 escribe en disco, lo que evita de raíz tener que sanear rutas. El despacho
 se hace por extensión y cada fichero informa de su resultado por separado,
-para que un fichero corrupto no tumbe la subida entera.
+para que un fichero corrupto no tumbe la subida entera. Huawei y My Run Stats
+comparten la extensión `.json`, así que entre esos dos se decide por la forma:
+el de Huawei es una lista de actividades y el otro un objeto.
 
 ### Niveles de fidelidad
 No todas las funciones aplican a todas las carreras:

@@ -994,3 +994,27 @@ las cuatro carreras del mes.
 vacío no sea clicable, que la página de un mes liste solo ese mes, que un
 periodo sin carreras lo diga, los 404 —incluida una semana que no empieza en
 lunes— y que la ruta exija sesión.
+
+---
+
+## 2026-09-06 — Importador de Huawei Health
+
+**Qué**: `runnerstats/importers/huawei_json.py`. Lee `Motion path detail
+data` del export de privacidad: 37 carreras de 2025-05 a 2026-09, todas con
+pulso y cadencia, 26 con GPS. Enchufado a `/importar`, que distingue Huawei
+de My Run Stats por la forma del JSON porque comparten extensión.
+
+**Contra la base actual**: +27 carreras nuevas y 10 fusiones en las que
+Huawei gana a My Run Stats, porque trae muestreos y el otro solo el resumen.
+
+**Verificado**:
+- Contra los tiempos por kilómetro del propio reloj (`partTimeMap`, que no se
+  importa): las 13 carreras sin paradas cuadran con 10 s de desvío acumulado
+  de mediana y 27 s el peor, sobre 5 a 9 km. Las 8 con paradas se desvían
+  exactamente lo que dura la parada, que se descuenta a propósito.
+- Subida real por la web con un fichero del export: "7 carreras importadas".
+- 137 tests, nueve nuevos. Los del fichero sintético cubren las dos trampas
+  del formato; los que van contra la muestra real se saltan si no está.
+
+**Pendiente de decidir**: darle parciales a las carreras de cinta integrando
+la serie de velocidad. Está razonado en `DECISIONS.md`.

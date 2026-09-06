@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import sqlite3
@@ -11,7 +12,8 @@ from flask import (Flask, Response, abort, g, redirect, render_template,
                    request, url_for)
 
 from runnerstats import analisis, auth, consultas, db, dedup, detalle, graficas
-from runnerstats.importers import amazfit_fit, my_run_stats, nike_tcx
+from runnerstats.importers import (amazfit_fit, huawei_json, my_run_stats,
+                                   nike_tcx)
 
 load_dotenv()
 
@@ -171,8 +173,15 @@ def _importar_uno(conn, fichero) -> tuple[str, int | None, str | None]:
     if ext != ".json":
         return nombre, None, f"formato no soportado ({ext or 'sin extension'})"
 
+    # Huawei y My Run Stats comparten extension, asi que se distinguen por
+    # dentro: el de Huawei es una lista de actividades y el otro un objeto.
     try:
-        return nombre, my_run_stats.importar(conn, fichero.stream), None
+        contenido = fichero.stream.read()
+        if huawei_json.parece_huawei(contenido.decode("utf-8")):
+            return nombre, huawei_json.importar(conn, contenido), None
+        return nombre, my_run_stats.importar(conn, io.BytesIO(contenido)), None
+    except huawei_json.HuaweiInvalido as e:
+        return nombre, None, str(e)
     except (json.JSONDecodeError, UnicodeDecodeError) as e:
         return nombre, None, f"no es un JSON valido ({e})"
     except (KeyError, TypeError, ValueError) as e:

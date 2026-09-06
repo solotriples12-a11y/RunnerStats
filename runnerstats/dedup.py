@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 TOLERANCIA = 0.05
 
 # Desempate cuando dos candidatas tienen los mismos muestreos (normalmente 0).
-PRIORIDAD = {"amazfit_fit": 3, "nike_tcx": 2, "huawei_tcx": 1, "my_run_stats": 0}
+PRIORIDAD = {"amazfit_fit": 3, "nike_tcx": 2, "huawei_json": 1, "my_run_stats": 0}
 
 
 def _rango(c) -> tuple:
