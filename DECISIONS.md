@@ -761,3 +761,34 @@ de mediana, y los nodos caen en el centro de masa de su periodo, que no está
 repartido por igual. Ahí se recorren del más reciente hacia atrás y se salta
 el que no quepa. La etiqueta de los extremos se recorta al lienzo, porque va
 centrada en su nodo y el último nodo cae casi pegado al borde.
+
+---
+
+## 2026-09-06 — El recorrido baja a la fila de las cifras
+
+**Contexto**: el recorrido vivía en la fila de la cabecera, junto a la fecha,
+en una caja de 96x64. Ahí no se ve nada, y debajo quedaba una franja de aire
+a los lados de las cifras sin usar.
+
+**Decisión**: el `<svg>` pasa a la fila de las cifras, pegado a la derecha,
+con el alto exacto de las tres líneas de números (7rem = 1,25 de interlínea
+sobre 1,5 + 2,6 + 1,5 rem). La caja crece a 11x7rem, casi cuatro veces el
+área anterior.
+
+**El ancho es un tope, no una medida**: el `viewBox` que devuelve `ruta_svg`
+ya lleva la proporción real del recorrido (entre 0,45 y 1,6 de alto/ancho),
+así que `preserveAspectRatio` encaja la traza dentro de la caja. Una ruta
+apaisada llena los 11 rem; una alargada se queda estrecha y centrada. Ninguna
+se recorta, y el hueco sobrante es transparente, o sea invisible.
+
+**Las cifras siguen centradas en la página** gracias a una columna vacía a la
+izquierda que equilibra a la del recorrido (`1fr auto 1fr`). Sin `gap`: la
+columna del recorrido existe aunque la carrera no tenga GPS, y el hueco
+descentraba los números 4 px. La separación la da el `padding` de las cifras,
+que además tiene que cubrir las unidades ("/km"), que van absolutas y fuera
+del flujo.
+
+**Consecuencia en el móvil**: a 375 px no caben las dos cosas y además una
+columna vacía. Ahí la rejilla pasa a `1fr auto`, así que los números quedan
+centrados en el espacio que deja el recorrido y no en la página. Es el precio
+de que el mapa sea más grande justo donde más se mira.

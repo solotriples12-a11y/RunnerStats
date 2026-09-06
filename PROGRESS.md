@@ -843,3 +843,24 @@ etiqueta, que es la invariante de verdad.
 un mes vacío ("jul: sin carreras"), hover sobre un nodo de mediana, y toque
 en móvil emulado (375 px), donde el globo sale 30 px por encima del dedo y se
 recoloca solo para no salirse por el borde izquierdo.
+
+---
+
+## 2026-09-06 — El recorrido, al lado de las cifras y cuatro veces más grande
+
+**Qué**: el mapa del detalle sale de la fila de la fecha y baja a la de las
+cifras, pegado a la derecha, con el alto exacto de las tres líneas de números
+(7 rem). La caja pasa de 96x64 a 176x112 px, y en el móvil de 76x52 a 120x92.
+
+**Verificado en el navegador** con las tres proporciones que da `ruta_svg`
+—apaisada (0,45), media (0,8) y alargada (1,27)— y con una carrera de cinta,
+sin GPS:
+
+- El alto de la caja coincide con el de las cifras al píxel (112 y 112).
+- Las cifras siguen centradas en la página: su centro cae en 450, el del
+  contenedor también.
+- Sin recorrido las cifras siguen centradas exactas (188 y 188). Para eso hay
+  que quitar el `gap` de la rejilla: la columna del recorrido existe igual y
+  el hueco descentraba 4 px.
+- En móvil de 375 px no hay desbordamiento horizontal y quedan 58 px entre
+  las unidades y el mapa.

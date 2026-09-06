@@ -5,6 +5,14 @@
 <header class="cab-detalle">
     <a class="cab-volver" href="{{ url_for('index') }}">← Volver</a>
     <p class="cab-fecha">{{ c.fecha_inicio_unix | fecha }}</p>
+</header>
+
+<section class="cab-cifras">
+    <div class="cifras">
+        <p class="cifra-media"><span class="num">{{ c.duracion_segundos | duracion }}<span class="uni">{{ c.duracion_segundos | unidad_duracion }}</span></span></p>
+        <p class="cifra-grande"><span class="num">{{ c.distancia_metros | km }}<span class="uni">km</span></span></p>
+        <p class="cifra-media"><span class="num">{{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }}<span class="uni">/km</span></span></p>
+    </div>
     {% if ruta and not ruta.vacia %}
     <svg class="ruta-mini" viewBox="0 0 {{ ruta.ancho }} {{ ruta.alto }}" role="img"
          aria-label="Recorrido de la carrera">
@@ -12,13 +20,7 @@
         <circle class="hito inicio" cx="{{ ruta.inicio.split(',')[0] }}" cy="{{ ruta.inicio.split(',')[1] }}" r="4"/>
         <circle class="hito fin" cx="{{ ruta.fin.split(',')[0] }}" cy="{{ ruta.fin.split(',')[1] }}" r="4"/>
     </svg>
-    {% else %}<span></span>{% endif %}
-</header>
-
-<section class="cab-cifras">
-    <p class="cifra-media"><span class="num">{{ c.duracion_segundos | duracion }}<span class="uni">{{ c.duracion_segundos | unidad_duracion }}</span></span></p>
-    <p class="cifra-grande"><span class="num">{{ c.distancia_metros | km }}<span class="uni">km</span></span></p>
-    <p class="cifra-media"><span class="num">{{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }}<span class="uni">/km</span></span></p>
+    {% endif %}
 </section>
 
 {% if splits %}

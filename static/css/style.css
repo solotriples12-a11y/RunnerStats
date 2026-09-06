@@ -384,13 +384,24 @@ code {
     color: var(--text-muted);
     font-size: 0.95rem;
 }
-.cab-detalle .ruta-mini { justify-self: end; }
-
+/* Las cifras siguen centradas en la pagina —la columna vacia de la izquierda
+   equilibra a la del recorrido— y el recorrido queda pegado a la derecha,
+   ocupando justo el alto de las tres lineas de numeros. */
 .cab-cifras {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
     text-align: center;
     margin-bottom: 2.5rem;
-    line-height: 1.25;
 }
+.cab-cifras .cifras {
+    grid-column: 2;
+    line-height: 1.25;
+    /* Las unidades van absolutas, fuera del flujo: sin este respiro "/km" se
+       metia debajo del recorrido. */
+    padding: 0 2.2rem;
+}
+.cab-cifras .ruta-mini { grid-column: 3; justify-self: end; }
 .cifra-grande {
     font-size: 2.6rem;
     font-weight: 500;
@@ -426,17 +437,25 @@ code {
    las 158 rutas son mas altas que anchas. Una de proporcion 1,6 estiraba la
    cabecera 141 px y dejaba a la fecha con un hueco enorme debajo. El SVG se
    ajusta dentro por preserveAspectRatio. */
+/* Alto = las tres lineas de cifras (1,25 de interlinea sobre 1,5 + 2,6 + 1,5
+   rem). El ancho es un tope: el viewBox lleva la proporcion real del
+   recorrido, asi que una ruta apaisada llena los 11rem y una alargada se
+   queda estrecha, pero ninguna se recorta. */
 .ruta-mini {
-    width: 96px;
-    height: 64px;
+    width: 11rem;
+    height: 7rem;
 }
 .ruta-mini .traza { stroke-width: 3; }
-.ruta-mini .hito { r: 10; stroke-width: 4; }
+.ruta-mini .hito { r: 8; stroke-width: 3; }
 
 @media (max-width: 480px) {
-    .ruta-mini { width: 76px; height: 52px; }
     .cifra-grande { font-size: 2.1rem; }
     .cifra-media { font-size: 1.25rem; }
+    /* Sin la columna vacia de la izquierda no hay sitio para las dos cosas:
+       las cifras se centran en lo que deja el recorrido. */
+    .cab-cifras { grid-template-columns: 1fr auto; }
+    .cab-cifras .cifras { grid-column: 1; padding: 0 1.6rem; }
+    .cab-cifras .ruta-mini { grid-column: 2; width: 7.5rem; height: 5.75rem; }
 }
 
 /* ---------- Entrar ---------- */
