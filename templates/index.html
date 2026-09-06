@@ -25,7 +25,7 @@
     </div>
     <div class="tile">
         <span class="tile-lab">Kilómetros</span>
-        <span class="tile-val">{{ resumen.metros | km }}<small>km</small></span>
+        <span class="tile-val">{{ resumen.metros | km_entero }}<small>km</small></span>
     </div>
     <div class="tile">
         <span class="tile-lab">Media por carrera</span>
@@ -136,8 +136,8 @@
         <a class="run-card" href="{{ url_for('carrera', carrera_id=c.id) }}">
             <div class="run-date">{{ c.fecha_inicio_unix | fecha }}</div>
             <div class="run-metrics">
-                <span class="metric primary">{{ c.distancia_metros | km }} km</span>
                 <span class="metric">{{ c.duracion_segundos | duracion }}</span>
+                <span class="metric primary">{{ c.distancia_metros | km }} km</span>
                 <span class="metric">
                     {{ (c.duracion_segundos / (c.distancia_metros / 1000)) | ritmo }}/km
                 </span>

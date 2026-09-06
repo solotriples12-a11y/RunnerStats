@@ -120,6 +120,17 @@ def f_km(metros: float) -> str:
     return f"{metros / 1000:.2f}"
 
 
+@app.template_filter("km_entero")
+def f_km_entero(metros: float) -> str:
+    """Kilometros al entero, redondeando .5 hacia arriba.
+
+    `round` de Python redondea al par (round(0.5) == 0), que no es lo que se
+    espera de un total. Las distancias nunca son negativas, asi que truncar
+    x + 0,5 es el redondeo de toda la vida.
+    """
+    return str(int(metros / 1000 + 0.5))
+
+
 @app.template_filter("unidad_duracion")
 def f_unidad_duracion(segundos: int) -> str:
     """La unidad mayor que aplica, para acompañar a la cifra como el km."""

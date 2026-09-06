@@ -908,3 +908,22 @@ en `DECISIONS.md`.
 **Verificado**: los tres tamaños del .ico con esquina transparente y centro
 opaco, el `.ico` se sirve con sesión y sin ella (`static` es público), y un
 test nuevo comprueba las dos etiquetas en portada y en login. 120 tests.
+
+---
+
+## 2026-09-06 — Retoques de portada
+
+**Qué**:
+- El total de kilómetros va sin decimales (1099 en vez de 1098.80): con
+  cuatro cifras el decimal no dice nada. En la media por carrera sí, y ahí se
+  queda. Filtro nuevo `km_entero`, que redondea con `int(x + 0,5)` y no con
+  `round`, que en Python redondea al par (`round(0.5) == 0`).
+- La lista de carreras pasa a fecha · duración · distancia · ritmo · ppm. La
+  distancia sigue siendo la única en blanco, pero ahora va en medio.
+- Las tres tarjetas de la portada caben en una fila en el móvil. Estaban a
+  dos columnas, así que salían 2+1 y la suelta de abajo desequilibraba. Se
+  aprieta el aire lateral y baja el cuerpo del número; a 320 px la etiqueta
+  "Media por carrera" parte en dos líneas y las tres tarjetas mantienen la
+  misma altura.
+
+**Verificado** a 375 y 320 px: una sola fila, sin desbordamiento horizontal.
