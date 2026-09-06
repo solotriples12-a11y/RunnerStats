@@ -12,8 +12,8 @@ from flask import (Flask, Response, abort, g, redirect, render_template,
                    request, url_for)
 
 from runnerstats import analisis, auth, consultas, db, dedup, detalle, graficas
-from runnerstats.importers import (amazfit_fit, huawei_json, my_run_stats,
-                                   nike_tcx)
+from runnerstats.importers import (amazfit_fit, huawei_json, huawei_tcx,
+                                   my_run_stats, nike_tcx)
 
 load_dotenv()
 
@@ -163,9 +163,14 @@ def _importar_uno(conn, fichero) -> tuple[str, int | None, str | None]:
             return nombre, None, f"no se pudo leer el .fit ({e})"
 
     if ext == ".tcx":
+        # Nike y Huawei exportan los dos en TCX. Huawei firma el fichero como
+        # creator="Health"; Nike no pone creator y mete su extension `nax`.
+        contenido = fichero.stream.read()
         try:
-            return nombre, nike_tcx.importar(conn, fichero.stream), None
-        except nike_tcx.TcxInvalido as e:
+            if huawei_tcx.parece_huawei(contenido):
+                return nombre, huawei_tcx.importar(conn, contenido), None
+            return nombre, nike_tcx.importar(conn, io.BytesIO(contenido)), None
+        except (nike_tcx.TcxInvalido, huawei_tcx.TcxInvalido) as e:
             return nombre, None, str(e)
         except ET.ParseError as e:
             return nombre, None, f"XML invalido ({e})"

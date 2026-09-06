@@ -285,3 +285,78 @@ def test_un_record_no_incluye_el_tiempo_parado():
     v = detalle.mejor_ventana(detalle.en_movimiento(puntos), 1000)
     assert v is not None
     assert 280 < v[0] < 340, v[0]
+
+
+def _version(conn, cid, inicio, filas, sustituye=None):
+    """Mete una version de una carrera con los muestreos que se le digan.
+
+    Cada fila es (segundo, fc, lat, altitud); None donde esa fuente no aporte.
+    """
+    conn.execute(
+        "INSERT INTO carrera (id, fecha_inicio_unix, distancia_metros,"
+        " duracion_segundos, fuente, sustituida_por, importado_en)"
+        " VALUES (?,?,?,?,?,?,0)",
+        (cid, inicio, 5000.0, 1800, cid.split(":")[0], sustituye))
+    conn.executemany(
+        "INSERT INTO muestreo (carrera_id, timestamp_unix, frecuencia_cardiaca,"
+        " latitud, longitud, altitud_metros) VALUES (?,?,?,?,?,?)",
+        [(cid, inicio + seg, fc, lat, None if lat is None else -3.7, alt)
+         for seg, fc, lat, alt in filas])
+    conn.commit()
+
+
+def test_los_muestreos_fusionan_las_versiones_de_la_carrera(tmp_path):
+    """Nike trajo el pulso de la carrera del 19 de abril y Huawei el
+    recorrido: por separado ninguna de las dos vale, juntas si."""
+    conn = db.conectar(tmp_path / "f.db")
+    _version(conn, "nike_tcx:1000", 1000,
+             [(i, 150 + i, None, None) for i in range(10)])
+    _version(conn, "huawei_tcx:1002", 1002,
+             [(i, None, 40.0 + i / 1000, 600 + i) for i in range(10)],
+             sustituye="nike_tcx:1000")
+
+    ms = detalle.muestreos(conn, "nike_tcx:1000")
+    assert sum(1 for m in ms if m["frecuencia_cardiaca"] is not None) == 10
+    assert sum(1 for m in ms if m["latitud"] is not None) == 10
+    assert sum(1 for m in ms if m["altitud_metros"] is not None) == 10
+    # La longitud viaja con la latitud: media coordenada no es media posicion.
+    assert all((m["latitud"] is None) == (m["longitud"] is None) for m in ms)
+
+
+def test_una_version_que_no_solapa_no_se_fusiona(tmp_path):
+    """La deduplicacion agrupa por dia y distancia, asi que dos entrenamientos
+    parecidos del mismo dia caen juntos. Vistos desfases de 1.833 s y de
+    53.216 s con cero solape: no son la misma carrera."""
+    conn = db.conectar(tmp_path / "f.db")
+    _version(conn, "nike_tcx:1000", 1000,
+             [(i, 150, None, None) for i in range(10)])
+    _version(conn, "huawei_json:60000", 60000,
+             [(i, None, 40.0, 600) for i in range(10)],
+             sustituye="nike_tcx:1000")
+
+    ms = detalle.muestreos(conn, "nike_tcx:1000")
+    assert len(ms) == 10
+    assert not any(m["latitud"] for m in ms)
+
+
+def test_una_serie_constante_pierde_contra_una_que_varia(tmp_path):
+    """La altitud de Nike en esa carrera son 3.442 ceros y la de Huawei 3.440
+    metros de verdad: por contar valores ganaba la plana."""
+    conn = db.conectar(tmp_path / "f.db")
+    _version(conn, "nike_tcx:1000", 1000,
+             [(i, 150, None, 0.0) for i in range(12)])
+    _version(conn, "huawei_tcx:1000", 1000,
+             [(i, None, None, 600 + i) for i in range(10)],
+             sustituye="nike_tcx:1000")
+
+    alt = [m["altitud_metros"] for m in detalle.muestreos(conn, "nike_tcx:1000")
+           if m["altitud_metros"] is not None]
+    assert len(alt) == 10 and max(alt) - min(alt) == 9
+
+
+def test_sin_otras_versiones_los_muestreos_salen_tal_cual(conn_carrera):
+    conn, cid = conn_carrera
+    crudos = conn.execute(
+        "SELECT * FROM muestreo WHERE carrera_id = ? ORDER BY timestamp_unix",
+        (cid,)).fetchall()
+    assert detalle.muestreos(conn, cid) == crudos

@@ -25,11 +25,92 @@ def carrera(conn: sqlite3.Connection, carrera_id: str) -> sqlite3.Row | None:
         "SELECT * FROM carrera WHERE id = ?", (carrera_id,)).fetchone()
 
 
-def muestreos(conn: sqlite3.Connection, carrera_id: str) -> list[sqlite3.Row]:
-    return conn.execute(
+# Campos que se pueden tomar de otra version de la misma carrera. Van en
+# grupos porque latitud y longitud no se pueden separar: media coordenada no
+# es media posicion.
+CAMPOS_FUSIONABLES = (
+    ("latitud", "longitud"),
+    ("frecuencia_cardiaca",),
+    ("cadencia_spm",),
+    ("altitud_metros",),
+    ("distancia_acumulada_metros",),
+    ("velocidad_ms",),
+)
+
+# Dos versiones de la misma carrera empiezan con segundos de diferencia y se
+# solapan enteras. Por debajo de esto no son la misma carrera: la
+# deduplicacion agrupa por dia y distancia, asi que dos entrenamientos
+# parecidos del mismo dia caen juntos —vistos 1.833 s y 53.216 s de desfase
+# con cero solape— y fusionarlos mezclaria dos carreras distintas.
+SOLAPE_MINIMO = 0.5
+
+
+def _span(filas) -> tuple[int, int]:
+    return filas[0]["timestamp_unix"], filas[-1]["timestamp_unix"]
+
+
+def _solapan(a, b) -> bool:
+    (a0, a1), (b0, b1) = _span(a), _span(b)
+    comun = min(a1, b1) - max(a0, b0)
+    corta = min(a1 - a0, b1 - b0)
+    return corta > 0 and comun / corta >= SOLAPE_MINIMO
+
+
+def _fusionar(versiones: list) -> list[dict]:
+    """Une varias versiones de una carrera tomando cada campo de una sola.
+
+    El dueño de un campo es la version que mas valores trae, pero una serie
+    constante pierde contra una que varie aunque tenga menos valores: no dice
+    nada. Visto en la carrera del 2026-04-19, donde la altitud de Nike son
+    3.442 ceros y la de Huawei 3.440 metros de verdad.
+
+    Se elige por campo y no por fila para no entrelazar dos medidas del mismo
+    sensor: dos fuentes que discrepan tres pulsaciones dibujarian una sierra.
+    """
+    def riqueza(version, campo):
+        valores = [m[campo] for m in version if m[campo] is not None]
+        return (len(set(valores)) > 1, len(valores))
+
+    filas: dict[int, dict] = {}
+    for grupo in CAMPOS_FUSIONABLES:
+        dueño = max(versiones, key=lambda v: riqueza(v, grupo[0]))
+        for m in dueño:
+            if m[grupo[0]] is None:
+                continue
+            fila = filas.setdefault(m["timestamp_unix"], {})
+            for campo in grupo:
+                fila[campo] = m[campo]
+
+    vacia = {c: None for grupo in CAMPOS_FUSIONABLES for c in grupo}
+    return [{"timestamp_unix": t, **vacia, **filas[t]} for t in sorted(filas)]
+
+
+def muestreos(conn: sqlite3.Connection, carrera_id: str) -> list:
+    """Los muestreos de una carrera, fusionando los de sus versiones.
+
+    La deduplicacion esconde las versiones peores, pero cada fuente trae
+    campos que las otras no: Nike da el pulso segundo a segundo donde Huawei
+    lo da cada cinco, y Huawei da cadencia donde Nike no da ninguna. Esconder
+    una version entera tiraba esos campos a la basura.
+    """
+    propios = conn.execute(
         "SELECT * FROM muestreo WHERE carrera_id = ? ORDER BY timestamp_unix",
         (carrera_id,),
     ).fetchall()
+    if not propios:
+        return propios
+
+    versiones = [propios]
+    for (otra,) in conn.execute(
+            "SELECT id FROM carrera WHERE sustituida_por = ?", (carrera_id,)):
+        filas = conn.execute(
+            "SELECT * FROM muestreo WHERE carrera_id = ? ORDER BY timestamp_unix",
+            (otra,),
+        ).fetchall()
+        if filas and _solapan(propios, filas):
+            versiones.append(filas)
+
+    return propios if len(versiones) == 1 else _fusionar(versiones)
 
 
 # Un intervalo mayor que esto entre dos puntos con distancia es un hueco:

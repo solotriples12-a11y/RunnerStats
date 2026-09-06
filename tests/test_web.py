@@ -412,3 +412,17 @@ def test_periodos_que_no_existen_dan_404(cliente):
 def test_la_pagina_de_periodo_pide_sesion(cliente_sin_sesion):
     r = cliente_sin_sesion.get("/periodo/mes/2026-05")
     assert r.status_code == 302 and "/login" in r.headers["Location"]
+
+
+def test_la_web_distingue_el_tcx_de_huawei_del_de_nike(cliente_vacio, huawei_dir):
+    """Los dos exportan en TCX y comparten extension."""
+    tcx = sorted(huawei_dir.glob("*.tcx"))
+    if not tcx:
+        pytest.skip("no hay TCX de Huawei en data/huawei")
+    r = _subir(cliente_vacio, tcx[0].read_bytes(), "carrera de prueba.tcx")
+    assert "1 carrera importada" in r.get_data(as_text=True)
+
+    conn = db.conectar(webapp.RUTA_DB)
+    fuentes = [x[0] for x in conn.execute("SELECT fuente FROM carrera")]
+    conn.close()
+    assert fuentes == ["huawei_tcx"]

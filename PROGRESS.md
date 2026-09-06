@@ -1060,3 +1060,29 @@ hacía mal.
 **Comprobado** que la vista de detalle sale bien con esta fuente: una carrera
 con GPS pinta recorrido, parciales, ritmo, altitud y pulso; una de cinta
 enseña solo el pulso, como las de cinta de Nike.
+
+---
+
+## 2026-09-06 — Fusión de versiones y el TCX de Huawei
+
+**Qué**: dos cambios que van juntos y salen de la misma pregunta —"¿por qué
+la carrera del 19 de abril se ve como de cinta?"—.
+
+1. **`detalle.muestreos()` fusiona las versiones de una carrera** en vez de
+   usar solo la ganadora. Cada campo se toma de una sola versión: la que más
+   valores trae, salvo que su serie sea constante. Solo entran versiones que
+   solapen al menos la mitad del tiempo.
+2. **`huawei_tcx.py`**, para el TCX que exporta la app de Huawei. Es donde
+   están las "carreras de prueba", que el export de privacidad no incluye.
+
+**Efecto medido** sobre las 21 sustituciones que tenían algo que aportar: se
+recupera la cadencia en trece carreras, la altitud real en tres —donde antes
+ganaba una serie de ceros— y en el 19 de abril el recorrido entero: de 0 a
+3.440 puntos de GPS, con sus diez parciales y su ritmo. La del 2026-03-18 se
+queda sin parciales a propósito: su GPS pierde el 21 % del recorrido y
+`_serie_fiable` lo rechaza.
+
+**148 tests**, diez nuevos: la fusión de dos versiones complementarias, que
+una versión que no solapa no entra, que una serie constante pierde contra una
+que varía, que sin hermanas los muestreos salen tal cual, y el importador
+nuevo con sus cinco ficheros reales.

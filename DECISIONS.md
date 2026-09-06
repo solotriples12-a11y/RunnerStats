@@ -1068,3 +1068,62 @@ frecuencia cardíaca, cadencia, altitud y latitud.
 contra 9.374. De las 23 fusiones que tocan a Huawei, 13 las gana Nike —trae
 el pulso cada segundo donde Huawei lo da cada cinco—, 9 las gana Huawei
 —donde Nike no trae pulso o apenas trae puntos— y una el Amazfit.
+
+---
+
+## 2026-09-06 — Las versiones de una carrera se fusionan campo a campo
+
+Matiza la deduplicación: la perdedora se sigue ocultando como carrera, pero
+sus **campos** ya no se tiran.
+
+**Contexto**: al mirar por qué la carrera del 2026-04-19 se veía como de
+cinta salió el patrón. De las 201 sustituciones, 21 tenían algo en la
+perdedora que la ganadora no: trece veces la cadencia de Huawei, que Nike no
+trae; y en el 19 de abril, el recorrido entero. Elegir una versión y esconder
+la otra tira lo que solo tenía la escondida.
+
+**Decisión**: `detalle.muestreos()` devuelve la unión de las versiones,
+**eligiendo cada campo de una sola de ellas**. No se entrelazan filas: dos
+fuentes que miden el mismo pulso con tres pulsaciones de diferencia
+dibujarían una sierra. Latitud y longitud viajan juntas, que media coordenada
+no es media posición.
+
+**El dueño de un campo es el que más valores trae, salvo que su serie sea
+constante.** Una serie sin variación no dice nada: la altitud de Nike en esa
+carrera son 3.442 ceros y la de Huawei 3.440 metros de verdad, y por contar
+ganaba la plana.
+
+**Guardarraíl de solape**: solo se fusiona una versión que comparta al menos
+la mitad del tiempo con la principal. La deduplicación agrupa por día y
+distancia, así que dos entrenamientos parecidos del mismo día caen juntos: se
+vieron desfases de 1.833 s y 53.216 s con cero solape, y fusionarlos habría
+mezclado dos carreras distintas. Las de verdad se desfasan entre 0 y 16 s y
+solapan el 100 %.
+
+**No se fusionan los campos de resumen** (FC media, calorías, desnivel).
+Se comprobó sobre el corpus entero: cero huecos que una hermana pudiera
+rellenar. Sería código sin uso.
+
+---
+
+## 2026-09-06 — Segundo importador de Huawei: el TCX de la app
+
+**Contexto**: seis carreras que el resumen diario de Huawei cuenta no
+aparecen en `Motion path detail data`. Son las que la app llama **"carreras
+de prueba"**, y por eso se guardan aparte. La versión de Nike de esas mismas
+carreras trae el pulso segundo a segundo y **ni una coordenada**, así que en
+la web se veían como carreras de cinta.
+
+**Decisión**: `huawei_tcx.py`, un segundo importador para el TCX que la app
+exporta carrera a carrera. Trae posición y altitud por segundo y el desnivel
+del resumen; no trae pulso, ni cadencia, ni distancia por punto. Es
+exactamente la mitad que le falta a la versión de Nike, y la fusión las junta.
+
+**Se distinguen por el `creator`**: Huawei firma `creator="Health"` y Nike no
+pone creator, así que la web decide por ahí antes de parsear.
+
+**La distancia se deriva del GPS**, como en los demás casos sin serie propia.
+De los cinco ficheros, cuatro cierran con menos del 1,5 % de error; el del
+2026-03-18 se queda un 21 % corto porque perdió señal, y ahí `_serie_fiable`
+hace su trabajo: esa carrera se queda sin parciales y conserva recorrido y
+pulso.
