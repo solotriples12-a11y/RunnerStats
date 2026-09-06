@@ -873,3 +873,32 @@ mirado a 16, 32, 64 y 180 px sobre fondo claro y oscuro.
 **Se guarda `favicon.ico` con 16/32/48** y un `icono-180.png` para
 `apple-touch-icon`. No se guarda el original de 1254 px: el de 180 basta para
 regenerar cualquier tamaño menor, y el maestro son estas medidas.
+
+---
+
+## 2026-09-06 — Favicon: la zapatilla se sustituye por un corredor
+
+Supersede a la entrada de hoy "Favicon: la transparencia se recorta con
+geometría", que montaba la imagen de la zapatilla sobre cuadrado azul.
+
+**Contexto**: puesta en la pestaña, la zapatilla no convencía. A 16 px una
+foto de producto con sombras y degradados se convierte en una mancha: el
+detalle que la hace bonita a 512 px es justo lo que no sobrevive.
+
+**Decisión**: marca dibujada, en blanco y negro. Se probaron cuatro
+—línea de gráfica, pista de atletismo, cronómetro y corredor— renderizadas a
+16, 24, 32, 64 y 128 px en las dos polaridades y sobre fondo claro y oscuro,
+que es lo único que decide un favicon. La pista se cae sola: a tamaño de
+pestaña se lee como una píldora. Elegido el **corredor**, por distintivo y
+porque a 16 px sigue leyéndose como una persona.
+
+**Cuadro blanco con la marca en negro**, no al revés. El cuadro negro pega
+con la web (#0f0f0f) pero en una pestaña oscura se funde con el fondo y deja
+la marca flotando; el blanco destaca sobre pestaña oscura y sobre pestaña
+clara aún se lee la marca dentro.
+
+**Geometría**: círculo para la cabeza y cinco trazos de extremos redondeados
+—tronco, dos brazos, dos piernas— sobre un cuadrado de esquina 0,2226 del
+lado, la misma proporción de antes. Dibujado a 8x y reducido, que da el
+suavizado sin desenfocar. Las medidas están en el commit; los ficheros
+siguen siendo los mismos dos, `favicon.ico` (16/32/48) e `icono-180.png`.

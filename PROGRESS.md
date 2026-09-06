@@ -927,3 +927,18 @@ test nuevo comprueba las dos etiquetas en portada y en login. 120 tests.
   misma altura.
 
 **Verificado** a 375 y 320 px: una sola fila, sin desbordamiento horizontal.
+
+---
+
+## 2026-09-06 — Favicon nuevo: corredor en blanco y negro
+
+**Qué**: fuera la foto de la zapatilla, que a 16 px era una mancha. Entra una
+marca dibujada: figura corriendo en negro sobre cuadrado blanco de esquinas
+redondeadas.
+
+**Cómo se eligió**: cuatro candidatas —línea de gráfica, pista, cronómetro y
+corredor— renderizadas a 16, 24, 32, 64 y 128 px, en las dos polaridades y
+sobre fondo claro y oscuro. Lo demás es decoración: un favicon se juega a
+16 px.
+
+**Mismos ficheros que antes**, así que no cambia nada en `base.html`.
