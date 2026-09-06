@@ -130,12 +130,18 @@ Ambas verificadas sobre datos reales. Detalle completo en `DECISIONS.md`.
 Las fuentes se solapan mucho: 199 fechas de Nike coinciden con My Run Stats.
 
 Regla: **mismo día y distancia dentro del 5 %** → gana la carrera con más
-muestreos. La perdedora **no se borra**, se marca con `sustituida_por` y las
-consultas la ocultan (`WHERE sustituida_por IS NULL`). Así la decisión es
-reversible y no se pierde nada.
+**datos**, contando valores y no filas: un muestreo vacío no permite ni
+gráficas, ni zonas de FC, ni récords. La perdedora **no se borra**, se marca
+con `sustituida_por` y las consultas la ocultan (`WHERE sustituida_por IS
+NULL`). Así la decisión es reversible y no se pierde nada.
 
-Sobre el corpus real: 180 fusiones, todas ganadas por Nike. Quedan 296
-carreras visibles de 476 importadas.
+Contar filas bastaba mientras la competencia era "tiene muestreos" contra "no
+tiene". Con dos fuentes completas enfrentadas decide a cara o cruz: la
+carrera del 2026-09-02 la ganaba Huawei por cuatro muestreos, dejando fuera
+la del Amazfit, que traía el pulso segundo a segundo en vez de cada cinco.
+
+Sobre el corpus real: 296 carreras visibles de 476 antes de Huawei, y 312 de
+513 con Huawei dentro.
 
 ## Distancia derivada del GPS
 `geo.py` calcula distancia acumulada por haversine cuando la fuente no la

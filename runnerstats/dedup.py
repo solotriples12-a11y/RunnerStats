@@ -5,8 +5,8 @@ y la carrera del 2026-09-02 está en Huawei y en el Amazfit. No se borra nada;
 la perdedora se marca con `sustituida_por` y las consultas la ocultan.
 
 Dos carreras son la misma si comparten día y su distancia difiere menos que
-la tolerancia. Gana la que más muestreos tenga: es la que permite gráficas,
-zonas de FC y récords por ventana rodante.
+la tolerancia. Gana la que más **datos** traiga, contando valores y no filas:
+un muestreo vacío no permite ni gráficas, ni zonas de FC, ni récords.
 """
 
 import sqlite3
@@ -15,12 +15,20 @@ from datetime import datetime, timezone
 
 TOLERANCIA = 0.05
 
-# Desempate cuando dos candidatas tienen los mismos muestreos (normalmente 0).
+# Desempate cuando dos candidatas traen los mismos datos (normalmente 0).
 PRIORIDAD = {"amazfit_fit": 3, "nike_tcx": 2, "huawei_json": 1, "my_run_stats": 0}
+
+# Columnas que se cuentan para medir cuanta informacion trae una carrera.
+# `velocidad_ms` queda fuera a proposito: solo la rellena Huawei, asi que
+# contarla le daria ventaja por como esta escrito su importador y no por
+# tener mas datos. `longitud` tampoco: viene siempre con `latitud` y contar
+# las dos pesaria el GPS el doble.
+COLUMNAS = ("distancia_acumulada_metros", "frecuencia_cardiaca", "cadencia_spm",
+            "altitud_metros", "latitud")
 
 
 def _rango(c) -> tuple:
-    return (c["muestreos"], PRIORIDAD.get(c["fuente"], 0), c["distancia_metros"])
+    return (c["datos"], PRIORIDAD.get(c["fuente"], 0), c["distancia_metros"])
 
 
 def marcar_duplicadas(conn: sqlite3.Connection,
@@ -31,11 +39,11 @@ def marcar_duplicadas(conn: sqlite3.Connection,
     carreras = conn.execute(
         """
         SELECT c.id, c.fecha_inicio_unix, c.distancia_metros, c.fuente,
-               (SELECT COUNT(*) FROM muestreo m WHERE m.carrera_id = c.id)
-                   AS muestreos
+               (SELECT COUNT(*) + {valores}
+                FROM muestreo m WHERE m.carrera_id = c.id) AS datos
         FROM carrera c
         ORDER BY c.distancia_metros
-        """
+        """.format(valores=" + ".join(f"COUNT({c})" for c in COLUMNAS))
     ).fetchall()
 
     por_dia = defaultdict(list)
@@ -69,9 +77,9 @@ def marcar_duplicadas(conn: sqlite3.Connection,
                 fusiones.append({
                     "dia": str(dia),
                     "gana": gana["fuente"], "gana_id": gana["id"],
-                    "gana_muestreos": gana["muestreos"],
+                    "gana_datos": gana["datos"],
                     "pierde": pierde["fuente"], "pierde_id": pierde["id"],
-                    "pierde_muestreos": pierde["muestreos"],
+                    "pierde_datos": pierde["datos"],
                     "km_gana": round(gana["distancia_metros"] / 1000, 2),
                     "km_pierde": round(pierde["distancia_metros"] / 1000, 2),
                 })

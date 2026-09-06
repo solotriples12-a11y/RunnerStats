@@ -1037,3 +1037,34 @@ en "El tiempo parado no se cronometra".
   dejaría de ser una comprobación independiente. Se guarda `velocidad_ms`
   cruda en los muestreos, que es dato de la fuente, y la decisión queda para
   cuando se quiera de verdad.
+
+---
+
+## 2026-09-06 — La deduplicación cuenta datos, no filas
+
+**Contexto**: al auditar qué pasaría al meter Huawei sobre la base real
+—replicada aquí entera: 476 filas y 296 carreras visibles, el mismo número
+que producción— salieron trece fusiones decididas por entre uno y seis
+muestreos de diferencia sobre miles. Eso no es elegir la mejor versión, es
+una moneda al aire.
+
+Peor: la carrera del **2026-09-02 la ganaba Huawei por cuatro muestreos** y
+dejaba fuera la del Amazfit. Mirando dentro, la del Amazfit traía 3.511
+pulsos —uno por segundo— y su serie de distancia; la de Huawei, 719 pulsos
+—uno cada cinco segundos— y ninguna distancia. Se habría perdido justo lo que
+hace útil una carrera.
+
+**Decisión**: `_rango` pasa de contar filas a contar **valores no nulos** en
+las columnas que sostienen las funciones de la app: distancia acumulada,
+frecuencia cardíaca, cadencia, altitud y latitud.
+
+- `velocidad_ms` queda fuera aunque exista: solo la rellena Huawei, así que
+  contarla le daría ventaja por cómo está escrito su importador y no por
+  traer más datos.
+- `longitud` también, porque viene siempre con `latitud` y contar las dos
+  pesaría el GPS el doble.
+
+**Resultado sobre el corpus**: el Amazfit gana su carrera con 21.380 valores
+contra 9.374. De las 23 fusiones que tocan a Huawei, 13 las gana Nike —trae
+el pulso cada segundo donde Huawei lo da cada cinco—, 9 las gana Huawei
+—donde Nike no trae pulso o apenas trae puntos— y una el Amazfit.

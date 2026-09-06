@@ -1018,3 +1018,22 @@ Huawei gana a My Run Stats, porque trae muestreos y el otro solo el resumen.
 
 **Pendiente de decidir**: darle parciales a las carreras de cinta integrando
 la serie de velocidad. Está razonado en `DECISIONS.md`.
+
+---
+
+## 2026-09-06 — Auditoría de duplicados con Huawei dentro
+
+**Qué**: se replicó la base de producción entera en local —My Run Stats, los
+269 TCX de Nike y el `.fit` del Amazfit— para ver qué pasa al meter Huawei
+antes de tocar producción. La réplica da 296 carreras visibles de 476 filas,
+que es exactamente lo que dice producción.
+
+**Resultado**: con Huawei entran 37 carreras y quedan **312 visibles, 16
+más**. Veinticuatro son nuevas y ocho versiones peores quedan desplazadas.
+
+**Lo que destapó la auditoría**: trece fusiones se decidían por entre uno y
+seis muestreos de diferencia sobre miles, y una de ellas —la del 2026-09-02—
+tiraba la versión del Amazfit, con el pulso segundo a segundo, en favor de la
+de Huawei, con el pulso cada cinco. La regla de desempate contaba filas. Ahora
+cuenta valores; el detalle, en `DECISIONS.md`. 138 tests, uno nuevo que fija
+la regla con el caso real.
