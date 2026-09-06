@@ -127,3 +127,23 @@ def test_un_fichero_que_no_es_fit_da_error_claro(tmp_path):
     basura.write_bytes(b"esto no es un fit")
     with pytest.raises(Exception):
         fit.leer(str(basura))
+
+
+def test_la_duracion_es_el_cronometro_y_no_el_reloj_de_pared(fit_real):
+    """`total_elapsed_time` cuenta tambien las pausas. En la carrera del
+    2026-09-06 son 3.132 s contra los 2.521 que marca la app: diez minutos de
+    mas que estropeaban el ritmo medio, 8:31/km en vez de 6:51."""
+    import glob
+    con_pausas = None
+    for f in sorted(glob.glob(str(fit_real.parent / "*.fit"))):
+        s = {x.name: x.value for x in next(FitFile(f).get_messages("session"))}
+        if s.get("total_timer_time") and s["total_elapsed_time"] - s["total_timer_time"] > 60:
+            con_pausas = (f, s)
+            break
+    if con_pausas is None:
+        pytest.skip("no hay ningun .fit con pausas en data/")
+
+    ruta, sesion = con_pausas
+    carrera, _ = fit.leer(ruta)
+    assert carrera.duracion_segundos == int(sesion["total_timer_time"])
+    assert carrera.duracion_segundos < int(sesion["total_elapsed_time"])

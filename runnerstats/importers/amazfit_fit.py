@@ -66,7 +66,12 @@ def leer(origen) -> tuple[Carrera, list[Muestreo]]:
         id=f"{FUENTE}:{inicio}",
         fecha_inicio_unix=inicio,
         distancia_metros=s["total_distance"],
-        duracion_segundos=int(s.get("total_elapsed_time") or 0),
+        # El cronometro, no el reloj de pared: `total_elapsed_time` cuenta
+        # tambien las pausas. En la carrera del 2026-09-06 son 3.132 s contra
+        # los 2.521 que marca la app, diez minutos de mas que ademas
+        # estropeaban el ritmo medio (8:31/km en vez de 6:51).
+        duracion_segundos=int(s.get("total_timer_time")
+                              or s.get("total_elapsed_time") or 0),
         fuente=FUENTE,
         fc_media=s.get("avg_heart_rate"),
         fc_maxima=s.get("max_heart_rate"),

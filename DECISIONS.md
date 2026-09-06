@@ -1127,3 +1127,22 @@ De los cinco ficheros, cuatro cierran con menos del 1,5 % de error; el del
 2026-03-18 se queda un 21 % corto porque perdió señal, y ahí `_serie_fiable`
 hace su trabajo: esa carrera se queda sin parciales y conserva recorrido y
 pulso.
+
+---
+
+## 2026-09-06 — La duración del `.fit` es el cronómetro, no el reloj de pared
+
+**Contexto**: la carrera del 2026-09-06 salía en 52:12 y a 8:31/km cuando la
+app del reloj marca 42:01 y 6:51/km. El `.fit` trae los dos tiempos:
+`total_elapsed_time` 3.132 s y `total_timer_time` 2.521 s. Se estaba
+guardando el primero, que cuenta también las pausas.
+
+**Decisión**: `total_timer_time`, con `total_elapsed_time` de respaldo por si
+algún fichero no lo trae. Es coherente con el resto del proyecto, que ya
+descuenta el tiempo parado en parciales y récords.
+
+**Las otras fuentes están bien**: el `TotalTimeSeconds` de Nike coincide con
+el span de sus propios puntos salvo cuando hubo pausa, y ahí el span es mayor
+—o sea que Nike ya da el cronómetro—. El `totalTime` de Huawei no distingue
+las dos cosas: no hay otro campo, y sus tiempos por kilómetro tampoco
+descuentan las paradas, así que es su semántica y no un error de lectura.

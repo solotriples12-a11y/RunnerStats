@@ -1086,3 +1086,18 @@ queda sin parciales a propósito: su GPS pierde el 21 % del recorrido y
 una versión que no solapa no entra, que una serie constante pierde contra una
 que varía, que sin hermanas los muestreos salen tal cual, y el importador
 nuevo con sus cinco ficheros reales.
+
+---
+
+## 2026-09-06 — Dos carreras nuevas y un tiempo mal leído
+
+**Qué**: importadas las dos carreras del Amazfit del 5 y el 6 de septiembre.
+La del 6 destapó un fallo: salía en 52:12 y a 8:31/km cuando la app marca
+42:01 y 6:51/km. Se estaba guardando `total_elapsed_time`, que cuenta las
+pausas, en vez de `total_timer_time`.
+
+**Verificado**: con el cambio, esa carrera da 42:01 y 6:51/km, que es
+exactamente lo que enseña el reloj. Las otras dos del Amazfit no cambian:
+no tenían pausas. Test nuevo que busca en `data/` un `.fit` con más de un
+minuto de diferencia entre los dos tiempos y comprueba que se guarda el
+cronómetro.
