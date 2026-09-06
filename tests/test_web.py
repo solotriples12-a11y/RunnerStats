@@ -426,3 +426,32 @@ def test_la_web_distingue_el_tcx_de_huawei_del_de_nike(cliente_vacio, huawei_dir
     fuentes = [x[0] for x in conn.execute("SELECT fuente FROM carrera")]
     conn.close()
     assert fuentes == ["huawei_tcx"]
+
+
+def test_la_carrera_del_fit_enseña_esfuerzo_potencia_y_contacto(cliente_vacio, fit_real):
+    """Los tres bloques que solo puede llenar el .fit del Amazfit."""
+    _subir(cliente_vacio, fit_real.read_bytes(), fit_real.name)
+    conn = db.conectar(webapp.RUTA_DB)
+    cid = conn.execute("SELECT id FROM carrera").fetchone()[0]
+    conn.close()
+
+    html = cliente_vacio.get(f"/carrera/{cid}").get_data(as_text=True)
+    assert ">Esfuerzo<" in html and 'class="zona-punto"' in html
+    assert ">Potencia" in html and "Contacto con el suelo" in html
+    # Los parciales van antes que el esfuerzo, y este antes que las graficas.
+    assert html.index(">Parciales<") < html.index(">Esfuerzo<") < html.index(">Ritmo<")
+
+
+def test_una_carrera_sin_fit_no_enseña_esos_bloques(cliente_vacio, nike_dir):
+    """La regla del proyecto: la interfaz dice de que subconjunto habla."""
+    from runnerstats.importers import nike_tcx as nike
+    conn = db.conectar(webapp.RUTA_DB)
+    nike.importar(conn, str(nike_dir / "con-fc-y-gps.tcx"))
+    cid = conn.execute("SELECT id FROM carrera").fetchone()[0]
+    conn.close()
+
+    html = cliente_vacio.get(f"/carrera/{cid}").get_data(as_text=True)
+    assert ">Esfuerzo<" not in html
+    assert ">Potencia" not in html and "Contacto con el suelo" not in html
+    # Pero las de siempre siguen ahi.
+    assert ">Ritmo<" in html and "Frecuencia cardíaca" in html

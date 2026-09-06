@@ -21,6 +21,9 @@ class Carrera:
     desnivel_negativo_metros: float | None = None
     calorias: int | None = None
     dispositivo: str | None = None
+    # Segundos en cada zona de FC, de la 1 a la 5. Solo las trae el .fit, que
+    # las da ya calculadas: hacerlo aqui exigiria saber la FCMax.
+    zonas_fc: tuple[int, ...] = ()
 
     @property
     def ritmo_seg_por_km(self) -> float:
@@ -41,3 +44,5 @@ class Muestreo:
     altitud_metros: float | None = None
     latitud: float | None = None
     longitud: float | None = None
+    potencia_vatios: int | None = None
+    tiempo_contacto_ms: int | None = None

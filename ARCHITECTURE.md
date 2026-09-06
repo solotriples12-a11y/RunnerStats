@@ -50,7 +50,7 @@ Todas son ficheros exportados a mano. No hay sincronización automática.
 |---|---|---|---|
 | **Nike Run Club (`.tcx`)** | 269 | 2011-12 → 2026-07 | Variable: 202 con distancia por punto, 158 con GPS, 99 con cadencia, 98 con FC |
 | My Run Stats (JSON) | 207 | 2011-12 → 2026-05 | Solo resumen |
-| Amazfit Cheetah 2 Pro (`.fit`) | 9 | 2026 | Completa, 1 Hz |
+| Amazfit Cheetah 2 Pro (`.fit`) | 3 | 2026-09 | La más rica: 1 Hz con potencia, tiempo de contacto y zonas de FC ya calculadas |
 | **Huawei Health (JSON)** | 37 | 2025-05 → 2026-09 | Completa: 37 con FC y cadencia a 0,2 Hz, 26 con GPS a 1 Hz |
 
 Nike es casi un superconjunto de My Run Stats: comparten 199 fechas, 65
@@ -78,9 +78,10 @@ el de Huawei es una lista de actividades y el otro un objeto.
 ### Niveles de fidelidad
 No todas las funciones aplican a todas las carreras:
 
-- **Volumen y tendencia de ritmo a largo plazo** → las 207. Señal de 15 años.
-- **Zonas de FC, eficiencia cardiovascular, PRs por ventana rodante** → solo
-  carreras con muestreos.
+- **Volumen y tendencia de ritmo a largo plazo** → las 313. Señal de 15 años.
+- **Ritmo, parciales, récords por ventana rodante** → carreras con muestreos.
+- **Esfuerzo (zonas de FC), potencia y contacto con el suelo** → solo el
+  `.fit`, hoy 3 carreras. Sus bloques no se pintan en las demás.
 
 La capa de análisis debe saber sobre qué subconjunto habla, y la UI debe
 decirlo. Un "mejor 1K de siempre" calculado sobre 9 carreras y mostrado junto
@@ -186,6 +187,15 @@ entre los dos relojes sobre la misma carrera (1,2 %).
   por mes y por semana, a `/periodo/<agrupacion>/<clave>`, una página con el
   resumen de ese tramo y su lista; y por carrera, directa a su detalle. Un
   periodo vacío no es un enlace: se pinta como `<g>` en vez de `<a>`.
+- **Las zonas de FC son una barra apilada** en rampa secuencial de un solo
+  tono, de la zona 1 a la 5: no son categorías sino intensidad creciente, y
+  pintarlas de colores distintos diría que son cosas diferentes. Validada en
+  modo oscuro con `scripts/validate_palette.js --ordinal`.
+- **`linea_serie` acepta un ancho mínimo de eje.** Sin él, reescalar al
+  percentil 2-98 hace que una serie casi plana llene el lienzo: el tiempo de
+  contacto vive en 34 ms de rango sobre 305, y un temblor de 1 ms parecía una
+  montaña. Con 100 ms de eje se ve lo que pasó de verdad —plano toda la
+  carrera, con picos en los semáforos—.
 - **Tooltips propios**, `static/js/tip.js`: unas 50 líneas sin dependencias,
   el único JavaScript del proyecto. Supersede a los `<title>` nativos de SVG,
   que el navegador pintaba con casi un segundo de retardo y que en táctil no

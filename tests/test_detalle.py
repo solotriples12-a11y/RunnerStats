@@ -360,3 +360,50 @@ def test_sin_otras_versiones_los_muestreos_salen_tal_cual(conn_carrera):
         "SELECT * FROM muestreo WHERE carrera_id = ? ORDER BY timestamp_unix",
         (cid,)).fetchall()
     assert detalle.muestreos(conn, cid) == crudos
+
+
+def test_una_serie_casi_plana_no_llena_el_lienzo(tmp_path):
+    """El contacto con el suelo vive en 34 ms de rango sobre un valor de 305:
+    reescalando al percentil 2-98, un temblor de 1 ms parecia una montaña."""
+    pts = [{"t": t, "v": 305 + (t % 3)} for t in range(200)]
+    sin_minimo = graficas.linea_serie(pts, 0, 199)
+    con_minimo = graficas.linea_serie(pts, 0, 199, eje_minimo=100.0)
+
+    def alto(g):
+        ys = [float(p.split(",")[1]) for p in g["linea"].split()]
+        return max(ys) - min(ys)
+
+    assert alto(sin_minimo) > 80, "sin eje minimo la serie llena el lienzo"
+    assert alto(con_minimo) < 5, "con eje minimo se ve lo plana que es"
+    # Y el eje sigue centrado en los datos.
+    etiquetas = [float(r["etiqueta"]) for r in con_minimo["rejilla"]]
+    assert min(etiquetas) < 305 < max(etiquetas)
+
+
+def test_las_zonas_de_fc_salen_de_las_versiones_sustituidas(tmp_path):
+    """Mismo motivo que los muestreos: si gana una version sin zonas y otra
+    las tiene, esconderla entera las tira."""
+    conn = db.conectar(tmp_path / "z.db")
+    for cid, sus in (("nike_tcx:1", None), ("amazfit_fit:2", "nike_tcx:1")):
+        conn.execute(
+            "INSERT INTO carrera (id, fecha_inicio_unix, distancia_metros,"
+            " duracion_segundos, fuente, sustituida_por, importado_en)"
+            " VALUES (?,1000,5000,1800,?,?,0)", (cid, cid.split(":")[0], sus))
+    conn.executemany("INSERT INTO zona_fc (carrera_id, zona, segundos) VALUES (?,?,?)",
+                     [("amazfit_fit:2", 3, 600), ("amazfit_fit:2", 4, 900)])
+    conn.commit()
+
+    assert detalle.zonas_fc(conn, "nike_tcx:1") == [
+        {"zona": 3, "segundos": 600}, {"zona": 4, "segundos": 900}]
+
+
+def test_la_barra_de_zonas_reparte_el_ancho_por_tiempo(tmp_path):
+    zonas = [{"zona": 3, "segundos": 600}, {"zona": 4, "segundos": 1800}]
+    g = graficas.barras_zonas(zonas)
+    assert not g["vacia"] and len(g["tramos"]) == 2
+    assert [round(t["parte"], 2) for t in g["tramos"]] == [0.25, 0.75]
+    # La zona 4 es mas intensa y va mas clara: la rampa es de un solo tono.
+    assert g["tramos"][0]["color"] != g["tramos"][1]["color"]
+    # Una carrera sin zonas no pinta barra.
+    assert graficas.barras_zonas([])["vacia"]
+    assert graficas.barras_zonas([{"zona": 1, "segundos": 0}])["vacia"]

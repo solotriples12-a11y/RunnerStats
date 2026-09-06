@@ -212,6 +212,58 @@ def dispersion_ritmo(datos: list[dict], anio: int | None = None) -> dict:
     }
 
 
+# Rampa secuencial de la marca, de la zona 1 a la 5: las zonas no son
+# categorias sino intensidad creciente, asi que van en un solo tono de oscuro
+# a claro. Validada en modo oscuro sobre #1a1a1a: luminosidad monotona, saltos
+# visibles entre pasos, y el extremo oscuro se despega del fondo.
+TINTA_ZONAS = ("#814648", "#a75a5c", "#cb7072", "#e58a8c", "#ffa8a9")
+NOMBRE_ZONAS = ("Muy suave", "Suave", "Aeróbico", "Umbral", "Máximo")
+ALTO_ZONAS = 26
+RADIO_ZONAS = 5
+
+
+def barras_zonas(zonas: list[dict]) -> dict:
+    """Barra apilada del tiempo en cada zona de frecuencia cardiaca.
+
+    Solo se redondean los extremos de la barra entera, no cada tramo, y entre
+    tramos queda un hueco del color de la superficie.
+    """
+    vivas = [z for z in zonas if z["segundos"]]
+    if not vivas:
+        return {"vacia": True}
+
+    total = sum(z["segundos"] for z in vivas)
+    util = ANCHO - HUECO * (len(vivas) - 1)
+    x, tramos = 0.0, []
+    for i, z in enumerate(vivas):
+        w = util * z["segundos"] / total
+        ri = RADIO_ZONAS if i == 0 else 0
+        rd = RADIO_ZONAS if i == len(vivas) - 1 else 0
+        alto = ALTO_ZONAS
+        tramos.append({
+            "zona": z["zona"],
+            "nombre": NOMBRE_ZONAS[z["zona"] - 1],
+            "segundos": z["segundos"],
+            "parte": z["segundos"] / total,
+            "color": TINTA_ZONAS[z["zona"] - 1],
+            "centro": round(x + w / 2, 1),
+            # Etiqueta directa solo donde cabe; el resto lo dice la leyenda.
+            "etiquetada": w > 70,
+            "d": (f"M{x + ri:.1f},0 h{max(w - ri - rd, 0):.1f} "
+                  + (f"a{rd},{rd} 0 0 1 {rd},{rd} " if rd else "")
+                  + f"v{alto - rd * 2 if rd else alto:.1f} "
+                  + (f"a{rd},{rd} 0 0 1 -{rd},{rd} " if rd else "")
+                  + f"h-{max(w - ri - rd, 0):.1f} "
+                  + (f"a{ri},{ri} 0 0 1 -{ri},-{ri} " if ri else "")
+                  + f"v-{alto - ri * 2 if ri else alto:.1f} "
+                  + (f"a{ri},{ri} 0 0 1 {ri},-{ri} " if ri else "") + "z"),
+        })
+        x += w + HUECO
+
+    return {"vacia": False, "ancho": ANCHO, "alto": ALTO_ZONAS,
+            "tramos": tramos, "total": total}
+
+
 ALTO_DETALLE = 130
 
 
@@ -221,7 +273,8 @@ RANGO_MINIMO = {"altitud_metros": 3.0}
 
 
 def linea_serie(puntos: list[dict], t0: int, t1: int, invertir: bool = False,
-                formato=None, rango_minimo: float = 0.0) -> dict:
+                formato=None, rango_minimo: float = 0.0,
+                eje_minimo: float = 0.0) -> dict:
     """Serie temporal de una carrera: x = segundos desde el inicio.
 
     Las dos gráficas de detalle comparten el eje X para poder leerse juntas.
@@ -230,6 +283,10 @@ def linea_serie(puntos: list[dict], t0: int, t1: int, invertir: bool = False,
     los datos.
 
     `invertir` pone los valores bajos arriba, que es como se lee un ritmo.
+
+    `eje_minimo` fuerza un ancho de eje: sin el, una serie casi plana se
+    reescala hasta llenar el lienzo y un temblor de 1 ms parece una montaña.
+    Le pasa al tiempo de contacto con el suelo, que vive en 34 ms de rango.
     """
     if len(puntos) < 2:
         return {"vacia": True}
@@ -247,6 +304,9 @@ def linea_serie(puntos: list[dict], t0: int, t1: int, invertir: bool = False,
         vmin, vmax = orden[0], orden[-1] or orden[0] + 1
     if vmax == vmin:
         vmax = vmin + 1
+    if vmax - vmin < eje_minimo:
+        centro = (vmax + vmin) / 2
+        vmin, vmax = centro - eje_minimo / 2, centro + eje_minimo / 2
 
     alto = ALTO_DETALLE
     fx = _escala(t0, t1 or t0 + 1, PAD_IZQ, ANCHO - PAD_DER)

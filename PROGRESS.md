@@ -1101,3 +1101,25 @@ exactamente lo que enseña el reloj. Las otras dos del Amazfit no cambian:
 no tenían pausas. Test nuevo que busca en `data/` un `.fit` con más de un
 minuto de diferencia entre los dos tiempos y comprueba que se guarda el
 cronómetro.
+
+---
+
+## 2026-09-07 — Esfuerzo, potencia y contacto en la vista de detalle
+
+**Qué**: implementado el diseño acordado sobre una pantalla de ejemplo con la
+carrera del 2 de septiembre. La vista de detalle pasa a ser cifras →
+parciales → esfuerzo → ritmo, FC, potencia, contacto, altitud.
+
+- `muestreo` gana `potencia_vatios` y `tiempo_contacto_ms`; tabla `zona_fc`
+  nueva con los segundos en cada zona, tal como los da el reloj.
+- `graficas.barras_zonas` para la barra apilada, y `linea_serie` acepta un
+  ancho mínimo de eje.
+- Los tres bloques solo se pintan si la carrera los tiene, así que hoy salen
+  en 3 de 313. Crecen solos: desde el 2 de septiembre todo se graba con el
+  Amazfit.
+
+**Verificado**: 157 tests, siete nuevos. Los que importan: que las zonas
+descarten el cubo "por debajo de la zona 1" —si se colara, la suma no
+cuadraría con la duración—, que una serie casi plana no llene el lienzo con
+el eje mínimo puesto, que las zonas se lean también de las versiones
+sustituidas, y que una carrera de Nike no pinte ninguno de los tres bloques.

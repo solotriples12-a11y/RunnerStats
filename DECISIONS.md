@@ -1146,3 +1146,41 @@ el span de sus propios puntos salvo cuando hubo pausa, y ahí el span es mayor
 —o sea que Nike ya da el cronómetro—. El `totalTime` de Huawei no distingue
 las dos cosas: no hay otro campo, y sus tiempos por kilómetro tampoco
 descuentan las paradas, así que es su semántica y no un error de lectura.
+
+---
+
+## 2026-09-07 — La vista de detalle usa lo que el `.fit` sabe de más
+
+**Contexto**: el `.fit` del Amazfit trae por segundo potencia, longitud de
+zancada, tiempo de contacto, oscilación y ratio vertical, y en el resumen las
+zonas de FC ya calculadas, el efecto de entrenamiento y la potencia media.
+Nada de eso se estaba usando.
+
+**Decisión**: se importan y se enseñan **tres cosas**, no todas.
+
+- **Zonas de frecuencia cardíaca**, como barra apilada tras los parciales.
+  Vienen calculadas por el reloj, así que no hay que inventarse la FCMax.
+- **Potencia**, como una gráfica más, con el mismo eje de tiempo.
+- **Contacto con el suelo**, igual.
+
+**Lo que se deja fuera**: efecto de entrenamiento, oscilación y ratio
+vertical, longitud de zancada. Cabían como tarjetas y se probaron en una
+pantalla de ejemplo, pero llenaban el detalle de números que no se leen. La
+potencia media sí sobrevive, junto al título de su gráfica.
+
+**Orden de la pantalla**: cifras, **parciales**, esfuerzo, y luego las
+gráficas. Los parciales son lo primero que se mira.
+
+**Ancho mínimo de eje**: `linea_serie` reescala al percentil 2-98, lo que
+está bien para el ritmo o el pulso pero no para el contacto, que se mueve en
+34 ms sobre 305. Reescalado, un temblor de **1 ms** —el salto típico entre
+dos segundos consecutivos, medido— dibujaba una sierra. Suavizar con mediana
+móvil no lo arregla: la escala se vuelve a ajustar al rango nuevo. Lo que lo
+arregla es fijar 100 ms de eje. Se probaron 60, 100 y 150: con 60 aún tiembla
+y con 150 se aplanan los picos de las paradas, que son la parte interesante.
+
+**Dónde vive cada cosa**: las dos series nuevas son columnas de `muestreo`
+—`potencia_vatios` y `tiempo_contacto_ms`, con el prefijo porque
+`velocidad_ms` ya usaba el sufijo para metros/segundo— y las zonas una tabla
+`zona_fc`, porque son cinco filas por carrera y no un escalar. Las zonas se
+leen también de las versiones sustituidas, por lo mismo que los muestreos.

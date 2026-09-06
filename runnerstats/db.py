@@ -21,14 +21,18 @@ def conectar(ruta: str | Path) -> sqlite3.Connection:
 
 # Columnas añadidas despues de que la base existiera en produccion.
 # CREATE TABLE IF NOT EXISTS no toca una tabla que ya esta creada.
-COLUMNAS_NUEVAS = {"sustituida_por": "TEXT"}
+COLUMNAS_NUEVAS = {
+    "carrera": {"sustituida_por": "TEXT"},
+    "muestreo": {"potencia_vatios": "INTEGER", "tiempo_contacto_ms": "INTEGER"},
+}
 
 
 def _migrar(conn: sqlite3.Connection) -> None:
-    existentes = {f["name"] for f in conn.execute("PRAGMA table_info(carrera)")}
-    for col, tipo in COLUMNAS_NUEVAS.items():
-        if col not in existentes:
-            conn.execute(f"ALTER TABLE carrera ADD COLUMN {col} {tipo}")
+    for tabla, columnas in COLUMNAS_NUEVAS.items():
+        existentes = {f["name"] for f in conn.execute(f"PRAGMA table_info({tabla})")}
+        for col, tipo in columnas.items():
+            if col not in existentes:
+                conn.execute(f"ALTER TABLE {tabla} ADD COLUMN {col} {tipo}")
     conn.commit()
 
 

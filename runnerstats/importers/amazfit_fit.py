@@ -79,6 +79,7 @@ def leer(origen) -> tuple[Carrera, list[Muestreo]]:
         desnivel_negativo_metros=s.get("total_descent"),
         calorias=s.get("total_calories"),
         dispositivo=dispositivo,
+        zonas_fc=_zonas(s),
     )
 
     muestreos = []
@@ -97,9 +98,22 @@ def leer(origen) -> tuple[Carrera, list[Muestreo]]:
             altitud_metros=r.get("enhanced_altitude", r.get("altitude")),
             latitud=_grados(r.get("position_lat")),
             longitud=_grados(r.get("position_long")),
+            potencia_vatios=r.get("power"),
+            tiempo_contacto_ms=(round(r["stance_time"])
+                                if r.get("stance_time") else None),
         ))
 
     return carrera, muestreos
+
+
+def _zonas(sesion: dict) -> tuple[int, ...]:
+    """Segundos en cada zona de FC, de la 1 a la 5.
+
+    El reloj devuelve seis cubos: el primero es el tiempo por debajo de la
+    zona 1, que no es una zona y se descarta.
+    """
+    zonas = sesion.get("time_in_hr_zone") or []
+    return tuple(int(x) for x in zonas[1:6])
 
 
 def importar(conn: sqlite3.Connection, origen) -> int:
@@ -133,12 +147,18 @@ def importar(conn: sqlite3.Connection, origen) -> int:
         INSERT INTO muestreo
             (carrera_id, timestamp_unix, distancia_acumulada_metros,
              frecuencia_cardiaca, cadencia_spm, velocidad_ms,
-             altitud_metros, latitud, longitud)
-        VALUES (?,?,?,?,?,?,?,?,?)
+             altitud_metros, latitud, longitud, potencia_vatios,
+             tiempo_contacto_ms)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
         """,
         [(carrera.id, m.timestamp_unix, m.distancia_acumulada_metros,
           m.frecuencia_cardiaca, m.cadencia_spm, m.velocidad_ms,
-          m.altitud_metros, m.latitud, m.longitud) for m in muestreos],
+          m.altitud_metros, m.latitud, m.longitud, m.potencia_vatios,
+          m.tiempo_contacto_ms) for m in muestreos],
     )
+    conn.execute("DELETE FROM zona_fc WHERE carrera_id = ?", (carrera.id,))
+    conn.executemany(
+        "INSERT INTO zona_fc (carrera_id, zona, segundos) VALUES (?,?,?)",
+        [(carrera.id, i, seg) for i, seg in enumerate(carrera.zonas_fc, 1) if seg])
     conn.commit()
     return 1

@@ -147,3 +147,34 @@ def test_la_duracion_es_el_cronometro_y_no_el_reloj_de_pared(fit_real):
     carrera, _ = fit.leer(ruta)
     assert carrera.duracion_segundos == int(sesion["total_timer_time"])
     assert carrera.duracion_segundos < int(sesion["total_elapsed_time"])
+
+
+def test_lee_potencia_y_contacto_con_el_suelo(fit_real):
+    """Dos series que no tiene ninguna otra fuente."""
+    _, muestreos = fit.leer(str(fit_real))
+    potencia = [m.potencia_vatios for m in muestreos if m.potencia_vatios]
+    contacto = [m.tiempo_contacto_ms for m in muestreos if m.tiempo_contacto_ms]
+    assert len(potencia) > len(muestreos) * 0.9
+    assert len(contacto) > len(muestreos) * 0.9
+    assert all(50 < p < 900 for p in potencia)        # vatios de correr
+    assert all(150 < c < 600 for c in contacto)       # milisegundos de apoyo
+
+
+def test_las_zonas_de_fc_vienen_del_reloj(tmp_path, fit_real):
+    """El .fit las trae calculadas; deducirlas aqui exigiria saber la FCMax.
+
+    El primero de los seis cubos es el tiempo por debajo de la zona 1 y no es
+    una zona: si se colase, la suma no cuadraria con la duracion.
+    """
+    carrera, _ = fit.leer(str(fit_real))
+    assert len(carrera.zonas_fc) == 5
+
+    conn = db.conectar(tmp_path / "z.db")
+    fit.importar(conn, str(fit_real))
+    filas = conn.execute(
+        "SELECT zona, segundos FROM zona_fc ORDER BY zona").fetchall()
+    assert filas and all(1 <= f["zona"] <= 5 for f in filas)
+    assert all(f["segundos"] > 0 for f in filas)
+    # Las zonas cubren la carrera entera salvo el tiempo por debajo de la 1.
+    total = sum(f["segundos"] for f in filas)
+    assert 0.9 < total / carrera.duracion_segundos <= 1.05

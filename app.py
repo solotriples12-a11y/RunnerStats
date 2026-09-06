@@ -247,6 +247,11 @@ def periodo(agrupacion, clave):
     )
 
 
+# El contacto con el suelo se mueve en unas decenas de milisegundos sobre un
+# valor de 300: el eje se fija para que una serie plana se vea plana.
+EJE_CONTACTO = 100.0
+
+
 @app.route("/carrera/<path:carrera_id>")
 def carrera(carrera_id):
     conn = get_db()
@@ -256,7 +261,8 @@ def carrera(carrera_id):
 
     ms = detalle.muestreos(conn, carrera_id)
     ctx = {"c": car, "muestreos": len(ms), "ritmo": None, "pulso": None,
-           "ruta": None, "splits": [], "altitud": None}
+           "ruta": None, "splits": [], "altitud": None,
+           "potencia": None, "contacto": None, "zonas": None}
 
     if ms:
         t0, t1 = ms[0]["timestamp_unix"], ms[-1]["timestamp_unix"]
@@ -274,6 +280,16 @@ def carrera(carrera_id):
             rango_minimo=graficas.RANGO_MINIMO["altitud_metros"])
         ctx["ruta"] = graficas.ruta_svg(detalle.ruta(ms))
         ctx["splits"] = detalle.splits(ms, car)
+        # Solo las trae el .fit del Amazfit; el resto de fuentes las dejan
+        # vacias y sus bloques no se pintan.
+        ctx["potencia"] = graficas.linea_serie(
+            detalle.serie(ms, "potencia_vatios"), t0, t1,
+            formato=lambda v: f"{v:.0f} W")
+        # 34 ms de rango real: sin eje minimo, un temblor de 1 ms llena el alto.
+        ctx["contacto"] = graficas.linea_serie(
+            detalle.serie(ms, "tiempo_contacto_ms"), t0, t1,
+            formato=lambda v: f"{v:.0f} ms", eje_minimo=EJE_CONTACTO)
+        ctx["zonas"] = graficas.barras_zonas(detalle.zonas_fc(conn, carrera_id))
 
     # Media y maxima acompañan al titulo de su grafica en vez de ocupar
     # tarjetas propias.
@@ -283,6 +299,14 @@ def carrera(carrera_id):
     if car["fc_maxima"]:
         partes.append(f"máx {car['fc_maxima']}")
     ctx["fc_resumen"] = " · ".join(partes) + (" ppm" if partes else "")
+
+    # Medias de las dos series nuevas, junto a su titulo.
+    def _media(campo, unidad):
+        v = [m[campo] for m in ms if m[campo] is not None]
+        return f"media {round(sum(v) / len(v))} {unidad}" if v else None
+
+    ctx["potencia_resumen"] = _media("potencia_vatios", "W")
+    ctx["contacto_resumen"] = _media("tiempo_contacto_ms", "ms")
 
     return render_template("carrera.html", **ctx)
 

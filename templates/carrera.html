@@ -40,6 +40,35 @@
 </section>
 {% endif %}
 
+{% if zonas and not zonas.vacia %}
+<section class="bloque">
+    <h2>Esfuerzo</h2>
+    <svg class="zonas" viewBox="0 0 {{ zonas.ancho }} {{ zonas.alto }}" role="img"
+         aria-label="Tiempo en cada zona de frecuencia cardíaca">
+        {% for t in zonas.tramos %}
+        <path d="{{ t.d }}" fill="{{ t.color }}">
+            <title>Z{{ t.zona }} · {{ t.nombre }}: {{ t.segundos | duracion }}</title>
+        </path>
+        {% if t.etiquetada %}
+        <text class="zona-lab" x="{{ t.centro }}" y="{{ zonas.alto / 2 + 4 }}">
+            {{ t.segundos // 60 }} min</text>
+        {% endif %}
+        {% endfor %}
+    </svg>
+    <ul class="zonas-leyenda">
+        {% for t in zonas.tramos %}
+        <li>
+            <span class="zona-punto" style="background: {{ t.color }}"></span>
+            <span class="zona-n">Z{{ t.zona }}</span>
+            <span class="zona-d">{{ t.nombre }}</span>
+            <span class="zona-t">{{ t.segundos | duracion }}</span>
+            <span class="zona-p">{{ (t.parte * 100) | round | int }}%</span>
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
 {% if not muestreos %}
 <p class="note">Sin muestreos: esta carrera solo tiene resumen.</p>
 {% endif %}
@@ -64,6 +93,8 @@
 
 {{ grafica(ritmo, "Ritmo") }}
 {{ grafica(pulso, "Frecuencia cardíaca", fc_resumen) }}
+{{ grafica(potencia, "Potencia", potencia_resumen) }}
+{{ grafica(contacto, "Contacto con el suelo", contacto_resumen) }}
 {{ grafica(altitud, "Altitud") }}
 
 

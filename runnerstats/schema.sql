@@ -34,7 +34,21 @@ CREATE TABLE IF NOT EXISTS muestreo (
     altitud_metros              REAL,
     latitud                     REAL,
     longitud                    REAL,
+    -- Solo las trae el .fit del Amazfit. `tiempo_contacto_ms` lleva el
+    -- prefijo porque `velocidad_ms` ya usa el sufijo para metros/segundo.
+    potencia_vatios             INTEGER,
+    tiempo_contacto_ms          INTEGER,
     PRIMARY KEY (carrera_id, timestamp_unix)
+);
+
+-- Segundos en cada zona de frecuencia cardiaca, tal como los da el reloj.
+-- Calcularlas aqui exigiria saber la FCMax; el .fit ya las trae hechas.
+CREATE TABLE IF NOT EXISTS zona_fc (
+    carrera_id  TEXT    NOT NULL
+        REFERENCES carrera (id) ON DELETE CASCADE,
+    zona        INTEGER NOT NULL,
+    segundos    INTEGER NOT NULL,
+    PRIMARY KEY (carrera_id, zona)
 );
 
 -- Mejor ventana de cada distancia dentro de cada carrera. Es una tabla

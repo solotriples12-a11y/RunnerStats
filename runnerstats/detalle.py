@@ -35,6 +35,8 @@ CAMPOS_FUSIONABLES = (
     ("altitud_metros",),
     ("distancia_acumulada_metros",),
     ("velocidad_ms",),
+    ("potencia_vatios",),
+    ("tiempo_contacto_ms",),
 )
 
 # Dos versiones de la misma carrera empiezan con segundos de diferencia y se
@@ -111,6 +113,29 @@ def muestreos(conn: sqlite3.Connection, carrera_id: str) -> list:
             versiones.append(filas)
 
     return propios if len(versiones) == 1 else _fusionar(versiones)
+
+
+def zonas_fc(conn: sqlite3.Connection, carrera_id: str) -> list[dict]:
+    """Segundos en cada zona de FC. Solo las trae el .fit del Amazfit.
+
+    Mira tambien las versiones sustituidas de la carrera, por lo mismo que los
+    muestreos: si la version que gana no las tiene y otra si, se pierden.
+    """
+    filas = conn.execute(
+        """
+        SELECT z.zona, z.segundos FROM zona_fc z
+        WHERE z.carrera_id = ?
+           OR z.carrera_id IN (SELECT id FROM carrera WHERE sustituida_por = ?)
+        ORDER BY z.carrera_id = ? DESC, z.zona
+        """,
+        (carrera_id, carrera_id, carrera_id),
+    ).fetchall()
+    vistas, salida = set(), []
+    for f in filas:
+        if f["zona"] not in vistas:
+            vistas.add(f["zona"])
+            salida.append({"zona": f["zona"], "segundos": f["segundos"]})
+    return sorted(salida, key=lambda z: z["zona"])
 
 
 # Un intervalo mayor que esto entre dos puntos con distancia es un hueco:
