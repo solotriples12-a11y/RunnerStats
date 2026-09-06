@@ -178,6 +178,21 @@ def test_dentro_de_un_anio_la_mediana_es_mensual(conn_real):
     assert [e["etiqueta"] for e in g["ejex"]] == ["ene", "feb", "jun", "ago"]
 
 
+def test_un_mes_suelto_no_parte_la_linea_de_medianas(conn_real):
+    """Partir por un solo mes en blanco dejaba puntos sueltos que se leian
+    como un fallo de pintado, no como un parón."""
+    from runnerstats import graficas
+    # 2022: de enero a junio, agosto, y de octubre a diciembre. Los dos
+    # huecos son de un mes (julio y septiembre): la linea no se parte.
+    g = graficas.dispersion_ritmo(analisis.ritmos(conn_real, 2022), 2022)
+    assert [m["periodo"] for m in g["medianas"]] == [1, 2, 3, 4, 5, 6, 8, 10, 11, 12]
+    assert len(g["segmentos"]) == 1 and not g["sueltos"]
+
+    # 2015 si: de marzo a mayo son tres meses seguidos sin correr.
+    g15 = graficas.dispersion_ritmo(analisis.ritmos(conn_real, 2015), 2015)
+    assert len(g15["segmentos"]) == 2
+
+
 def test_records_rodantes_salen_de_dentro_de_la_carrera(conn_real, nike_dir):
     """El mejor 5K no exige que la carrera midiera 5 km."""
     from runnerstats import detalle

@@ -161,11 +161,15 @@ def dispersion_ritmo(datos: list[dict], anio: int | None = None) -> dict:
             "y": round(fy(min(med, rmax)), 1),
         })
 
-    # Parte la linea en los periodos sin carreras: unir 2018 con 2020
-    # dibujaria continuidad donde no hay ni un dato (2019 esta vacio).
+    # Parte la linea en los huecos grandes: unir 2018 con 2020 dibujaria
+    # continuidad donde no hay ni un dato (2019 esta vacio). Un hueco de un
+    # solo mes no la parte, en cambio: dentro de un año partir por un agosto
+    # sin correr dejaba puntos sueltos que se leian como un fallo de pintado,
+    # no como un parón. Dos meses seguidos en blanco si la parten.
+    salto_maximo = 2 if anio else 1
     segmentos, actual = [], []
     for m in medianas:
-        if actual and m["periodo"] != actual[-1]["periodo"] + 1:
+        if actual and m["periodo"] - actual[-1]["periodo"] > salto_maximo:
             segmentos.append(actual)
             actual = []
         actual.append(m)

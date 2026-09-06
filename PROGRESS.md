@@ -959,3 +959,18 @@ la regla global era la que mandaba de todos modos.
 **Verificado**: 121 tests, uno nuevo que comprueba que en "Todo" no queda
 ninguna barra a cero en mes ni en semana, que 2019 sigue saliendo vacío en la
 vista de años, y que un año elegido conserva sus doce meses.
+
+---
+
+## 2026-09-06 — La línea de ritmo aguanta un mes en blanco
+
+**Qué**: la línea de medianas se parte solo en huecos grandes —un año vacío
+en la vista larga, dos meses seguidos dentro de un año—. Antes bastaba un
+agosto sin correr para partirla, y el resultado se leía como un fallo de
+pintado.
+
+**Verificado** sobre el histórico real: 2022 (enero a junio, agosto, y
+octubre a diciembre) pasa de dos segmentos y un punto suelto a una sola
+línea; 2015 sigue partiéndose, porque de marzo a mayo son tres meses
+seguidos; y la vista larga sigue separando 2018 de 2020 por el 2019 vacío.
+122 tests.

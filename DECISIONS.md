@@ -926,3 +926,25 @@ que la regla original protegía. Se asume a conciencia: en el histórico largo
 la lectura útil es la comparación entre meses en los que se corrió, y la
 etiqueta lleva el año ("ago 20") para que los saltos se vean. Los años, que
 son la vista de contexto, siguen rellenándose: 2019 sigue apareciendo vacío.
+
+---
+
+## 2026-09-06 — La línea de medianas tolera un hueco de un mes
+
+Matiza "La línea de medianas se parte en los años sin carreras", que se pensó
+para huecos de **años** y se heredó tal cual al pasar la mediana a mensual
+dentro de un año.
+
+**Contexto**: en 2026 la línea no unía julio con septiembre porque en agosto
+no se salió a correr. A escala de año eso es evidente y honesto; a escala de
+mes, un solo mes en blanco deja puntos sueltos sin línea, y se lee como si el
+gráfico estuviera roto, no como un parón.
+
+**Decisión**: el corte depende de la escala. En la vista larga se parte con
+un año vacío (sin cambios: 2018 y 2020 siguen separados). Dentro de un año se
+parte con **dos meses seguidos** en blanco; uno solo no.
+
+**Lo que se acepta**: la línea cruza un mes del que no hay dato, sugiriendo
+una evolución que no está medida. Se asume porque el error de lectura del
+otro lado —"esto está roto"— es peor, y porque el punto de cada mediana sigue
+dibujado: los meses que existen se ven, y los que no, no.

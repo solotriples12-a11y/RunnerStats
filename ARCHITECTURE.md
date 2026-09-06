@@ -159,7 +159,10 @@ entre los dos relojes sobre la misma carrera (1,2 %).
   semanas de histórico, la mayoría vacías, y el recorte a los últimos N se
   gastaba en aire. Ahí el eje deja de ser lineal en el tiempo y la etiqueta
   del mes lleva el año para que el salto se vea.
-- La línea de medianas **se parte en los años sin carreras**. Unir 2018 con
+- La línea de medianas **se parte en los huecos grandes**: un año entero sin
+  carreras en la vista larga, dos meses seguidos dentro de un año. Un mes
+  suelto no la parte —dejaba puntos aislados que se leían como un fallo de
+  pintado—. Unir 2018 con
   2020 dibujaría continuidad donde no hay ni un dato (2019 está vacío).
 - **Las etiquetas del eje X salen del ancho del texto**, no de un tope fijo
   de etiquetas: se pone una de cada N, siendo N el mínimo que evita que se
