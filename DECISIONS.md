@@ -792,3 +792,47 @@ del flujo.
 columna vacía. Ahí la rejilla pasa a `1fr auto`, así que los números quedan
 centrados en el espacio que deja el recorrido y no en la página. Es el precio
 de que el mapa sea más grande justo donde más se mira.
+
+---
+
+## 2026-09-06 — El par cifras+recorrido se centra, y la caja abraza la traza
+
+Supersede a la entrada de hoy "El recorrido baja a la fila de las cifras", que
+dejaba las cifras centradas en la página y el mapa pegado al borde derecho.
+
+**Contexto**: así, el conjunto no estaba centrado —tenía todo el aire a la
+izquierda y ninguno a la derecha— y en el móvil ni siquiera cabía la columna
+vacía que hacía de contrapeso.
+
+**Decisión**: cifras y recorrido son un solo bloque centrado, con el mismo
+aire a los dos lados. Una fila flex con `justify-content: center`.
+
+**Y la caja del mapa deja de tener ancho fijo.** Centrar las cajas no basta:
+el `viewBox` lleva la proporción real del recorrido, así que dentro de una
+caja de ancho fijo una ruta alargada dejaba 46 px de vacío a cada lado, y el
+par se veía 23 px a la izquierda del centro aunque las cajas estuvieran
+centradas al píxel. Con `width: auto` el ancho sale de la proporción del
+`viewBox` y la caja abraza la traza: centrar las cajas pasa a ser centrar lo
+que se ve. Queda un `max-width` que solo entra con las muy apaisadas, y ahí
+el recorrido llena la caja a lo ancho, así que tampoco sobra nada.
+
+**Medido** con las tres proporciones reales: alargada (1,27) da caja de 88 px
+con 83 de traza y el centro del par en 379 contra 380 de la página;
+apaisada (0,45) topa en 224 px, con 218 de traza y el centro en 380 clavado.
+
+---
+
+## 2026-09-06 — Las tarjetas centran su contenido
+
+**Contexto**: tarjetas anchas con dos líneas cortas dentro, alineadas a la
+izquierda: "Carreras / 207" dejaba dos tercios de la tarjeta vacíos a la
+derecha.
+
+**Decisión**: contenido centrado en las tres —tiles, récords y lista de
+carreras—.
+
+**Consecuencia en la lista**: la fecha tenía una columna fija de 6,5 rem, así
+que todas las fechas empezaban en la misma x y se leían en vertical. Al
+centrar cada fila esa alineación se pierde, y una carrera sin pulsómetro
+—una métrica menos— queda un poco desplazada respecto a sus vecinas. Es el
+precio de no tener el hueco muerto a la derecha.

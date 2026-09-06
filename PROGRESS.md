@@ -864,3 +864,28 @@ sin GPS:
   el hueco descentraba 4 px.
 - En móvil de 375 px no hay desbordamiento horizontal y quedan 58 px entre
   las unidades y el mapa.
+
+---
+
+## 2026-09-06 — Centrados: el par del detalle y el contenido de las tarjetas
+
+**Qué**:
+- Cifras y recorrido se centran juntos, con el mismo aire a los dos lados, en
+  vez de cifras centradas y mapa pegado al borde.
+- La caja del mapa pasa a `width: auto`: la sacaba de quicio que una ruta
+  alargada dejara 46 px de vacío a cada lado dentro de su caja y descolocara
+  el par 23 px. Ahora la caja abraza la traza.
+- La fecha del detalle, alineada a la derecha.
+- Tiles, récords y lista de carreras centran su contenido.
+- Fuera el "carrera de" de los récords: queda "9 mar 2024 · 6.02 km".
+
+**Verificado en el navegador**, midiendo con `getBBox` y `getScreenCTM` para
+comparar la tinta y no las cajas:
+
+| ruta | caja | traza | centro del par | centro de la página |
+|---|---|---|---|---|
+| alargada (1,27) | 88 px | 83 px | 379 | 380 |
+| apaisada (0,45) | 224 px | 218 px | 380 | 380 |
+
+Y en móvil de 375 px, sin desbordamiento horizontal en ninguna de las dos
+vistas.

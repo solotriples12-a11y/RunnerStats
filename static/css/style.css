@@ -55,6 +55,8 @@ a:hover { text-decoration: underline; }
 .run-card {
     display: flex;
     align-items: center;
+    justify-content: center;
+    text-align: center;
     gap: 1rem;
     padding: 0.9rem 1.1rem;
     background: var(--surface);
@@ -67,14 +69,13 @@ a:hover { text-decoration: underline; }
 .run-card, .run-card:hover { color: inherit; }
 
 .run-date {
-    flex: 0 0 6.5rem;
     font-size: 0.85rem;
     color: var(--text-muted);
 }
 
 .run-metrics {
-    flex: 1;
     display: flex;
+    justify-content: center;
     flex-wrap: wrap;
     gap: 0.4rem 1rem;
     font-family: var(--mono-stack);
@@ -205,6 +206,8 @@ code {
 .tile {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    text-align: center;
     gap: 0.3rem;
     padding: 0.9rem 1rem;
     background: var(--surface);
@@ -224,6 +227,8 @@ code {
 .record {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    text-align: center;
     gap: 0.15rem;
     padding: 0.8rem 1rem;
     background: var(--surface);
@@ -234,7 +239,7 @@ code {
 .record-cab {
     display: flex;
     align-items: baseline;
-    justify-content: space-between;
+    justify-content: center;
     gap: 0.6rem;
     margin-bottom: 0.15rem;
 }
@@ -369,39 +374,30 @@ code {
 
 /* ---------- Cabecera del detalle ---------- */
 
-/* Tres columnas con las laterales iguales, para que la fecha quede centrada
-   en la pagina y no entre el boton y la ruta, que miden distinto. */
 .cab-detalle {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 1rem;
     margin-bottom: 1.5rem;
 }
-.cab-volver { font-size: 0.9rem; justify-self: start; }
+.cab-volver { font-size: 0.9rem; }
 .cab-detalle .cab-fecha {
-    justify-self: center;
     color: var(--text-muted);
     font-size: 0.95rem;
 }
-/* Las cifras siguen centradas en la pagina —la columna vacia de la izquierda
-   equilibra a la del recorrido— y el recorrido queda pegado a la derecha,
-   ocupando justo el alto de las tres lineas de numeros. */
+/* Cifras y recorrido van juntos y el par se centra: el mismo aire a los dos
+   lados. El hueco tiene que dar de si para las unidades ("/km"), que van
+   absolutas y fuera del flujo, o se meterian debajo del recorrido. */
 .cab-cifras {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
     align-items: center;
+    justify-content: center;
+    gap: 3rem;
     text-align: center;
     margin-bottom: 2.5rem;
 }
-.cab-cifras .cifras {
-    grid-column: 2;
-    line-height: 1.25;
-    /* Las unidades van absolutas, fuera del flujo: sin este respiro "/km" se
-       metia debajo del recorrido. */
-    padding: 0 2.2rem;
-}
-.cab-cifras .ruta-mini { grid-column: 3; justify-self: end; }
+.cab-cifras .cifras { line-height: 1.25; }
 .cifra-grande {
     font-size: 2.6rem;
     font-weight: 500;
@@ -433,16 +429,16 @@ code {
 }
 
 /* La ruta pasa a ser una miniatura de referencia, no la pieza principal. */
-/* Caja fija: la altura de la fila la marcaba el elemento mas alto, y 59 de
-   las 158 rutas son mas altas que anchas. Una de proporcion 1,6 estiraba la
-   cabecera 141 px y dejaba a la fecha con un hueco enorme debajo. El SVG se
-   ajusta dentro por preserveAspectRatio. */
-/* Alto = las tres lineas de cifras (1,25 de interlinea sobre 1,5 + 2,6 + 1,5
-   rem). El ancho es un tope: el viewBox lleva la proporcion real del
-   recorrido, asi que una ruta apaisada llena los 11rem y una alargada se
-   queda estrecha, pero ninguna se recorta. */
+/* El alto es el de las tres lineas de cifras (1,25 de interlinea sobre
+   1,5 + 2,6 + 1,5 rem), y el ancho sale solo de la proporcion del viewBox,
+   que es la real del recorrido. Con un ancho fijo, una ruta alargada —59 de
+   las 158 lo son— dejaba 46 px de vacio a cada lado dentro de su caja, y el
+   par cifras+mapa se veia 23 px a la izquierda del centro aunque las cajas
+   estuvieran centradas. Asi la caja abraza la traza y centrar las cajas es
+   centrar lo que se ve. El tope solo entra con las muy apaisadas. */
 .ruta-mini {
-    width: 11rem;
+    width: auto;
+    max-width: 14rem;
     height: 7rem;
 }
 .ruta-mini .traza { stroke-width: 3; }
@@ -451,11 +447,8 @@ code {
 @media (max-width: 480px) {
     .cifra-grande { font-size: 2.1rem; }
     .cifra-media { font-size: 1.25rem; }
-    /* Sin la columna vacia de la izquierda no hay sitio para las dos cosas:
-       las cifras se centran en lo que deja el recorrido. */
-    .cab-cifras { grid-template-columns: 1fr auto; }
-    .cab-cifras .cifras { grid-column: 1; padding: 0 1.6rem; }
-    .cab-cifras .ruta-mini { grid-column: 2; width: 7.5rem; height: 5.75rem; }
+    .cab-cifras { gap: 2.25rem; }
+    .cab-cifras .ruta-mini { max-width: 11rem; height: 5.75rem; }
 }
 
 /* ---------- Entrar ---------- */

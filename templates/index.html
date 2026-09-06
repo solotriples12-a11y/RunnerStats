@@ -54,8 +54,7 @@
             <span class="record-cab">
                 <span class="record-banda">{{ r.nombre }}</span>
                 <span class="record-ctx">
-                    {{ r.fecha_inicio_unix | fecha }} ·
-                    carrera de {{ r.distancia_carrera | km }} km
+                    {{ r.fecha_inicio_unix | fecha }} · {{ r.distancia_carrera | km }} km
                 </span>
             </span>
             <span class="record-linea">
