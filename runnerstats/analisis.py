@@ -103,7 +103,11 @@ def volumen(conn: sqlite3.Connection, agrupacion: str = "anio",
 
     un_solo_anio = anio is not None and agrupacion != "anio"
     datos = [dict(f) for f in filas]
-    if agrupacion != "carrera":
+    # Los huecos se rellenan cuando el eje es un tramo de tiempo cerrado: los
+    # años del histórico, o los doce meses del año elegido. Sin año, mes y
+    # semana no: el histórico entero son 178 meses y ~770 semanas, la mayoria
+    # sin salir a correr, y el recorte a los ultimos N se gastaba en aire.
+    if agrupacion == "anio" or (anio is not None and agrupacion != "carrera"):
         datos = _rellenar_huecos(agrupacion, datos, anio)
 
     # Sin año filtrado, las agrupaciones finas darian cientos de barras

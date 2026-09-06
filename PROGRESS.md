@@ -942,3 +942,20 @@ sobre fondo claro y oscuro. Lo demás es decoración: un favicon se juega a
 16 px.
 
 **Mismos ficheros que antes**, así que no cambia nada en `base.html`.
+
+---
+
+## 2026-09-06 — Fuera las barras a cero en la vista larga
+
+**Qué**: sin año elegido, mes y semana ya no pintan los periodos sin
+carreras. El tope de 36 meses y 52 semanas se gastaba en huecos; ahora son
+los últimos 36 meses **con datos**. Con año elegido no cambia nada.
+
+**Limpieza aparte**: dentro del `@media (max-width: 480px)` había una copia
+duplicada de las reglas `a` y `a:hover`, que ya existen fuera. Retirada; el
+color y el subrayado de los enlaces a 375 px salen igual que antes, porque
+la regla global era la que mandaba de todos modos.
+
+**Verificado**: 121 tests, uno nuevo que comprueba que en "Todo" no queda
+ninguna barra a cero en mes ni en semana, que 2019 sigue saliendo vacío en la
+vista de años, y que un año elegido conserva sus doce meses.

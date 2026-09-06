@@ -902,3 +902,27 @@ clara aún se lee la marca dentro.
 lado, la misma proporción de antes. Dibujado a 8x y reducido, que da el
 suavizado sin desenfocar. Las medidas están en el commit; los ficheros
 siguen siendo los mismos dos, `favicon.ico` (16/32/48) e `icono-180.png`.
+
+---
+
+## 2026-09-06 — Sin año elegido, mes y semana omiten los periodos vacíos
+
+Matiza la regla de "los periodos sin carreras se rellenan a cero", que se
+mantiene para los años y para los doce meses de un año elegido.
+
+**Contexto**: en la vista "Todo", agrupar por mes o por semana pintaba
+también los periodos sin salir a correr. Como además hay un tope —36 meses,
+52 semanas—, ese tope se gastaba en huecos: de los últimos 36 meses del
+histórico, buena parte no tienen ni una carrera, así que el gráfico eran
+cuatro barras y mucho aire.
+
+**Decisión**: sin año elegido, mes y semana muestran solo los periodos con
+carreras. Los últimos 36 meses **con datos**, no los últimos 36 del
+calendario. Con año elegido no cambia nada: ahí el eje es el año y los doce
+meses tienen que estar.
+
+**Lo que se pierde**: el eje deja de ser lineal en el tiempo, que es justo lo
+que la regla original protegía. Se asume a conciencia: en el histórico largo
+la lectura útil es la comparación entre meses en los que se corrió, y la
+etiqueta lleva el año ("ago 20") para que los saltos se vean. Los años, que
+son la vista de contexto, siguen rellenándose: 2019 sigue apareciendo vacío.

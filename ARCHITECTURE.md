@@ -151,10 +151,14 @@ entre los dos relojes sobre la misma carrera (1,2 %).
   quince— y el mes pasa a ser la agrupación por defecto. Sin año filtrado las
   agrupaciones finas se recortan a los últimos N periodos y la UI lo dice,
   porque el histórico completo por semanas serían ~770 barras ilegibles.
-- **Los periodos sin carreras se rellenan a cero.** Omitirlos pegaría marzo
-  con mayo y el eje mentiría sobre el tiempo, el mismo fallo que la línea
-  cruzando 2019. Con un año filtrado los meses son **los doce del
-  calendario**, no del primero al último con carreras.
+- **Los periodos sin carreras se rellenan a cero cuando el eje es un tramo de
+  tiempo cerrado**: los años del histórico, o los doce meses del calendario
+  del año elegido. Omitirlos ahí pegaría marzo con mayo y el eje mentiría
+  sobre el tiempo, el mismo fallo que la línea cruzando 2019. Sin año
+  elegido, en cambio, mes y semana **sí los omiten**: son 178 meses y ~770
+  semanas de histórico, la mayoría vacías, y el recorte a los últimos N se
+  gastaba en aire. Ahí el eje deja de ser lineal en el tiempo y la etiqueta
+  del mes lleva el año para que el salto se vea.
 - La línea de medianas **se parte en los años sin carreras**. Unir 2018 con
   2020 dibujaría continuidad donde no hay ni un dato (2019 está vacío).
 - **Las etiquetas del eje X salen del ancho del texto**, no de un tope fijo

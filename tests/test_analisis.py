@@ -110,6 +110,19 @@ def test_sin_filtro_los_meses_siguen_yendo_del_primero_al_ultimo(conn_real):
     assert v[0]["carreras"] > 0 and v[-1]["carreras"] > 0
 
 
+def test_sin_año_los_meses_y_semanas_vacios_no_pintan_barra(conn_real):
+    """Con "Todo" el recorte a los ultimos N periodos se gastaba en meses sin
+    salir a correr: 178 meses de historico, la mayoria vacios."""
+    for agr in ("mes", "semana"):
+        v = analisis.volumen(conn_real, agr)
+        assert v and all(x["carreras"] for x in v), agr
+
+    # Los años si se siguen rellenando: 2019 esta vacio y tiene que salir.
+    assert any(not x["carreras"] for x in analisis.volumen(conn_real, "anio"))
+    # Y con un año elegido, los doce meses siguen estando.
+    assert len(analisis.volumen(conn_real, "mes", 2015)) == 12
+
+
 def test_sin_anio_las_agrupaciones_finas_se_recortan(conn_real):
     """El histórico completo por semanas serian ~770 barras ilegibles."""
     for agr, tope in (("mes", 36), ("semana", 52)):

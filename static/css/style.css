@@ -93,14 +93,7 @@ a:hover { text-decoration: underline; }
 }
 
 @media (max-width: 480px) {
-    a {
-    color: var(--accent);
-    text-decoration: none;
-}
-
-a:hover { text-decoration: underline; }
-
-.container { padding: 2.5rem 1rem 2rem; }
+    .container { padding: 2.5rem 1rem 2rem; }
     .run-card { flex-wrap: wrap; gap: 0.35rem 0.75rem; }
     .run-date { flex: 1 0 100%; }
 }
