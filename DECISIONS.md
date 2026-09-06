@@ -708,3 +708,56 @@ hacía que el filtro no significara nada.
 **No cambia**: la agrupación por semana con un año elegido sigue yendo de la
 primera semana con carreras a la última. Solo se pidió el año entero para
 los meses, y 52 huecos vacíos de enero no aportan lo que aportan doce.
+
+---
+
+## 2026-09-06 — Tooltip propio: entra JavaScript en el proyecto
+
+**Contexto**: los tooltips eran `<title>` nativos de SVG, elegidos por "cero
+JavaScript". Fallan en las dos puntas: el navegador los pinta con casi un
+segundo de retardo, y en táctil no aparecen nunca, porque dependen del hover.
+En un panel que se mira sobre todo desde el móvil, eso es la mitad de los
+datos inaccesibles.
+
+**Opciones consideradas**:
+- Dejarlo y aceptar que en el móvil no hay dato por marca.
+- Una tabla debajo de cada gráfica con los mismos números. Duplica la lista
+  de carreras que ya está más abajo, y no resuelve el retardo en escritorio.
+- Tooltip propio en JavaScript.
+
+**Decisión**: `static/js/tip.js`, ~50 líneas sin dependencias ni CDN, el
+único JavaScript del proyecto. La marca lleva el texto en `data-tip` y el
+script lo pinta al instante con `pointermove` (ratón) y `pointerdown`
+(dedo). Todo cuelga de `document` y el globo se crea al primer uso, así que
+no depende del orden de carga.
+
+**Zonas sensibles**: acertar con el dedo sobre una barra de 3 px o un punto
+de radio 3 no es realista. Cada marca va dentro de un `<g>` con un
+`<rect>`/`<circle>` transparente más ancho —la banda entera en las barras, 10
+px de radio en los puntos—. Tiene que ser `fill: transparent` y no
+`fill: none`: con `none` el elemento no recibe el puntero.
+
+**Consecuencias**: sin JavaScript la gráfica se queda muda. Es un panel
+privado de una persona, y la lista de carreras de abajo sigue siendo la vista
+en tabla de los mismos datos. A cambio, ahora un mes vacío también dice algo
+("jul: sin carreras") en vez de ser un hueco mudo.
+
+---
+
+## 2026-09-06 — Las etiquetas del eje salen del ancho del texto
+
+**Contexto**: el eje X ponía como mucho 8 etiquetas (`paso = n / 8`). Con doce
+meses eso dejaba enero, marzo, mayo… sin poner, teniendo sitio de sobra: la
+banda mide 50 px y "ene" ocupa 16. Con dieciséis años pasaba lo mismo.
+
+**Decisión**: el paso sale del ancho real del texto. Las etiquetas son
+monoespaciadas de 9 px, o sea 5,4 px por carácter; se etiqueta una de cada N,
+con N el mínimo que deja `ancho + 10 px` entre vecinas. Salen los doce meses,
+los dieciséis años, y las 52 semanas siguen recortándose porque "28 jul" pide
+42 px y la banda mide 11.
+
+**En la nube de ritmos** no vale un paso fijo: cada etiqueta va bajo su nodo
+de mediana, y los nodos caen en el centro de masa de su periodo, que no está
+repartido por igual. Ahí se recorren del más reciente hacia atrás y se salta
+el que no quepa. La etiqueta de los extremos se recorta al lienzo, porque va
+centrada en su nodo y el último nodo cae casi pegado al borde.

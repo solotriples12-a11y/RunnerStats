@@ -84,17 +84,6 @@ a:hover { text-decoration: underline; }
 .metric { color: var(--text-muted); }
 .metric.primary { color: var(--text); font-weight: 400; }
 
-.badge {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--accent);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 0.1rem 0.5rem;
-    white-space: nowrap;
-}
-
 .note {
     margin-top: 2.5rem;
     font-size: 0.85rem;
@@ -283,11 +272,15 @@ code {
 .ejeX { text-anchor: middle; }
 
 .barra { fill: var(--accent); }
-.barra:hover { fill: var(--text); }
+
+/* Zona sensible del tooltip: invisible pero clicable (con `fill: none` no
+   recibiria el puntero). Da un blanco de dedo a marcas de 3 px. */
+.zona { fill: transparent; }
+.banda:hover .barra { fill: var(--text); }
 
 /* Los puntos son contexto; la mediana es la historia. */
 .punto { fill: var(--text-muted); opacity: 0.35; }
-.punto:hover { opacity: 1; fill: var(--text); }
+.marca:hover .punto { opacity: 1; fill: var(--text); }
 .linea {
     fill: none;
     stroke: var(--accent);
@@ -502,4 +495,23 @@ code {
     font-size: 0.85rem;
     color: var(--accent);
     text-align: left;
+}
+
+/* Globo del tooltip de las gráficas. Fijo respecto a la ventana: el JS lo
+   coloca con las coordenadas del puntero, sin cuentas de scroll. */
+.tip {
+    position: fixed;
+    z-index: 20;
+    padding: 0.35rem 0.55rem;
+    max-width: 15rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--mono-stack);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
 }

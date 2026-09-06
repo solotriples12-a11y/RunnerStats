@@ -147,19 +147,27 @@ entre los dos relojes sobre la misma carrera (1,2 %).
 - Ambas gráficas son de **una sola serie**, así que no llevan leyenda y el
   color va solo en las marcas; las etiquetas usan tokens de texto.
 - La gráfica de volumen se agrupa por **año, mes, semana (lunes a domingo) o
-  carrera**. Agrupar por año mantiene la vista larga y **resalta** el año
-  filtrado (patrón de énfasis); el resto de agrupaciones respetan el filtro,
-  porque el histórico completo por semanas serían ~770 barras ilegibles. Sin
-  año filtrado las agrupaciones finas se recortan a los últimos N periodos y
-  la UI lo dice.
+  carrera**. Con un año elegido no se ofrece agrupar por año —pintaría los
+  quince— y el mes pasa a ser la agrupación por defecto. Sin año filtrado las
+  agrupaciones finas se recortan a los últimos N periodos y la UI lo dice,
+  porque el histórico completo por semanas serían ~770 barras ilegibles.
 - **Los periodos sin carreras se rellenan a cero.** Omitirlos pegaría marzo
   con mayo y el eje mentiría sobre el tiempo, el mismo fallo que la línea
-  cruzando 2019. Las barras no resaltadas usan `--marca-contexto`, un gris legible
-  sobre la tarjeta; con `--surface-2` desaparecían.
+  cruzando 2019. Con un año filtrado los meses son **los doce del
+  calendario**, no del primero al último con carreras.
 - La línea de medianas **se parte en los años sin carreras**. Unir 2018 con
   2020 dibujaría continuidad donde no hay ni un dato (2019 está vacío).
-- Los tooltips son `<title>` nativos de SVG: cero JavaScript, y la lista de
-  carreras hace de vista en tabla.
+- **Las etiquetas del eje X salen del ancho del texto**, no de un tope fijo
+  de etiquetas: se pone una de cada N, siendo N el mínimo que evita que se
+  pisen. Por eso caben los doce meses y los dieciséis años, y las 52 semanas
+  no. En la nube de ritmos cada etiqueta va bajo su nodo de mediana, que no
+  están repartidos por igual, así que ahí se salta la que no quepa.
+- **Tooltips propios**, `static/js/tip.js`: unas 50 líneas sin dependencias,
+  el único JavaScript del proyecto. Supersede a los `<title>` nativos de SVG,
+  que el navegador pintaba con casi un segundo de retardo y que en táctil no
+  aparecían nunca. Cada marca lleva el texto en `data-tip` y una zona
+  sensible ancha —la banda entera en las barras, un círculo de 10 px en los
+  puntos— para no tener que acertar sobre una marca de 3 px.
 
 ## Cálculos derivados
 - **PRs por ventana rodante**: mejor 1K/5K/10K extraído de CUALQUIER carrera

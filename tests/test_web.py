@@ -97,11 +97,12 @@ def test_con_password_muestra_las_carreras(cliente):
     assert "Kilómetros" in html and "Carreras" in html
 
 
-def test_marca_las_carreras_sin_detalle(cliente):
-    """Ninguna carrera de My Run Stats tiene muestreos: no debe haber badge."""
+def test_la_lista_no_lleva_etiqueta_de_detalle(cliente):
+    """Distinguia las carreras con muestreos de las que no, pero ya las
+    tienen todas: la etiqueta era ruido en cada tarjeta."""
     html = cliente.get("/").get_data(as_text=True)
     assert 'class="run-card"' in html
-    assert "has-detail" not in html
+    assert "has-detail" not in html and 'class="badge"' not in html
 
 
 @pytest.fixture
@@ -166,9 +167,8 @@ def test_subir_fit_real_importa_con_muestreos(cliente_vacio, fit_real):
     assert r.status_code == 200
     assert "1 carrera importada" in r.get_data(as_text=True)
 
-    # Y en la portada aparece marcada como carrera con detalle.
+    # Y en la portada sale con la FC media, que solo sale de los muestreos.
     html = cliente_vacio.get("/").get_data(as_text=True)
-    assert "has-detail" in html
     assert "148 ppm" in html
 
 
@@ -320,3 +320,26 @@ def test_la_evolucion_del_ritmo_solo_pinta_el_año(cliente):
     assert "Evolución del ritmo" in cliente.get("/").get_data(as_text=True)
     assert "Evolución del ritmo" not in cliente.get(
         "/?anio=2026").get_data(as_text=True)
+
+
+def test_las_marcas_llevan_el_dato_encima_y_no_un_title(cliente):
+    """El <title> de SVG lo pinta el navegador con un segundo de retardo y en
+    tactil no aparece nunca. El dato va en data-tip y lo pinta el JS."""
+    html = cliente.get("/?anio=2026").get_data(as_text=True)
+    assert html.count("<title>") == 1, "solo el de la cabecera del documento"
+    assert "js/tip.js" in html
+
+    # Una banda por mes, con su zona sensible, tenga carreras o no.
+    assert html.count('class="banda"') == 12
+    assert html.count('class="zona"') == 12
+    assert 'data-tip="may: 5.0 km en 1 carrera"' in html
+    assert 'data-tip="ene: sin carreras"' in html
+
+
+def test_los_puntos_del_ritmo_tienen_blanco_de_dedo(cliente):
+    html = cliente.get("/").get_data(as_text=True)
+    nube = html.split("Evolución del ritmo")[1]
+    # Cada punto visible de 3 px va dentro de una marca con su zona ancha.
+    assert nube.count('class="marca"') == nube.count('class="punto"') + \
+        nube.count('class="nodo"')
+    assert nube.count('class="zona"') == nube.count('class="marca"')

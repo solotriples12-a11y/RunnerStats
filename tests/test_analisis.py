@@ -160,9 +160,9 @@ def test_dentro_de_un_anio_la_mediana_es_mensual(conn_real):
     assert [m["etiqueta"] for m in g["medianas"]] == ["ene", "feb", "jun", "jul", "ago"]
     # Y la linea se parte en el hueco de marzo a mayo.
     assert len(g["segmentos"]) == 2
-    # El eje etiqueta meses, no años. Agosto se cae porque su dia 15 queda
-    # despues de la ultima carrera del año (4 de agosto).
-    assert [e["etiqueta"] for e in g["ejex"]] == ["ene", "feb", "jun", "jul"]
+    # El eje etiqueta meses, no años, y cada uno cae bajo su nodo de mediana.
+    # Julio se salta: su nodo queda pegado al de agosto.
+    assert [e["etiqueta"] for e in g["ejex"]] == ["ene", "feb", "jun", "ago"]
 
 
 def test_records_rodantes_salen_de_dentro_de_la_carrera(conn_real, nike_dir):
@@ -186,7 +186,15 @@ def test_records_rodantes_salen_de_dentro_de_la_carrera(conn_real, nike_dir):
     assert recs[5000]["ritmo"] >= recs[1000]["ritmo"]
 
 
-ANCHO_ETIQUETA = 46   # "28 jul" a 9 px de fuente monoespaciada, con holgura
+# Ancho de un caracter a 9 px de fuente monoespaciada, estimado por lo alto
+# (produccion cuenta 5,4) mas un respiro entre etiquetas vecinas.
+ANCHO_CARACTER = 5.6
+AIRE = 4
+
+
+def _sitio_que_pide(etiquetas: list[str]) -> float:
+    """Separacion minima entre centros para que dos etiquetas no se toquen."""
+    return max(len(e) for e in etiquetas) * ANCHO_CARACTER + AIRE
 
 
 def test_las_etiquetas_del_eje_no_se_pisan(conn_real, nike_dir):
@@ -197,15 +205,34 @@ def test_las_etiquetas_del_eje_no_se_pisan(conn_real, nike_dir):
     nike.importar(conn_real, str(nike_dir / "con-fc-y-gps.tcx"))
 
     for agr in analisis.AGRUPACIONES:
-        for anio in (None, 2012):
+        for anio in (None, 2012, 2015):
             g = graficas.barras_volumen(analisis.volumen(conn_real, agr, anio))
             if g["vacia"]:
                 continue
-            xs = [b["centro"] for b in g["barras"] if b["etiquetada"]]
+            etiquetadas = [b for b in g["barras"] if b["etiquetada"]]
+            xs = [b["centro"] for b in etiquetadas]
             assert xs == sorted(xs)
+            minima = _sitio_que_pide([b["etiqueta"] for b in etiquetadas])
             separaciones = [b - a for a, b in zip(xs, xs[1:])]
-            assert all(d >= ANCHO_ETIQUETA for d in separaciones), \
-                f"{agr}/{anio}: etiquetas a {min(separaciones):.0f}px"
+            assert all(d >= minima for d in separaciones), \
+                f"{agr}/{anio}: etiquetas a {min(separaciones):.0f}px, piden {minima:.0f}"
+
+
+def test_los_doce_meses_de_un_año_van_todos_etiquetados(conn_real):
+    """Caben de sobra: dejar enero sin poner era un tope fijo de 8 etiquetas,
+    no una cuestion de sitio."""
+    from runnerstats import graficas
+    g = graficas.barras_volumen(analisis.volumen(conn_real, "mes", 2022))
+    assert [b["etiqueta"] for b in g["barras"] if b["etiquetada"]] == \
+        list(analisis.MESES_CORTOS)
+
+
+def test_las_semanas_de_un_año_si_se_recortan(conn_real):
+    """53 etiquetas de "28 jul" no caben: ahi el paso sigue haciendo falta."""
+    from runnerstats import graficas
+    g = graficas.barras_volumen(analisis.volumen(conn_real, "semana", 2022))
+    assert len(g["barras"]) > 50
+    assert len([b for b in g["barras"] if b["etiquetada"]]) < 20
 
 
 @pytest.mark.parametrize("anio", [None, 2012, 2015, 2022])
@@ -214,7 +241,15 @@ def test_el_eje_del_ritmo_tampoco_se_pisa(conn_real, anio):
     g = graficas.dispersion_ritmo(analisis.ritmos(conn_real, anio), anio)
     xs = [e["x"] for e in g["ejex"]]
     assert xs == sorted(xs), "el eje sale en orden inverso"
-    assert all(b - a >= ANCHO_ETIQUETA for a, b in zip(xs, xs[1:]))
+    minima = _sitio_que_pide([e["etiqueta"] for e in g["ejex"]])
+    assert all(b - a >= minima for a, b in zip(xs, xs[1:]))
+
+    # Y ninguna se sale del lienzo: van centradas en su nodo, y el ultimo
+    # nodo cae casi pegado al borde derecho.
+    for e in g["ejex"]:
+        # Con el ancho que asume produccion: es su promesa, no una estimacion.
+        media = len(e["etiqueta"]) * graficas.ANCHO_CARACTER / 2
+        assert 0 <= e["x"] - media and e["x"] + media <= graficas.ANCHO
 
 
 def test_ningun_record_es_mas_rapido_de_lo_que_permite_su_carrera(conn_real, nike_dir):

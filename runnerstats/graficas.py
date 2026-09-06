@@ -7,6 +7,7 @@ usan los tokens de texto.
 """
 
 from datetime import datetime, timezone
+from math import ceil
 
 from .analisis import MESES_CORTOS
 
@@ -20,6 +21,10 @@ PAD_INF = 22
 GROSOR_MAX = 24   # las barras nunca llenan su banda: el aire lo da la banda
 RADIO = 4         # extremo redondeado arriba, cuadrado en la base
 HUECO = 2         # separación en color de superficie entre barras vecinas
+
+# Las etiquetas del eje X son monoespaciadas de 9 px: 0,6 em por caracter.
+ANCHO_CARACTER = 5.4
+AIRE_ETIQUETA = 10   # separación minima entre dos etiquetas vecinas
 
 
 def _escala(vmin: float, vmax: float, destino_min: float, destino_max: float):
@@ -55,12 +60,16 @@ def barras_volumen(datos: list[dict]) -> dict:
     hueco = HUECO if banda >= 6 else 0
     ancho = max(1.0, min(GROSOR_MAX, banda - hueco))
 
-    # Como maximo 8 etiquetas, generadas desde el final hacia atras. Repartir
-    # desde el principio y ademas forzar la ultima dejaba las dos ultimas
-    # pegadas y el texto se pisaba.
-    n = len(datos)
-    paso = max(1, round(n / 8))
-    visibles = set(range(n - 1, -1, -paso))
+    # Se etiqueta una de cada `paso` barras, las que quepan sin pisarse: con
+    # doce meses caben los doce, con 52 semanas no. El paso sale del ancho
+    # real del texto y no de un tope fijo de etiquetas, que dejaba enero sin
+    # poner teniendo sitio de sobra.
+    #
+    # Van generadas desde el final hacia atras: repartir desde el principio y
+    # ademas forzar la ultima dejaba las dos ultimas pegadas.
+    ancho_texto = max(len(d["etiqueta"]) for d in datos) * ANCHO_CARACTER
+    paso = max(1, ceil((ancho_texto + AIRE_ETIQUETA) / banda))
+    visibles = set(range(len(datos) - 1, -1, -paso))
 
     barras = []
     for i, d in enumerate(datos):
@@ -73,6 +82,7 @@ def barras_volumen(datos: list[dict]) -> dict:
             "km": d["km"],
             "carreras": d["carreras"],
             "centro": round(x + ancho / 2, 1),
+            "banda_x": round(PAD_IZQ + banda * i, 1),
             "etiquetada": i in visibles,
             # Un periodo sin carreras no dibuja barra: el hueco es el dato.
             "d": None if d["km"] <= 0 else (
@@ -89,6 +99,10 @@ def barras_volumen(datos: list[dict]) -> dict:
         "ancho": ANCHO, "alto": ALTO,
         "base": ALTO - PAD_INF,
         "barras": barras,
+        # Zona sensible de cada barra: la banda entera, de techo a base.
+        "banda_ancho": round(banda, 1),
+        "banda_y": PAD_SUP,
+        "banda_alto": ALTO - PAD_INF - PAD_SUP,
         "rejilla": [{"y": round(y(t), 1), "etiqueta": f"{int(t)}"} for t in _ticks(kmax)],
     }
 
@@ -131,11 +145,6 @@ def dispersion_ritmo(datos: list[dict], anio: int | None = None) -> dict:
     def etiqueta(p: int) -> str:
         return MESES_CORTOS[p - 1] if anio else str(p)
 
-    def centro_de(p: int) -> float:
-        """Timestamp del centro del periodo, para colocar su etiqueta."""
-        return (datetime(anio, p, 15, tzinfo=timezone.utc) if anio
-                else datetime(p, 7, 1, tzinfo=timezone.utc)).timestamp()
-
     por_periodo: dict[int, list] = {}
     for d in datos:
         por_periodo.setdefault(periodo(d["fecha_inicio_unix"]), []).append(
@@ -163,15 +172,19 @@ def dispersion_ritmo(datos: list[dict], anio: int | None = None) -> dict:
     if actual:
         segmentos.append(actual)
 
-    # Igual que en las barras: desde el periodo mas reciente hacia atras, para
-    # que el ultimo siempre salga sin quedar pegado al anterior.
-    periodos = sorted(por_periodo)
-    paso_p = max(1, round(len(periodos) / 6))
+    # Cada etiqueta va debajo de su nodo de mediana. Como los nodos caen en el
+    # centro de masa de su periodo, no estan repartidos por igual y un paso
+    # fijo no evita que se pisen: se recorren del mas reciente hacia atras y
+    # se salta el que no quepa.
+    ancho_texto = max(len(m["etiqueta"]) for m in medianas) * ANCHO_CARACTER
     ejex = []
-    for p in periodos[::-1][::paso_p]:
-        ts = centro_de(p)
-        if tmin <= ts <= tmax:
-            ejex.append({"x": round(fx(ts), 1), "etiqueta": etiqueta(p)})
+    for m in reversed(medianas):
+        if ejex and ejex[-1]["x"] - m["x"] < ancho_texto + AIRE_ETIQUETA:
+            continue
+        # El texto va centrado en su nodo: el de los extremos se saldria por
+        # medio caracter y el navegador lo recorta.
+        x = min(max(m["x"], ancho_texto / 2), ANCHO - ancho_texto / 2)
+        ejex.append({"x": round(x, 1), "etiqueta": m["etiqueta"]})
     ejex.sort(key=lambda e: e["x"])
 
     def mmss(s):

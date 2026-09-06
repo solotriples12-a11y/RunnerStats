@@ -811,3 +811,35 @@ julio y agosto; 2011, con una sola fila, también sale entero (era justo el
 caso en el que el relleno se rendía); la mediana de 2015 da ene-feb-jun-jul-ago
 con la línea partida en el hueco de marzo a mayo; y forzar `?agr=anio` con un
 año elegido cae en mes.
+
+---
+
+## 2026-09-06 — Tooltips instantáneos, ejes completos y fuera la etiqueta "detalle"
+
+**Qué**: tres cosas del panel, todas a raíz de mirarlo en el móvil.
+
+1. **Tooltips propios** (`static/js/tip.js`). Los `<title>` de SVG tardaban
+   casi un segundo y en táctil no salían. Ahora el dato sale al instante, con
+   el dedo o con el ratón, y cada marca tiene una zona sensible ancha: la
+   banda entera en las barras, 10 px de radio en los puntos.
+2. **El eje X etiqueta todo lo que cabe.** El tope era fijo (8 etiquetas), no
+   una cuestión de sitio: se dejaba enero sin poner con 50 px de banda. Ahora
+   el paso sale del ancho del texto — doce meses, dieciséis años, y las 52
+   semanas siguen recortadas porque de verdad no caben. La nube de ritmos
+   pasa de 6 etiquetas a 12, cada una bajo su nodo de mediana.
+3. **Fuera la etiqueta "detalle"** de la lista de carreras: ya la tienen
+   todas, así que no distinguía nada. Con ella se van la clase `has-detail`
+   —que no tenía ni estilo—, la regla `.badge` y la columna `tiene_detalle`
+   de `consultas.listar_carreras`, que no la consumía nadie más.
+
+**Verificado**: 119 tests, 6 nuevos. Los del tooltip comprueban que no queda
+ningún `<title>` dentro de los SVG (si quedara, el globo propio y el nativo
+saldrían a la vez), que hay una banda con su zona por cada mes —tenga
+carreras o no— y que los puntos van envueltos en su marca. El test de solapes
+del eje pasa de un ancho fijo de 46 px a pedir el ancho real de cada
+etiqueta, que es la invariante de verdad.
+
+**Comprobado a mano en el navegador**: hover sobre una barra con datos y sobre
+un mes vacío ("jul: sin carreras"), hover sobre un nodo de mediana, y toque
+en móvil emulado (375 px), donde el globo sale 30 px por encima del dedo y se
+recoloca solo para no salirse por el borde izquierdo.

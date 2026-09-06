@@ -86,11 +86,11 @@
         <text class="ejeY" x="28" y="{{ g.y + 3 }}">{{ g.etiqueta }}</text>
         {% endfor %}
         {% for b in volumen.barras %}
-        {% if b.d %}
-        <path class="barra" d="{{ b.d }}">
-            <title>{{ b.etiqueta }}: {{ b.km | round(1) }} km en {{ b.carreras }} carrera{{ 's' if b.carreras != 1 }}</title>
-        </path>
-        {% endif %}
+        <g class="banda" data-tip="{% if b.carreras %}{{ b.etiqueta }}: {{ b.km | round(1) }} km en {{ b.carreras }} carrera{{ 's' if b.carreras != 1 }}{% else %}{{ b.etiqueta }}: sin carreras{% endif %}">
+            <rect class="zona" x="{{ b.banda_x }}" y="{{ volumen.banda_y }}"
+                  width="{{ volumen.banda_ancho }}" height="{{ volumen.banda_alto }}"/>
+            {% if b.d %}<path class="barra" d="{{ b.d }}"/>{% endif %}
+        </g>
         {% if b.etiquetada %}
         <text class="ejeX" x="{{ b.centro }}" y="{{ volumen.alto - 6 }}">{{ b.etiqueta }}</text>
         {% endif %}
@@ -109,17 +109,19 @@
         <text class="ejeY" x="28" y="{{ g.y + 3 }}">{{ g.etiqueta }}</text>
         {% endfor %}
         {% for p in evolucion.puntos %}
-        <circle class="punto" cx="{{ p.cx }}" cy="{{ p.cy }}" r="3">
-            <title>{{ p.fecha }} · {{ p.km | round(2) }} km · {{ p.ritmo | ritmo }}/km</title>
-        </circle>
+        <g class="marca" data-tip="{{ p.fecha }} · {{ p.km | round(2) }} km · {{ p.ritmo | ritmo }}/km">
+            <circle class="zona" cx="{{ p.cx }}" cy="{{ p.cy }}" r="10"/>
+            <circle class="punto" cx="{{ p.cx }}" cy="{{ p.cy }}" r="3"/>
+        </g>
         {% endfor %}
         {% for seg in evolucion.segmentos %}
         <polyline class="linea" points="{{ seg }}"/>
         {% endfor %}
         {% for m in evolucion.medianas %}
-        <circle class="nodo" cx="{{ m.x }}" cy="{{ m.y }}" r="4">
-            <title>Mediana {{ m.etiqueta }}: {{ m.ritmo | ritmo }}/km</title>
-        </circle>
+        <g class="marca" data-tip="Mediana {{ m.etiqueta }}: {{ m.ritmo | ritmo }}/km">
+            <circle class="zona" cx="{{ m.x }}" cy="{{ m.y }}" r="11"/>
+            <circle class="nodo" cx="{{ m.x }}" cy="{{ m.y }}" r="4"/>
+        </g>
         {% endfor %}
         {% for e in evolucion.ejex %}
         <text class="ejeX" x="{{ e.x }}" y="{{ evolucion.alto - 6 }}">{{ e.etiqueta }}</text>
@@ -132,8 +134,7 @@
     <h2>{% if anio %}Carreras de {{ anio }}{% else %}Todas las carreras{% endif %}</h2>
     <div class="run-list">
         {% for c in carreras %}
-        <a class="run-card{% if c.tiene_detalle %} has-detail{% endif %}"
-           href="{{ url_for('carrera', carrera_id=c.id) }}">
+        <a class="run-card" href="{{ url_for('carrera', carrera_id=c.id) }}">
             <div class="run-date">{{ c.fecha_inicio_unix | fecha }}</div>
             <div class="run-metrics">
                 <span class="metric primary">{{ c.distancia_metros | km }} km</span>
@@ -143,9 +144,6 @@
                 </span>
                 {% if c.fc_media %}<span class="metric">{{ c.fc_media }} ppm</span>{% endif %}
             </div>
-            {% if c.tiene_detalle %}
-            <span class="badge" title="Tiene muestreos segundo a segundo">detalle</span>
-            {% endif %}
         </a>
         {% endfor %}
     </div>
