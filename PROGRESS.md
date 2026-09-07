@@ -1123,3 +1123,29 @@ descarten el cubo "por debajo de la zona 1" —si se colara, la suma no
 cuadraría con la duración—, que una serie casi plana no llene el lienzo con
 el eje mínimo puesto, que las zonas se lean también de las versiones
 sustituidas, y que una carrera de Nike no pinte ninguno de los tres bloques.
+
+---
+
+## 2026-09-07 — Documentación al día para empezar en frío
+
+**Qué**: el proyecto no tenía puerta de entrada. Se añaden dos ficheros y se
+ponen al día los otros cuatro.
+
+- **`README.md`** (nuevo): qué es, dónde corre, el estado con las cifras de
+  producción comprobadas, cómo arrancarlo y pasar los tests, el mapa del
+  repo y qué responde cada documento.
+- **`CLAUDE.md`** (nuevo): las convenciones que no se deducen del código —
+  todo en español, los datos mandan sobre la documentación, nada de
+  dependencias para pintar, verificar en el navegador y no solo con tests, y
+  las reglas de producción.
+- **`ARCHITECTURE.md`**: tabla de fuentes rehecha con las cinco y sus cifras
+  reales, y el apunte de que las fuentes se complementan **dentro** de una
+  carrera y no solo entre carreras.
+- **`BACKLOG.md`**: reescrito. Salen tres ítems que ya estaban hechos —la
+  deduplicación, las zonas de FC y el secreto del webhook, que lleva todo el
+  día desplegando solo— y entra lo que de verdad queda.
+- **`DECISIONS.md`**: índice por temas al principio; 42 entradas son muchas
+  para hojear.
+
+**Cifras verificadas contra producción**, no copiadas: 313 carreras visibles
+de 519 filas, 1.637 km, 305.448 muestreos, y el reparto por fuente.

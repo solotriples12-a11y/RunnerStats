@@ -2,6 +2,20 @@
 
 Append-only. No reescribir entradas anteriores; supersedirlas con una nueva.
 
+Son 42 entradas por orden cronológico. Las que más se consultan, por tema:
+
+- **Formatos y sus trampas**: el `DistanceMeters` de Nike es un incremento ·
+  la duración del `.fit` es el cronómetro y no el reloj de pared · el JSON de
+  Huawei no es JSON válido y repite cada actividad tres veces · qué
+  `sportType` es correr.
+- **Fiabilidad de lo que se muestra**: la serie de distancia se valida contra
+  el resumen de la carrera · el tiempo parado no se cronometra · récords
+  falsos y por qué salieron.
+- **Cómo conviven las fuentes**: la deduplicación cuenta datos y no filas ·
+  las versiones de una carrera se fusionan campo a campo.
+- **Interfaz**: las gráficas obedecen al filtro de año · las barras son
+  enlaces · tooltips propios · qué se enseña del `.fit` y qué no.
+
 ---
 
 ## 2026-05-25 — Stack: Android nativo (Kotlin + Compose + Room)

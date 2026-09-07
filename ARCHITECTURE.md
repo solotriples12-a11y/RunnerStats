@@ -46,12 +46,18 @@ rechazo de Huawei se pivotó a web. Ver `DECISIONS.md`, 2026-09-04.
 ## Fuentes de datos
 Todas son ficheros exportados a mano. No hay sincronización automática.
 
-| Fuente | Carreras | Periodo | Fidelidad |
+Cinco importadores, cuatro formatos. Cifras de producción a 2026-09-07,
+como visibles / importadas:
+
+| Fuente | Visibles / total | Periodo | Fidelidad |
 |---|---|---|---|
-| **Nike Run Club (`.tcx`)** | 269 | 2011-12 → 2026-07 | Variable: 202 con distancia por punto, 158 con GPS, 99 con cadencia, 98 con FC |
-| My Run Stats (JSON) | 207 | 2011-12 → 2026-05 | Solo resumen |
-| Amazfit Cheetah 2 Pro (`.fit`) | 3 | 2026-09 | La más rica: 1 Hz con potencia, tiempo de contacto y zonas de FC ya calculadas |
-| **Huawei Health (JSON)** | 37 | 2025-05 → 2026-09 | Completa: 37 con FC y cadencia a 0,2 Hz, 26 con GPS a 1 Hz |
+| `nike_tcx` | 257 / 267 | 2011-12 → 2026-07 | Variable: unas con GPS y FC por segundo, muchas antiguas solo resumen |
+| `my_run_stats` | 29 / 207 | 2011-12 → 2026-05 | Solo resumen |
+| `huawei_json` | 23 / 37 | 2025-05 → 2026-09 | GPS a 1 Hz; FC, cadencia y altitud cada 5 s |
+| `huawei_tcx` | 1 / 5 | 2026-02 → 2026-04 | Solo recorrido y altitud. Es la mitad que le falta a Nike en las "carreras de prueba" |
+| `amazfit_fit` | 3 / 3 | 2026-09 | La más rica: 1 Hz con potencia, contacto con el suelo y zonas de FC ya calculadas |
+
+En total **313 carreras visibles de 519 filas y 305.448 muestreos**.
 
 Nike es casi un superconjunto de My Run Stats: comparten 199 fechas, 65
 carreras solo están en Nike y 5 solo en My Run Stats. Rellena 2019 entero,
@@ -60,6 +66,11 @@ que en My Run Stats no existía.
 Huawei cubre el otro extremo, lo reciente: de sus 37 carreras, 27 no estaban
 en ninguna otra fuente y las 10 que sí estaban solo constaban como resumen,
 así que la deduplicación las sustituye por la versión con muestreos.
+
+**Las fuentes se complementan dentro de una misma carrera**, no solo entre
+carreras. La del 2026-04-19 tiene el pulso en Nike y el recorrido en el TCX
+de Huawei, y ninguna de las dos versiones sirve sola. Por eso
+`detalle.muestreos()` fusiona campo a campo (`DECISIONS.md`, 2026-09-06).
 
 El detalle verificado de cada formato está en `DECISIONS.md` (entrada
 "Tres fuentes de datos con niveles de fidelidad distintos").
