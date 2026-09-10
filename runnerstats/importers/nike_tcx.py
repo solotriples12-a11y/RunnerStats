@@ -29,6 +29,12 @@ class TcxInvalido(ValueError):
     pass
 
 
+def parece_nike(contenido: bytes) -> bool:
+    """Nike declara su extensión `nax`; ni el TCX de Huawei ni el de Zepp la
+    traen."""
+    return NAX[1:-1].encode() in contenido
+
+
 def _txt(padre, camino):
     """Texto de un hijo. Nike mete los valores en lineas aparte con espacios."""
     el = padre.find(camino) if padre is not None else None
@@ -65,11 +71,11 @@ def leer(origen) -> tuple[Carrera, list[Muestreo]]:
     # mal etiquetado. La extension `nax` solo la escribe Nike, y su
     # ActivityType vive a nivel de actividad, asi que se encuentra pronto.
     if raiz.find(f".//{NAX}ActivityType") is None:
-        raise TcxInvalido("no parece un TCX de Nike (falta la extension nax)")
+        raise TcxInvalido("no parece un TCX de Nike (falta la extensión nax)")
 
     lap = raiz.find(f"{T}Activities/{T}Activity/{T}Lap")
     if lap is None:
-        raise TcxInvalido("el TCX no tiene ningun Lap")
+        raise TcxInvalido("el TCX no tiene ningún Lap")
 
     inicio_iso = lap.get("StartTime") or _txt(
         raiz, f"{T}Activities/{T}Activity/{T}Id")
@@ -157,7 +163,7 @@ def leer(origen) -> tuple[Carrera, list[Muestreo]]:
     return carrera, muestreos
 
 
-def importar(conn: sqlite3.Connection, origen) -> int:
+def importar(conn: sqlite3.Connection, origen) -> list[Carrera]:
     carrera, muestreos = leer(origen)
     ahora = int(time.time())
 
@@ -189,4 +195,4 @@ def importar(conn: sqlite3.Connection, origen) -> int:
           m.altitud_metros, m.latitud, m.longitud) for m in muestreos],
     )
     conn.commit()
-    return 1
+    return [carrera]

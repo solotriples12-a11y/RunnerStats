@@ -3,6 +3,7 @@ import json
 import os
 import sqlite3
 import xml.etree.ElementTree as ET
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import PurePath
 
@@ -145,8 +146,8 @@ def f_ritmo(seg_por_km: float) -> str:
     return f"{m}:{s:02d}"
 
 
-def _importar_uno(conn, fichero) -> tuple[str, int | None, str | None]:
-    """Devuelve (nombre, carreras importadas, error).
+def _importar_uno(conn, fichero) -> tuple[str, list | None, str | None]:
+    """Devuelve (nombre, carreras escritas, error).
 
     Solo se usa la extension del nombre subido, nunca la ruta: el contenido
     se lee del stream y no se escribe nada en disco.
@@ -164,19 +165,23 @@ def _importar_uno(conn, fichero) -> tuple[str, int | None, str | None]:
 
     if ext == ".tcx":
         # Nike y Huawei exportan los dos en TCX. Huawei firma el fichero como
-        # creator="Health"; Nike no pone creator y mete su extension `nax`.
+        # creator="Health" y Nike declara su extensión `nax`; el que exporta
+        # Zepp no trae ninguna de las dos cosas.
         contenido = fichero.stream.read()
         try:
             if huawei_tcx.parece_huawei(contenido):
                 return nombre, huawei_tcx.importar(conn, contenido), None
-            return nombre, nike_tcx.importar(conn, io.BytesIO(contenido)), None
+            if nike_tcx.parece_nike(contenido):
+                return nombre, nike_tcx.importar(conn, io.BytesIO(contenido)), None
         except (nike_tcx.TcxInvalido, huawei_tcx.TcxInvalido) as e:
             return nombre, None, str(e)
         except ET.ParseError as e:
-            return nombre, None, f"XML invalido ({e})"
+            return nombre, None, f"XML inválido ({e})"
+        return nombre, None, ("no es un TCX de Nike ni de Huawei, que son los "
+                              "que se leen; si es del Amazfit, sube el .fit")
 
     if ext != ".json":
-        return nombre, None, f"formato no soportado ({ext or 'sin extension'})"
+        return nombre, None, f"formato no soportado ({ext or 'sin extensión'})"
 
     # Huawei y My Run Stats comparten extension, asi que se distinguen por
     # dentro: el de Huawei es una lista de actividades y el otro un objeto.
@@ -188,41 +193,88 @@ def _importar_uno(conn, fichero) -> tuple[str, int | None, str | None]:
     except huawei_json.HuaweiInvalido as e:
         return nombre, None, str(e)
     except (json.JSONDecodeError, UnicodeDecodeError) as e:
-        return nombre, None, f"no es un JSON valido ({e})"
+        return nombre, None, f"no es un JSON válido ({e})"
     except (KeyError, TypeError, ValueError) as e:
         return nombre, None, f"no tiene la forma de un export de My Run Stats ({e})"
+
+
+# Para decir con qué otra versión se junta una carrera: "ya la tenías de
+# Huawei".
+FUENTES = {"amazfit_fit": "del Amazfit", "nike_tcx": "de Nike",
+           "huawei_json": "de Huawei", "huawei_tcx": "de Huawei",
+           "my_run_stats": "de My Run Stats"}
+
+
+def _resultados(conn, subidas, previas: set[str]) -> list[dict]:
+    """Qué ha sido de cada carrera subida, fichero a fichero.
+
+    Se mira con las duplicadas ya recalculadas, porque una carrera nueva
+    puede ser la misma que ya traía otra fuente. Lo que devuelve
+    `marcar_duplicadas` no vale para esto: recalcula toda la base e incluye
+    las fusiones de importaciones anteriores, y contarlo sacaba "206
+    duplicadas entre fuentes" al subir un .fit que no chocaba con nada.
+
+    Una carrera ya la tenías si ella, u otra versión de la misma, estaba
+    antes: en la base o en un fichero anterior de la tanda. Así, dos
+    versiones nuevas subidas a la vez son una nueva y otra que se junta, y la
+    segunda copia de una actividad —el export de Huawei trae cada una tres
+    veces— no cuenta como nueva.
+    """
+    filas = {f["id"]: f for f in conn.execute(
+        "SELECT id, fuente, sustituida_por FROM carrera")}
+    grupos = defaultdict(list)
+    for f in filas.values():
+        grupos[f["sustituida_por"] or f["id"]].append(f)
+
+    vistas = set(previas)
+    resultados = []
+    for nombre, carreras, error in subidas:
+        propias = []
+        for c in {c.id: c for c in carreras or ()}.values():
+            visible = filas[c.id]["sustituida_por"] or c.id
+            ya = {FUENTES[f["fuente"]] for f in grupos[visible]
+                  if f["id"] != c.id and f["id"] in vistas}
+            if c.id in vistas:
+                estado = "repetida"
+            elif ya:
+                estado = "junta"
+            else:
+                estado = "nueva"
+            vistas.add(c.id)
+            propias.append({"fecha": c.fecha_inicio_unix,
+                            "metros": c.distancia_metros, "estado": estado,
+                            "enlace": visible, "con": " y ".join(sorted(ya))})
+        resultados.append({"nombre": nombre, "error": error,
+                           "carreras": propias})
+    return resultados
 
 
 @app.errorhandler(413)
 def _demasiado_grande(_):
     return render_template(
         "importar.html",
-        resultados=[("", None, "la tanda supera el limite de 64 MB, subela en varias veces")],
-        fusiones=0,
+        aviso="la tanda supera el límite de 64 MB, súbela en varias veces",
     ), 413
 
 
 @app.route("/importar", methods=["GET", "POST"])
 def importar():
     if request.method == "GET":
-        return render_template("importar.html", resultados=None, fusiones=0)
+        return render_template("importar.html", resultados=None)
 
     ficheros = [f for f in request.files.getlist("ficheros") if f.filename]
     if not ficheros:
-        return render_template(
-            "importar.html",
-            resultados=[("", None, "no has seleccionado ningun fichero")],
-            fusiones=0,
-        )
+        return render_template("importar.html",
+                               aviso="no has seleccionado ningún fichero")
 
     conn = get_db()
-    resultados = [_importar_uno(conn, f) for f in ficheros]
-    hubo_cambios = any(r[1] for r in resultados)
-    fusiones = dedup.marcar_duplicadas(conn) if hubo_cambios else []
-    if hubo_cambios:
+    previas = {f["id"] for f in conn.execute("SELECT id FROM carrera")}
+    subidas = [_importar_uno(conn, f) for f in ficheros]
+    if any(carreras for _, carreras, _ in subidas):
+        dedup.marcar_duplicadas(conn)
         detalle.recalcular_records(conn)
-    return render_template("importar.html", resultados=resultados,
-                           fusiones=len(fusiones))
+    return render_template("importar.html",
+                           resultados=_resultados(conn, subidas, previas))
 
 
 @app.route("/periodo/<agrupacion>/<clave>")

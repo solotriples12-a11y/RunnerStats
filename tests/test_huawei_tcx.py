@@ -59,7 +59,7 @@ def test_se_reconoce_por_el_creator(tcx):
 
 def test_importar_es_idempotente(tmp_path, tcx):
     conn = db.conectar(tmp_path / "t.db")
-    assert ht.importar(conn, str(tcx[0])) == 1
+    assert len(ht.importar(conn, str(tcx[0]))) == 1
     n = conn.execute("SELECT COUNT(*) FROM muestreo").fetchone()[0]
     ht.importar(conn, str(tcx[0]))
     assert conn.execute("SELECT COUNT(*) FROM carrera").fetchone()[0] == 1

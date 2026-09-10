@@ -69,7 +69,7 @@ def test_un_fichero_vacio_no_es_un_error(tmp_path):
 
 def test_importar_es_idempotente(conn, huawei_sintetico):
     """Cada actividad viene repetida en tres ficheros del export."""
-    assert hw.importar(conn, huawei_sintetico) == 2
+    assert len(hw.importar(conn, huawei_sintetico)) == 2
     hw.importar(conn, huawei_sintetico)
     assert conn.execute("SELECT COUNT(*) FROM carrera").fetchone()[0] == 2
     # Y los muestreos no se duplican al reimportar.
@@ -80,7 +80,7 @@ def test_importar_es_idempotente(conn, huawei_sintetico):
 
 def test_muestra_real(conn, huawei_dir):
     """Contra el export de verdad: 4 carreras al aire libre y 3 de cinta."""
-    n = hw.importar(conn, huawei_dir / "carreras-y-cinta.json")
+    n = len(hw.importar(conn, huawei_dir / "carreras-y-cinta.json"))
     assert n == 7
 
     con_gps = conn.execute(
@@ -100,7 +100,7 @@ def test_muestra_real(conn, huawei_dir):
 
 
 def test_el_fichero_vacio_real_tampoco_revienta(conn, huawei_dir):
-    assert hw.importar(conn, huawei_dir / "vacio.json") == 0
+    assert hw.importar(conn, huawei_dir / "vacio.json") == []
 
 
 def test_los_parciales_reales_cuadran_con_los_del_reloj(conn, huawei_dir):

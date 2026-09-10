@@ -64,6 +64,17 @@ def test_una_carrera_solo_resumen_tambien_entra(nike_dir):
     assert len(m) <= 5
 
 
+def test_se_reconoce_por_su_extension(nike_dir):
+    """La web decide por aquí antes de parsear, como con el `creator` de
+    Huawei. Los 269 TCX del export declaran `nax`; ni los de Huawei ni el de
+    Zepp la mencionan."""
+    for f in nike_dir.glob("*.tcx"):
+        assert nike.parece_nike(f.read_bytes()), f.name
+    assert not nike.parece_nike(
+        b'<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/'
+        b'TrainingCenterDatabase/v2"/>')
+
+
 def test_rechaza_un_tcx_que_no_es_de_nike(tmp_path):
     """Un TCX de Huawei tiene la misma forma y quedaria mal etiquetado."""
     f = tmp_path / "otro.tcx"

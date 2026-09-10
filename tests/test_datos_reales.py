@@ -73,7 +73,7 @@ def test_los_km_splits_producirian_records_falsos(export_real):
 
 def test_importa_las_207_a_sqlite(tmp_path, export_real):
     conn = db.conectar(tmp_path / "real.db")
-    assert mrs.importar(conn, export_real) == 207
+    assert len(mrs.importar(conn, export_real)) == 207
 
     fila = conn.execute(
         "SELECT COUNT(*) n, SUM(distancia_metros) d, SUM(duracion_segundos) t"

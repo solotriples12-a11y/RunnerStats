@@ -66,8 +66,8 @@ def leer(origen) -> list[Carrera]:
     ]
 
 
-def importar(conn: sqlite3.Connection, ruta: str | Path) -> int:
-    """Importa el export y devuelve cuántas carreras se han escrito.
+def importar(conn: sqlite3.Connection, ruta: str | Path) -> list[Carrera]:
+    """Importa el export y devuelve las carreras que se han escrito.
 
     Idempotente: reimportar un export actualizado reemplaza las carreras que
     ya estaban en lugar de duplicarlas.
@@ -88,4 +88,4 @@ def importar(conn: sqlite3.Connection, ruta: str | Path) -> int:
         ],
     )
     conn.commit()
-    return len(carreras)
+    return carreras

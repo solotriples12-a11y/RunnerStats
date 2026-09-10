@@ -116,8 +116,9 @@ def _zonas(sesion: dict) -> tuple[int, ...]:
     return tuple(int(x) for x in zonas[1:6])
 
 
-def importar(conn: sqlite3.Connection, origen) -> int:
-    """Importa una carrera con sus muestreos. Devuelve 1.
+def importar(conn: sqlite3.Connection, origen) -> list[Carrera]:
+    """Importa una carrera con sus muestreos y la devuelve, en una lista como
+    el resto de importadores.
 
     Idempotente: el id sale del instante de inicio, así que reimportar el
     mismo fichero reemplaza la carrera y sus muestreos en lugar de duplicar.
@@ -161,4 +162,4 @@ def importar(conn: sqlite3.Connection, origen) -> int:
         "INSERT INTO zona_fc (carrera_id, zona, segundos) VALUES (?,?,?)",
         [(carrera.id, i, seg) for i, seg in enumerate(carrera.zonas_fc, 1) if seg])
     conn.commit()
-    return 1
+    return [carrera]

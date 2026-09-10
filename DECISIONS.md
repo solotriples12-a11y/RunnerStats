@@ -2,17 +2,19 @@
 
 Append-only. No reescribir entradas anteriores; supersedirlas con una nueva.
 
-Son 42 entradas por orden cronológico. Las que más se consultan, por tema:
+Son 45 entradas por orden cronológico. Las que más se consultan, por tema:
 
 - **Formatos y sus trampas**: el `DistanceMeters` de Nike es un incremento ·
   la duración del `.fit` es el cronómetro y no el reloj de pared · el JSON de
   Huawei no es JSON válido y repite cada actividad tres veces · qué
-  `sportType` es correr.
+  `sportType` es correr · cómo se distingue un TCX de Nike, de Huawei o de
+  Zepp.
 - **Fiabilidad de lo que se muestra**: la serie de distancia se valida contra
   el resumen de la carrera · el tiempo parado no se cronometra · récords
   falsos y por qué salieron.
 - **Cómo conviven las fuentes**: la deduplicación cuenta datos y no filas ·
-  las versiones de una carrera se fusionan campo a campo.
+  las versiones de una carrera se fusionan campo a campo · la importación
+  dice qué ha sido de cada carrera.
 - **Interfaz**: las gráficas obedecen al filtro de año · las barras son
   enlaces · tooltips propios · qué se enseña del `.fit` y qué no.
 
@@ -1198,3 +1200,107 @@ y con 150 se aplanan los picos de las paradas, que son la parte interesante.
 `velocidad_ms` ya usaba el sufijo para metros/segundo— y las zonas una tabla
 `zona_fc`, porque son cinco filas por carrera y no un escalar. Las zonas se
 leen también de las versiones sustituidas, por lo mismo que los muestreos.
+
+---
+
+## 2026-09-07 — El aviso de duplicadas cuenta la tanda, no la base
+
+**Contexto**: al importar un `.fit` de una carrera nueva, que no chocaba con
+ninguna otra, la pantalla de importación decía **"206 duplicadas entre
+fuentes, ocultas"**. El número era cierto pero no venía a cuento: 206 son
+todas las carreras ocultas que hay en producción —519 filas, 313 visibles—,
+acumuladas desde la primera importación.
+
+**Causa**: `marcar_duplicadas` recalcula las marcas **desde cero sobre toda
+la base** y devuelve *todas* las fusiones, no las que ha provocado la
+llamada. La ruta `/importar` enseñaba ese `len()` como si fuera el resultado
+de lo que acababas de subir.
+
+**Decisión**: el aviso se calcula por diferencia. `dedup.ocultas(conn)` da
+los ids marcados en un momento dado, y `/importar` compara el antes y el
+después de recalcular; se cuenta lo que ha quedado oculto por esta tanda.
+
+**Por qué comparar ids ocultos y no las fusiones devueltas**: cuando lo que
+subes gana un grupo que ya estaba fusionado, los pares cambian enteros —de
+`A→B` a `A→C` y `B→C`— y contar pares diría 2 cuando solo hay una carrera
+más escondida. Contar ids ocultos da 1, que es lo que dice el texto.
+
+**Lo que no se toca**: `marcar_duplicadas` sigue devolviendo todas las
+fusiones y sigue recalculando desde cero. Recalcular entero es lo correcto
+—una carrera nueva puede ganarle a una fusión vieja— y su valor de retorno
+lo usan los tests para comprobar precisamente eso.
+
+---
+
+## 2026-09-10 — La importación dice qué ha sido de cada carrera
+
+Supersede a la anterior, "El aviso de duplicadas cuenta la tanda, no la
+base", que no llegó a producción: se quedó sin subir.
+
+**Contexto**: al subir el `.fit` del 10 de septiembre la pantalla decía "1
+carrera importada" y, debajo, "206 duplicadas entre fuentes, ocultas". La
+importación había ido bien —5.020 m, 29:45, sin chocar con nada— y 206 era el
+total de versiones ocultas de toda la base, 522 filas. El arreglo del día 7
+dejaba el número bien contado, pero el fallo era el mensaje: "duplicadas
+entre fuentes, ocultas" es jerga de la deduplicación, y "1 carrera importada"
+no dice cuál.
+
+**Opciones consideradas**:
+- El aviso contando solo la tanda, que era el arreglo del día 7. Correcto,
+  pero sigue sin decir qué carrera se ha subido ni qué ha sido de ella.
+- Una línea por fichero con la carrera que traía y lo que ha pasado con
+  ella, que es lo que uno se pregunta al subir algo.
+
+**Decisión**: una línea por fichero, en palabras:
+
+- *Importada: 10 sep 2026, 5.02 km.*, con enlace a la carrera.
+- *Importada: 2 sep 2026, 8.65 km. Ya la tenías de Huawei: se juntan en una
+  sola carrera.* cuando otra versión de la misma carrera ya estaba. No se
+  dice cuál gana: se ve una sola y sus campos se fusionan (2026-09-06).
+- *Ya estaba importada: …* cuando el id ya existía, o sea el mismo fichero
+  otra vez.
+- *No se ha importado: motivo.*, y *No se ha importado nada: el fichero no
+  trae ninguna carrera.*
+- Un fichero con varias carreras —los exports de My Run Stats y de Huawei—
+  dice cuántas trae, entre qué fechas y cuántas son nuevas.
+
+Desaparece el recuento de ocultas.
+
+**Cómo se calcula**: los importadores devuelven las carreras que han escrito
+en vez de cuántas. La ruta apunta los ids que había antes de la tanda y, con
+las duplicadas ya recalculadas, mira a qué grupo ha ido a parar cada carrera:
+si otra versión del mismo grupo ya estaba —en la base o en un fichero
+anterior de la tanda—, "ya la tenías". Ir en orden importa: dos versiones
+nuevas de una carrera subidas a la vez son una nueva y otra que se junta, no
+dos nuevas, y la segunda copia de una actividad de Huawei, que viene tres
+veces en el export, no cuenta como nueva.
+
+**Consecuencia**: `importar()` cambia de contrato en los cinco importadores:
+devuelve `list[Carrera]`. Donde hacía falta el número, ahora es un `len()`.
+
+---
+
+## 2026-09-10 — El TCX de Nike se reconoce por su firma, como el de Huawei
+
+**Contexto**: al subir el TCX que exporta Zepp —el que acompaña al `.fit` del
+Amazfit— la web decía "no parece un TCX de Nike (falta la extension nax)".
+Cierto, pero despista: el fichero no tiene nada que ver con Nike. Todo TCX
+que no fuera de Huawei se daba por de Nike, y era el importador de Nike quien
+lo rechazaba con su propio motivo.
+
+**Decisión**: `nike_tcx.parece_nike` mira si el fichero declara la extensión
+`nax`, igual que `huawei_tcx.parece_huawei` mira el `creator="Health"`, y la
+web decide con las dos antes de parsear. Si no es de ninguno, lo dice: "no es
+un TCX de Nike ni de Huawei, que son los que se leen; si es del Amazfit, sube
+el .fit".
+
+**Datos**: los 269 TCX del export de Nike y las cuatro muestras de
+`data/nike` declaran `nax` en la raíz, todos en el byte 361, y ninguno lleva
+`creator="Health"`. Ni los cinco TCX de Huawei ni el de Zepp mencionan `nax`.
+El de Zepp es un TCX de Garmin sin `creator`: su única firma es un
+`<Creator>` con "Amazfit" al final del fichero, a 1,7 MB del principio. Por
+eso no se intenta reconocer a Zepp; se reconoce lo que sí se lee.
+
+**El aviso del `.fit`**: Zepp exporta cada carrera en los dos formatos, y del
+Amazfit el que se lee es el `.fit`. Con un TCX de otro reloj el aviso sobra,
+pero hoy no hay otro reloj.

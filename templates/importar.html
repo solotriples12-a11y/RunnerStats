@@ -7,31 +7,49 @@
 </header>
 
 <form class="upload" method="post" enctype="multipart/form-data">
-    <input type="file" name="ficheros" multiple accept=".json,.fit">
+    <input type="file" name="ficheros" multiple accept=".json,.fit,.tcx">
     <button type="submit">Importar</button>
 </form>
 
+{% if aviso %}
+<section class="resultados">
+    <div class="resultado error"><span class="detalle">{{ aviso }}</span></div>
+</section>
+{% endif %}
+
 {% if resultados %}
 <section class="resultados">
-    {% for nombre, importadas, error in resultados %}
-    <div class="resultado{% if error %} error{% endif %}">
-        {% if nombre %}<span class="fichero">{{ nombre }}</span>{% endif %}
+    {% for r in resultados %}
+    <div class="resultado{% if not r.carreras %} error{% endif %}">
+        <span class="fichero">{{ r.nombre }}</span>
         <span class="detalle">
-            {%- if error %}{{ error }}{% else %}{{ importadas }} carrera{{ 's' if importadas != 1 }} importada{{ 's' if importadas != 1 }}{% endif -%}
+            {%- if r.error -%}
+                No se ha importado: {{ r.error }}.
+            {%- elif not r.carreras -%}
+                No se ha importado nada: el fichero no trae ninguna carrera.
+            {%- elif r.carreras | length == 1 -%}
+                {%- set c = r.carreras[0] -%}
+                {{ "Ya estaba importada" if c.estado == "repetida" else "Importada" }}:
+                <a href="{{ url_for('carrera', carrera_id=c.enlace) }}">{{ c.fecha | fecha }}, {{ c.metros | km }} km</a>.
+                {%- if c.estado == "junta" %} Ya la tenías {{ c.con }}: se juntan en una sola carrera.{% endif %}
+            {%- else -%}
+                {%- set fechas = r.carreras | map(attribute="fecha") | list -%}
+                {%- set nuevas = r.carreras | selectattr("estado", "equalto", "nueva") | list | length -%}
+                Importadas {{ fechas | length }} carreras, del {{ fechas | min | fecha }} al {{ fechas | max | fecha }}:
+                {%- if nuevas == fechas | length %} todas nuevas
+                {%- elif nuevas == 0 %} ya las tenías todas
+                {%- else %} {{ nuevas }} nueva{{ 's' if nuevas != 1 }} y {{ fechas | length - nuevas }} que ya tenías
+                {%- endif %}.
+            {%- endif -%}
         </span>
     </div>
     {% endfor %}
 </section>
-{% if fusiones %}
-<p class="sub">
-    {{ fusiones }} duplicada{{ 's' if fusiones != 1 }} entre fuentes, oculta{{ 's' if fusiones != 1 }}.
-</p>
-{% endif %}
 {% endif %}
 
 <footer class="note">
-    <code>.json</code> de My Run Stats · <code>.fit</code> del Amazfit ·
-    <code>.tcx</code> de Nike. Máximo 64 MB por tanda.
+    <code>.json</code> de My Run Stats y Huawei · <code>.fit</code> del Amazfit ·
+    <code>.tcx</code> de Nike y Huawei. Máximo 64 MB por tanda.
     <a href="{{ url_for('index') }}">Volver a las carreras</a>
 </footer>
 {% endblock %}

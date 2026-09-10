@@ -95,7 +95,7 @@ def test_los_huecos_del_sensor_quedan_a_none(fit_real):
 
 def test_importa_a_sqlite_con_sus_muestreos(tmp_path, fit_real):
     conn = db.conectar(tmp_path / "fit.db")
-    assert fit.importar(conn, str(fit_real)) == 1
+    assert len(fit.importar(conn, str(fit_real))) == 1
 
     carrera = conn.execute("SELECT * FROM carrera").fetchone()
     assert carrera["fuente"] == "amazfit_fit"

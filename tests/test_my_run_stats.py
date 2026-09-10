@@ -41,7 +41,7 @@ def test_ritmo_se_deriva_no_se_almacena(export_sintetico):
 
 def test_importar_escribe_en_sqlite(tmp_path, export_sintetico):
     conn = db.conectar(tmp_path / "test.db")
-    assert mrs.importar(conn, export_sintetico) == 2
+    assert len(mrs.importar(conn, export_sintetico)) == 2
 
     filas = conn.execute(
         "SELECT * FROM carrera ORDER BY fecha_inicio_unix DESC"

@@ -1149,3 +1149,89 @@ ponen al día los otros cuatro.
 
 **Cifras verificadas contra producción**, no copiadas: 313 carreras visibles
 de 519 filas, 1.637 km, 305.448 muestreos, y el reparto por fuente.
+
+---
+
+## 2026-09-07 — El aviso de duplicadas contaba toda la base
+
+**Qué**: importar un `.fit` de una carrera que no chocaba con nada sacaba
+"206 duplicadas entre fuentes, ocultas". 206 es el total de producción —519
+filas, 313 visibles—, no lo que había hecho esa importación.
+
+**Causa**: `marcar_duplicadas` recalcula toda la base y devuelve todas las
+fusiones; `/importar` enseñaba ese `len()` como si fuera lo recién subido.
+
+**Cambio**: `dedup.ocultas(conn)` devuelve los ids marcados ahora mismo, y la
+ruta compara el antes y el después de recalcular. `marcar_duplicadas` no se
+toca: sigue recalculando desde cero, que es lo correcto.
+
+**Verificado**:
+
+- Test nuevo en `tests/test_web.py`, por la ruta web, con tres pasos: una
+  carrera que choca (avisa de 1), otra de un día suelto (no avisa) y una
+  tercera que gana un grupo ya fusionado (avisa de 1, no de 2).
+- Con datos reales: base con las cuatro fuentes y 8 fusiones previas; se sube
+  el `.fit` del 6 de septiembre por `/importar` y ya no sale el aviso.
+- Comparado paso a paso contra el conteo antiguo: donde antes decía 1 en el
+  día suelto ahora dice 0, y donde decía 2 dice 1.
+- Los 158 tests siguen pasando.
+
+---
+
+## 2026-09-10 — La importación dice qué ha pasado con cada fichero
+
+**Qué**: la pantalla de importar pasa de "1 carrera importada" más "206
+duplicadas entre fuentes, ocultas" a una línea por fichero, en palabras:
+*Importada: 10 sep 2026, 5.02 km.*, *Ya estaba importada*, *Ya la tenías de
+Huawei: se juntan en una sola carrera* o *No se ha importado: motivo*. El
+arreglo del día 7, que contaba las ocultas de la tanda, no llegó a subirse y
+queda sustituido (`DECISIONS.md`, 2026-09-10).
+
+- Los cinco importadores devuelven las carreras escritas en vez de cuántas.
+- `/importar` compara los ids de antes de la tanda con el estado tras
+  recalcular las duplicadas. `dedup.ocultas`, del arreglo del 7, desaparece.
+
+**Verificado**:
+
+- En producción, el `.fit` del 10 se había importado bien: 5.020 m, 29:45,
+  visible y sin chocar con nada. El 206 eran todas las ocultas de la base,
+  sobre 522 filas.
+- Réplica local con los exports reales, 520 filas y 205 ocultas. Subir ese
+  mismo `.fit` por `/importar` da "Importada: 10 sep 2026, 5.02 km." y ni una
+  palabra de duplicadas; subirlo otra vez, "Ya estaba importada"; el del 2 de
+  septiembre, "Ya la tenías de Huawei", con el enlace a la versión del
+  Amazfit, que es la que gana; el TCX de Zepp, "No se ha importado" con su
+  motivo; y el export de My Run Stats, "207 carreras… ya las tenías todas".
+- En el navegador, a 1280 y a 375 px: ninguna línea desborda ni se pisa con
+  el nombre del fichero, medido con `getBoundingClientRect`.
+- 160 tests. Tres nuevos por la ruta web: la captura —base con carreras ya
+  juntadas y una subida que no choca con nada—, la misma carrera por dos
+  fuentes, y una tanda con la misma carrera dos veces y un fichero vacío.
+
+---
+
+## 2026-09-10 — Los dos fallos de la pantalla de importar
+
+**Qué**:
+
+- El selector de ficheros acepta `.tcx`. Al entrar Nike (`01200a5`) la ruta
+  aprendió a leer `.tcx`, pero el `accept` del selector siguió en
+  `.json,.fit`. El pie nombra ahora también a Huawei.
+- Los motivos de error llevan tildes: "XML inválido", "no es un JSON
+  válido", "sin extensión", "ningún Lap", "duración", "extensión nax".
+- Un TCX que no es de Nike ni de Huawei —el de Zepp— ya no sale como "no
+  parece un TCX de Nike": dice que no es de ninguno de los dos y que del
+  Amazfit se sube el `.fit`. Para eso Nike se reconoce por su firma antes de
+  parsear, como Huawei (`DECISIONS.md`, 2026-09-10).
+
+**Verificado**:
+
+- La firma, contra los ficheros reales: la llevan los 269 TCX de Nike y las
+  cuatro muestras; no la llevan los cinco de Huawei ni el de Zepp.
+- Por `/importar`, en una sola tanda: el TCX real de Zepp da el mensaje
+  nuevo; un TCX de Nike y otro de Huawei entran; un JSON roto, un `.gpx` y
+  un fichero sin extensión dan su motivo con tildes.
+- En el navegador, a 784 y a 375 px: el selector declara `.json,.fit,.tcx`,
+  y ninguna línea desborda ni se pisa con el nombre del fichero.
+- 163 tests, tres nuevos: el selector acepta todo lo que la ruta lee, el TCX
+  de Nike entra por la web, y `parece_nike` con las muestras reales.

@@ -146,7 +146,7 @@ def leer(origen) -> list[tuple[Carrera, list[Muestreo]]]:
     try:
         actividades = json.loads(_CLAVE_SUELTA.sub(r'\1"\2":', texto))
     except json.JSONDecodeError as e:
-        return _falla(f"JSON invalido ({e})")
+        return _falla(f"JSON inválido ({e})")
     if not isinstance(actividades, list):
         return _falla("se esperaba una lista de actividades")
 
@@ -167,7 +167,7 @@ def _falla(motivo: str):
     raise HuaweiInvalido(motivo)
 
 
-def importar(conn: sqlite3.Connection, origen) -> int:
+def importar(conn: sqlite3.Connection, origen) -> list[Carrera]:
     carreras = leer(origen)
     ahora = int(time.time())
 
@@ -200,4 +200,4 @@ def importar(conn: sqlite3.Connection, origen) -> int:
               m.altitud_metros, m.latitud, m.longitud) for m in muestreos],
         )
     conn.commit()
-    return len(carreras)
+    return [c for c, _ in carreras]

@@ -58,7 +58,7 @@ def leer(origen) -> tuple[Carrera, list[Muestreo]]:
 
     lap = raiz.find(f"{T}Activities/{T}Activity/{T}Lap")
     if lap is None:
-        raise TcxInvalido("el TCX no tiene ningun Lap")
+        raise TcxInvalido("el TCX no tiene ningún Lap")
     inicio_iso = lap.get("StartTime")
     if not inicio_iso:
         raise TcxInvalido("el TCX no tiene instante de inicio")
@@ -80,7 +80,7 @@ def leer(origen) -> tuple[Carrera, list[Muestreo]]:
     distancia = _num(lap, f"{T}DistanceMeters")
     duracion = _num(lap, f"{T}TotalTimeSeconds")
     if not distancia or not duracion:
-        raise TcxInvalido("el TCX no declara distancia o duracion")
+        raise TcxInvalido("el TCX no declara distancia o duración")
 
     carrera = Carrera(
         id=f"{FUENTE}:{inicio}",
@@ -95,7 +95,7 @@ def leer(origen) -> tuple[Carrera, list[Muestreo]]:
     return carrera, muestreos
 
 
-def importar(conn: sqlite3.Connection, origen) -> int:
+def importar(conn: sqlite3.Connection, origen) -> list[Carrera]:
     carrera, muestreos = leer(origen)
     ahora = int(time.time())
 
@@ -127,4 +127,4 @@ def importar(conn: sqlite3.Connection, origen) -> int:
           m.altitud_metros, m.latitud, m.longitud) for m in muestreos],
     )
     conn.commit()
-    return 1
+    return [carrera]

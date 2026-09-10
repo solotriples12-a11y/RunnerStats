@@ -2,6 +2,8 @@
 de salud y no tiene ninguna parte pública."""
 
 import io
+import json
+import re
 
 import pytest
 
@@ -126,6 +128,13 @@ def _subir(cliente, contenido: bytes, nombre: str):
     )
 
 
+def _lineas(html: str) -> list[str]:
+    """Cada línea de resultado de la importación tal como se lee: sin
+    etiquetas y con los espacios de la plantilla colapsados."""
+    return [" ".join(re.sub(r"<[^>]+>", "", b).split())
+            for b in re.findall(r'<span class="detalle">(.*?)</span>', html, re.S)]
+
+
 def test_base_vacia_no_revienta(cliente_vacio):
     """Sin carreras los agregados de SQL son NULL y los filtros recibirian
     None. La portada tiene que seguir rindiendo."""
@@ -145,10 +154,19 @@ def test_formulario_se_muestra(cliente):
     assert 'name="ficheros"' in r.get_data(as_text=True)
 
 
+def test_el_selector_deja_elegir_todo_lo_que_la_web_lee(cliente):
+    """La web lee .tcx desde que entró Nike, pero el selector se quedó en
+    .json y .fit y el diálogo de ficheros no ofrecía los .tcx."""
+    html = cliente.get("/importar").get_data(as_text=True)
+    accept = re.search(r'accept="([^"]+)"', html).group(1)
+    assert sorted(accept.split(",")) == [".fit", ".json", ".tcx"]
+
+
 def test_subir_json_importa(cliente_vacio, export_sintetico):
     r = _subir(cliente_vacio, export_sintetico.read_bytes(), "export.json")
     assert r.status_code == 200
-    assert "2 carreras importadas" in r.get_data(as_text=True)
+    assert _lineas(r.get_data(as_text=True)) == [
+        "Importadas 2 carreras, del 20 ago 2024 al 4 may 2026: todas nuevas."]
     # Y ya se ven en la portada.
     assert "5.03 km" in cliente_vacio.get(
         "/").get_data(as_text=True)
@@ -157,7 +175,7 @@ def test_subir_json_importa(cliente_vacio, export_sintetico):
 def test_subir_fit_corrupto_da_error_y_no_entra_nada(cliente_vacio):
     r = _subir(cliente_vacio, b"\x0e\x10esto no es un fit", "carrera.fit")
     assert r.status_code == 200
-    assert "no se pudo leer el .fit" in r.get_data(as_text=True)
+    assert "No se ha importado: no se pudo leer el .fit" in r.get_data(as_text=True)
     assert "Todavía no hay ninguna carrera" in cliente_vacio.get(
         "/").get_data(as_text=True)
 
@@ -165,7 +183,7 @@ def test_subir_fit_corrupto_da_error_y_no_entra_nada(cliente_vacio):
 def test_subir_fit_real_importa_con_muestreos(cliente_vacio, fit_real):
     r = _subir(cliente_vacio, fit_real.read_bytes(), fit_real.name)
     assert r.status_code == 200
-    assert "1 carrera importada" in r.get_data(as_text=True)
+    assert _lineas(r.get_data(as_text=True)) == ["Importada: 2 sep 2026, 8.65 km."]
 
     # Y en la portada sale con la FC media, que solo sale de los muestreos.
     html = cliente_vacio.get("/").get_data(as_text=True)
@@ -175,7 +193,7 @@ def test_subir_fit_real_importa_con_muestreos(cliente_vacio, fit_real):
 def test_json_corrupto_no_da_500(cliente_vacio):
     r = _subir(cliente_vacio, b"{esto no es json", "roto.json")
     assert r.status_code == 200
-    assert "no es un JSON valido" in r.get_data(as_text=True)
+    assert "no es un JSON válido" in r.get_data(as_text=True)
 
 
 def test_json_con_otra_forma_no_da_500(cliente_vacio):
@@ -190,16 +208,92 @@ def test_extension_no_soportada(cliente_vacio):
 
 
 def test_subir_tcx_que_no_es_de_nike_da_error_claro(cliente_vacio):
-    r = _subir(cliente_vacio, b"<x/>", "otro.tcx")
-    assert r.status_code == 200
-    assert "XML invalido" in r.get_data(as_text=True) or \
-           "no parece un TCX de Nike" in r.get_data(as_text=True)
+    """El TCX que exporta Zepp está bien formado pero no es de Nike ni de
+    Huawei, y salía como "no parece un TCX de Nike (falta la extension nax)"."""
+    zepp = (b'<?xml version="1.0"?><TrainingCenterDatabase xmlns="http://'
+            b'www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"><Activities>'
+            b'<Activity Sport="Running"><Id>2026-09-02T06:06:24Z</Id></Activity>'
+            b'</Activities></TrainingCenterDatabase>')
+    for contenido in (zepp, b"<x/>"):
+        r = _subir(cliente_vacio, contenido, "otro.tcx")
+        assert r.status_code == 200
+        assert _lineas(r.get_data(as_text=True)) == [
+            "No se ha importado: no es un TCX de Nike ni de Huawei, que son los "
+            "que se leen; si es del Amazfit, sube el .fit."]
 
 
 def test_sin_seleccionar_nada(cliente):
     r = cliente.post("/importar",
                      data={}, content_type="multipart/form-data")
     assert "no has seleccionado" in r.get_data(as_text=True)
+
+
+def _mrs_bytes(fecha: str, km: float, ident: str) -> bytes:
+    """Un export de My Run Stats de una sola carrera, para subir por la web."""
+    return json.dumps({
+        "app": "My Run Stats", "version": 1, "count": 1,
+        "runs": [{"id": ident, "date": fecha, "duration": "00:25:00",
+                  "distance": km, "pace": "5:00", "km_splits": None}],
+    }).encode()
+
+
+def test_subir_una_carrera_dice_cual_y_nada_de_duplicadas(cliente_vacio):
+    """El caso de la captura del 10 de septiembre: la base ya tenía carreras
+    juntadas de importaciones anteriores, y al subir un .fit que no chocaba
+    con nada salía "206 duplicadas entre fuentes, ocultas". Era el total de la
+    base y no decía nada de lo subido."""
+    _subir(cliente_vacio, _mrs_bytes("2026-05-04", 5.03, "a"), "a.json")
+    _subir(cliente_vacio, _mrs_bytes("2026-05-04", 5.05, "b"), "b.json")
+    html = _subir(cliente_vacio, _mrs_bytes("2026-06-01", 7.00, "c"),
+                  "c.json").get_data(as_text=True)
+    assert _lineas(html) == ["Importada: 1 jun 2026, 7.00 km."]
+    assert 'href="/carrera/my_run_stats:c"' in html
+    assert "duplicada" not in html
+
+
+def test_la_que_ya_tenias_de_otra_fuente_se_junta_y_se_dice(cliente_vacio,
+                                                           huawei_sintetico):
+    """El Huawei sintético trae una carrera el 25 de marzo y otra de cinta el
+    26. La de My Run Stats del 25 es la misma carrera apuntada en otra app."""
+    html = _subir(cliente_vacio, huawei_sintetico.read_bytes(),
+                  "huawei.json").get_data(as_text=True)
+    assert _lineas(html) == [
+        "Importadas 2 carreras, del 25 mar 2026 al 26 mar 2026: todas nuevas."]
+
+    html = _subir(cliente_vacio, _mrs_bytes("2026-03-25", 5.00, "a"),
+                  "a.json").get_data(as_text=True)
+    assert _lineas(html) == ["Importada: 25 mar 2026, 5.00 km. Ya la tenías "
+                             "de Huawei: se juntan en una sola carrera."]
+    # El enlace lleva a la versión que se ve, la de Huawei, que trae muestreos.
+    assert 'href="/carrera/huawei_json:1774422857"' in html
+
+    html = _subir(cliente_vacio, _mrs_bytes("2026-03-25", 5.00, "a"),
+                  "a.json").get_data(as_text=True)
+    assert _lineas(html) == ["Ya estaba importada: 25 mar 2026, 5.00 km."]
+
+    html = _subir(cliente_vacio, huawei_sintetico.read_bytes(),
+                  "huawei.json").get_data(as_text=True)
+    assert _lineas(html) == ["Importadas 2 carreras, del 25 mar 2026 al "
+                             "26 mar 2026: ya las tenías todas."]
+
+
+def test_una_tanda_cuenta_cada_carrera_una_vez(cliente_vacio, export_sintetico):
+    """El export de Huawei trae cada actividad tres veces repartida entre
+    ficheros: la segunda copia no es una carrera nueva. Y la del 4 de mayo del
+    sintético de My Run Stats es la misma que la del primer fichero."""
+    a = _mrs_bytes("2026-05-04", 5.03, "a")
+    r = cliente_vacio.post("/importar", data={"ficheros": [
+        (io.BytesIO(a), "a.json"),
+        (io.BytesIO(a), "copia.json"),
+        (io.BytesIO(export_sintetico.read_bytes()), "export.json"),
+        (io.BytesIO(b"[]"), "vacio.json"),
+    ]}, content_type="multipart/form-data")
+    assert _lineas(r.get_data(as_text=True)) == [
+        "Importada: 4 may 2026, 5.03 km.",
+        "Ya estaba importada: 4 may 2026, 5.03 km.",
+        "Importadas 2 carreras, del 20 ago 2024 al 4 may 2026: 1 nueva y 1 que ya tenías.",
+        "No se ha importado nada: el fichero no trae ninguna carrera.",
+    ]
 
 
 def test_la_lista_enlaza_al_detalle(cliente):
@@ -420,12 +514,19 @@ def test_la_web_distingue_el_tcx_de_huawei_del_de_nike(cliente_vacio, huawei_dir
     if not tcx:
         pytest.skip("no hay TCX de Huawei en data/huawei")
     r = _subir(cliente_vacio, tcx[0].read_bytes(), "carrera de prueba.tcx")
-    assert "1 carrera importada" in r.get_data(as_text=True)
+    assert _lineas(r.get_data(as_text=True))[0].startswith("Importada: ")
 
     conn = db.conectar(webapp.RUTA_DB)
     fuentes = [x[0] for x in conn.execute("SELECT fuente FROM carrera")]
     conn.close()
     assert fuentes == ["huawei_tcx"]
+
+
+def test_la_web_reconoce_el_tcx_de_nike(cliente_vacio, nike_dir):
+    """Se decide por la firma antes de parsear, como con el de Huawei."""
+    r = _subir(cliente_vacio, (nike_dir / "con-fc-y-gps.tcx").read_bytes(),
+               "nike.tcx")
+    assert _lineas(r.get_data(as_text=True))[0].startswith("Importada: ")
 
 
 def test_la_carrera_del_fit_enseña_esfuerzo_potencia_y_contacto(cliente_vacio, fit_real):
