@@ -2,7 +2,7 @@
 
 Append-only. No reescribir entradas anteriores; supersedirlas con una nueva.
 
-Son 45 entradas por orden cronológico. Las que más se consultan, por tema:
+Son 46 entradas por orden cronológico. Las que más se consultan, por tema:
 
 - **Formatos y sus trampas**: el `DistanceMeters` de Nike es un incremento ·
   la duración del `.fit` es el cronómetro y no el reloj de pared · el JSON de
@@ -16,7 +16,8 @@ Son 45 entradas por orden cronológico. Las que más se consultan, por tema:
   las versiones de una carrera se fusionan campo a campo · la importación
   dice qué ha sido de cada carrera.
 - **Interfaz**: las gráficas obedecen al filtro de año · las barras son
-  enlaces · tooltips propios · qué se enseña del `.fit` y qué no.
+  enlaces · tooltips propios · qué se enseña del `.fit` y qué no · la
+  evolución de la distancia empieza en cero.
 
 ---
 
@@ -1304,3 +1305,31 @@ eso no se intenta reconocer a Zepp; se reconoce lo que sí se lee.
 **El aviso del `.fit`**: Zepp exporta cada carrera en los dos formatos, y del
 Amazfit el que se lee es el `.fit`. Con un TCX de otro reloj el aviso sobra,
 pero hoy no hay otro reloj.
+
+---
+
+## 2026-09-11 — Evolución de la distancia: eje desde cero y sin recortar
+
+**Contexto**: gráfica nueva en la portada, justo antes de la del ritmo y con
+su misma forma: un punto gris por carrera y la mediana por año —por mes con
+un año elegido— en el acento, partida en los huecos. La geometría la
+comparten (`graficas._nube`); cambian la escala y qué carreras entran.
+
+**Decisión**:
+
+- **El eje empieza en cero.** La distancia es una magnitud, y con el cero se
+  lee la proporción: 10 km a doble altura que 5. El ritmo no se lee desde
+  cero, y su eje va del más rápido al percentil 98.
+- **No se recorta el extremo.** En el ritmo, el 2 % más lento son paseos que
+  aplastan la escala. En la distancia, el 2 % más largo son las carreras que
+  más interesa ver: en producción el percentil 98 es 10,5 km y la más larga
+  15,0. Recortar dejaría siete carreras pegadas al techo —la de 10,5 y las
+  seis que la pasan— como si midieran lo mismo.
+- **Entran las de menos de un kilómetro**, que en producción son dos, de 0,5
+  y 0,8 km. El ritmo las deja fuera porque en 500 m no hay ritmo que leer; la
+  distancia sí es un dato, y las tarjetas y la gráfica de kilómetros ya las
+  cuentan.
+
+**Revisar si** entra una carrera mucho más larga que el resto, una maratón:
+con el eje hasta 42 km, el grueso de las carreras, en torno a 5, quedaría
+aplastado abajo.

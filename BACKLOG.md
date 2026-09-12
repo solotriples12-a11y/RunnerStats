@@ -19,6 +19,13 @@ Nada comprometido. Lo que hay sobre la mesa, por orden de lo que aportaría:
 4. **Récord de desnivel positivo por kilómetro.** Barato, pero solo cuatro
    carreras traen desnivel: esperar a tener más `.fit`.
 
+## Visto al pasar
+
+- **Las etiquetas de los ejes no se leen en el móvil.** Miden 9 unidades en
+  un lienzo de 640, y en una pantalla de 375 px el SVG se escala al 54 %:
+  salen a 4,8 px. Pasa en todas las gráficas, las de la portada y las del
+  detalle. Medido el 2026-09-11 al añadir la evolución de la distancia.
+
 ## Lo que el `.fit` trae y no se usa
 
 Están importados los tres `.fit` y la vista de detalle ya enseña zonas de FC,

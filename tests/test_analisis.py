@@ -193,6 +193,35 @@ def test_un_mes_suelto_no_parte_la_linea_de_medianas(conn_real):
     assert len(g15["segmentos"]) == 2
 
 
+def test_la_distancia_cuenta_tambien_las_de_menos_de_un_km(tmp_path):
+    """El ritmo las deja fuera porque en 500 m no hay un ritmo que leer. La
+    distancia sí es un dato, y las tarjetas y la gráfica de kilómetros ya las
+    cuentan."""
+    c = db.conectar(tmp_path / "d.db")
+    c.executemany(
+        "INSERT INTO carrera (id, fecha_inicio_unix, distancia_metros,"
+        " duracion_segundos, fuente, importado_en) VALUES (?,?,?,?,?,0)",
+        [("a", 1_700_000_000, 500, 240, "my_run_stats"),
+         ("b", 1_700_100_000, 5000, 1500, "my_run_stats")])
+    assert len(analisis.ritmos(c)) == 1
+    assert [d["km"] for d in analisis.distancias(c)] == [0.5, 5.0]
+
+
+@pytest.mark.parametrize("anio", [None, 2013])
+def test_el_eje_de_la_distancia_va_de_cero_a_la_mas_larga(conn_real, anio):
+    """El del ritmo recorta el 2 % extremo, que son paseos. Aquí ese extremo
+    son las carreras más largas: salen donde tocan, a escala desde cero."""
+    from runnerstats import graficas
+    g = graficas.dispersion_distancia(analisis.distancias(conn_real, anio), anio)
+    base, techo = graficas.ALTO - graficas.PAD_INF, graficas.PAD_SUP
+    assert g["rejilla"][0] == {"y": base, "etiqueta": "0 km"}
+
+    larga = max(g["puntos"], key=lambda p: p["km"])
+    assert larga["cy"] == techo
+    for p in g["puntos"]:
+        assert abs((base - p["cy"]) - (base - techo) * p["km"] / larga["km"]) <= 0.1
+
+
 def test_records_rodantes_salen_de_dentro_de_la_carrera(conn_real, nike_dir):
     """El mejor 5K no exige que la carrera midiera 5 km."""
     from runnerstats import detalle

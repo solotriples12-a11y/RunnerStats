@@ -416,6 +416,21 @@ def test_la_evolucion_del_ritmo_solo_pinta_el_año(cliente):
         "/?anio=2026").get_data(as_text=True)
 
 
+def test_la_evolucion_de_la_distancia_va_antes_que_la_del_ritmo(cliente):
+    html = cliente.get("/").get_data(as_text=True)
+    assert html.index("Evolución de la distancia") < html.index("Evolución del ritmo")
+    nube = html.split("Evolución de la distancia")[1].split("</svg>")[0]
+    # Las dos carreras del sintético y la mediana de cada año, cada marca con
+    # su zona de dedo.
+    assert nube.count('class="punto"') == 2 and nube.count('class="nodo"') == 2
+    assert nube.count('class="zona"') == nube.count('class="marca"') == 4
+    assert 'data-tip="2026-05-04 · 5.03 km · 27:55"' in nube
+    assert 'data-tip="Mediana 2024: 3.5 km"' in nube
+    # Con un solo punto en 2026 no hay evolución que dibujar.
+    assert "Evolución de la distancia" not in cliente.get(
+        "/?anio=2026").get_data(as_text=True)
+
+
 def test_las_marcas_llevan_el_dato_encima_y_no_un_title(cliente):
     """El <title> de SVG lo pinta el navegador con un segundo de retardo y en
     tactil no aparece nunca. El dato va en data-tip y lo pinta el JS."""

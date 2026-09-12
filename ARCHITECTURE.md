@@ -168,8 +168,14 @@ entre los dos relojes sobre la misma carrera (1,2 %).
 - `graficas.py` — devuelve geometría; el SVG lo pinta la plantilla. Sin
   librería de gráficas ni CDN: encaja con el "CSS plano" del resto de
   subdominios y evita una dependencia para dos gráficas.
-- Ambas gráficas son de **una sola serie**, así que no llevan leyenda y el
-  color va solo en las marcas; las etiquetas usan tokens de texto.
+- Las tres gráficas de la portada son de **una sola serie**, así que no
+  llevan leyenda y el color va solo en las marcas; las etiquetas usan tokens
+  de texto.
+- **Las dos nubes de evolución**, distancia y ritmo, comparten la forma: un
+  punto gris por carrera y la mediana por año —por mes con un año elegido—
+  en el acento. Cambia la escala: la distancia va de cero a la carrera más
+  larga, sin recortar; el ritmo, del más rápido al percentil 98
+  (`DECISIONS.md`, 2026-09-11).
 - La gráfica de volumen se agrupa por **año, mes, semana (lunes a domingo) o
   carrera**. Con un año elegido no se ofrece agrupar por año —pintaría los
   quince— y el mes pasa a ser la agrupación por defecto. Sin año filtrado las

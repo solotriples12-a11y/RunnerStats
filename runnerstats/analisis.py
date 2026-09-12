@@ -234,6 +234,31 @@ def ritmos(conn: sqlite3.Connection, anio: int | None = None) -> list[dict]:
     ]
 
 
+def distancias(conn: sqlite3.Connection, anio: int | None = None) -> list[dict]:
+    """Una entrada por carrera, para la nube de distancias.
+
+    A diferencia de `ritmos`, entran también las de menos de un kilómetro: en
+    500 m no hay un ritmo que leer, pero la distancia es un dato, y las
+    tarjetas y la gráfica de kilómetros ya las cuentan.
+    """
+    filtro, params = _where(anio)
+    return [
+        dict(r)
+        for r in conn.execute(
+            f"""
+            SELECT fecha_inicio_unix,
+                   distancia_metros,
+                   duracion_segundos,
+                   distancia_metros / 1000.0 AS km
+            FROM carrera
+            WHERE sustituida_por IS NULL {filtro}
+            ORDER BY fecha_inicio_unix
+            """,
+            params,
+        )
+    ]
+
+
 def records_rodantes(conn: sqlite3.Connection, anio: int | None = None) -> list[dict]:
     """Mejor 1K/5K/10K extraído de DENTRO de cualquier carrera.
 

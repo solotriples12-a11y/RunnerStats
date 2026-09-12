@@ -107,32 +107,25 @@ def barras_volumen(datos: list[dict]) -> dict:
     }
 
 
-def dispersion_ritmo(datos: list[dict], anio: int | None = None) -> dict:
-    """Ritmo de cada carrera en el tiempo, con la mediana encima.
+def _nube(datos: list[dict], anio: int | None, campo: str, fy) -> dict:
+    """Lo que comparten las dos nubes de evolución: un punto por carrera y la
+    mediana de `campo` por periodo, unidas por una línea. `fy` lleva cada
+    valor a su altura en el lienzo; la escala la decide cada nube.
 
     Los puntos son contexto (gris) y la mediana es la historia (acento): es
     el patrón de énfasis, no dos series que compitan.
 
     Sin filtro la mediana es anual. Con un año elegido pasa a ser mensual:
-    una sola mediana para todo el año no dibujaria ninguna evolución.
+    una sola mediana para todo el año no dibujaría ninguna evolución.
     """
-    if len(datos) < 2:
-        return {"vacia": True}
-
-    ritmos = [d["ritmo"] for d in datos]
-    # Recorta el 2 % extremo para que un paseo suelto no aplaste la escala.
-    orden = sorted(ritmos)
-    rmin, rmax = orden[0], orden[int(len(orden) * 0.98)]
-
     tmin = min(d["fecha_inicio_unix"] for d in datos)
     tmax = max(d["fecha_inicio_unix"] for d in datos)
     fx = _escala(tmin, tmax, PAD_IZQ, ANCHO - PAD_DER)
-    fy = _escala(rmin, rmax, PAD_SUP, ALTO - PAD_INF)  # más rápido, más arriba
 
     puntos = [{
+        **d,
         "cx": round(fx(d["fecha_inicio_unix"]), 1),
-        "cy": round(fy(min(d["ritmo"], rmax)), 1),
-        "ritmo": d["ritmo"],
+        "cy": round(fy(d[campo]), 1),
         "fecha": datetime.fromtimestamp(d["fecha_inicio_unix"], timezone.utc).date().isoformat(),
         "km": d["distancia_metros"] / 1000,
     } for d in datos]
@@ -148,7 +141,7 @@ def dispersion_ritmo(datos: list[dict], anio: int | None = None) -> dict:
     por_periodo: dict[int, list] = {}
     for d in datos:
         por_periodo.setdefault(periodo(d["fecha_inicio_unix"]), []).append(
-            (d["fecha_inicio_unix"], d["ritmo"]))
+            (d["fecha_inicio_unix"], d[campo]))
 
     medianas = []
     for p in sorted(por_periodo):
@@ -156,9 +149,9 @@ def dispersion_ritmo(datos: list[dict], anio: int | None = None) -> dict:
         med = vals[len(vals) // 2]
         centro = sum(t for t, _ in por_periodo[p]) / len(por_periodo[p])
         medianas.append({
-            "periodo": p, "etiqueta": etiqueta(p), "ritmo": med,
+            "periodo": p, "etiqueta": etiqueta(p), campo: med,
             "x": round(fx(centro), 1),
-            "y": round(fy(min(med, rmax)), 1),
+            "y": round(fy(med), 1),
         })
 
     # Parte la linea en los huecos grandes: unir 2018 con 2020 dibujaria
@@ -191,9 +184,6 @@ def dispersion_ritmo(datos: list[dict], anio: int | None = None) -> dict:
         ejex.append({"x": round(x, 1), "etiqueta": m["etiqueta"]})
     ejex.sort(key=lambda e: e["x"])
 
-    def mmss(s):
-        return f"{int(s) // 60}:{int(s) % 60:02d}"
-
     return {
         "vacia": False,
         "ancho": ANCHO, "alto": ALTO,
@@ -204,12 +194,47 @@ def dispersion_ritmo(datos: list[dict], anio: int | None = None) -> dict:
         ],
         "sueltos": [m for seg in segmentos if len(seg) == 1 for m in seg],
         "medianas": medianas,
-        "rejilla": [
-            {"y": round(fy(r), 1), "etiqueta": mmss(r)}
-            for r in (rmin, (rmin + rmax) / 2, rmax)
-        ],
         "ejex": ejex,
     }
+
+
+def dispersion_ritmo(datos: list[dict], anio: int | None = None) -> dict:
+    """Ritmo de cada carrera en el tiempo, con la mediana encima."""
+    if len(datos) < 2:
+        return {"vacia": True}
+
+    # Recorta el 2 % extremo para que un paseo suelto no aplaste la escala.
+    orden = sorted(d["ritmo"] for d in datos)
+    rmin, rmax = orden[0], orden[int(len(orden) * 0.98)]
+    escala = _escala(rmin, rmax, PAD_SUP, ALTO - PAD_INF)  # más rápido, más arriba
+
+    def fy(r):
+        return escala(min(r, rmax))
+
+    def mmss(s):
+        return f"{int(s) // 60}:{int(s) % 60:02d}"
+
+    return {**_nube(datos, anio, "ritmo", fy),
+            "rejilla": [{"y": round(fy(r), 1), "etiqueta": mmss(r)}
+                        for r in (rmin, (rmin + rmax) / 2, rmax)]}
+
+
+def dispersion_distancia(datos: list[dict], anio: int | None = None) -> dict:
+    """Distancia de cada carrera en el tiempo, con la mediana encima.
+
+    Dos diferencias con la del ritmo. El eje empieza en cero, porque la
+    distancia es una magnitud: con el cero se lee que 10 km son el doble que
+    5. Y no se recorta el extremo: en el ritmo son paseos que aplastan la
+    escala; aquí son las carreras más largas, que es justo lo que hay que ver.
+    """
+    if len(datos) < 2:
+        return {"vacia": True}
+
+    kmax = max(d["km"] for d in datos)
+    fy = _escala(0, kmax, ALTO - PAD_INF, PAD_SUP)
+    return {**_nube(datos, anio, "km", fy),
+            "rejilla": [{"y": round(fy(t), 1), "etiqueta": f"{int(t)} km"}
+                        for t in _ticks(kmax)]}
 
 
 # Rampa secuencial de la marca, de la zona 1 a la 5: las zonas no son

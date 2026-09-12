@@ -1235,3 +1235,33 @@ queda sustituido (`DECISIONS.md`, 2026-09-10).
   y ninguna línea desborda ni se pisa con el nombre del fichero.
 - 163 tests, tres nuevos: el selector acepta todo lo que la ruta lee, el TCX
   de Nike entra por la web, y `parece_nike` con las muestras reales.
+
+---
+
+## 2026-09-11 — Evolución de la distancia
+
+**Qué**: gráfica nueva en la portada, antes de la del ritmo y con su misma
+forma: un punto por carrera y la mediana por año, o por mes con un año
+elegido. El eje va de cero a la carrera más larga, sin recortar, y entran las
+de menos de un kilómetro (`DECISIONS.md`, 2026-09-11).
+
+- `graficas._nube` se queda con lo que comparten las dos nubes: puntos,
+  medianas, la línea partida en los huecos y el eje X. `dispersion_ritmo` y
+  la nueva `dispersion_distancia` solo ponen su escala y su rejilla.
+- `analisis.distancias`, como `ritmos` pero sin el filtro del kilómetro.
+
+**Verificado**:
+
+- Réplica local con los datos reales, 316 carreras visibles como producción:
+  316 puntos en la de distancia y 314 en la del ritmo —las dos de menos de un
+  kilómetro—, rejilla de 0 a 15 km y medianas que van de 7,0 km en 2012 a
+  3,0 en 2016, 5,0 desde 2019 y 6,0 en 2024. Con 2026 elegido, medianas
+  mensuales y rejilla de 0 a 12 km.
+- En el navegador, a 784 y a 375 px: ninguna etiqueta se pisa, medido con
+  `getBBox`, y nada se sale del lienzo. Con el ratón sobre la más larga, el
+  tooltip dice "2013-04-22 · 15.01 km · 1:13:56".
+- La del ritmo no cambia: sus tests pasan sin tocarlos.
+- 167 tests, cuatro casos nuevos: las de menos de un kilómetro entran en la
+  distancia y no en el ritmo; el eje va de cero a la más larga y es
+  proporcional, con y sin año; y en la portada la de distancia va antes, con
+  su zona de dedo en cada marca.

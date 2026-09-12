@@ -389,6 +389,7 @@ def index():
         agr=agr,
         recortado=bool(datos and datos[0]["recortado"]),
         volumen=graficas.barras_volumen(datos),
+        distancia=graficas.dispersion_distancia(analisis.distancias(conn, anio), anio),
         evolucion=graficas.dispersion_ritmo(analisis.ritmos(conn, anio), anio),
     )
 

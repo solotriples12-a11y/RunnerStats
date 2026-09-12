@@ -103,6 +103,37 @@
 </section>
 {% endif %}
 
+{% if not distancia.vacia %}
+<section class="bloque">
+    <h2>Evolución de la distancia</h2>
+    <svg class="gr" viewBox="0 0 {{ distancia.ancho }} {{ distancia.alto }}"
+         role="img" aria-label="Distancia de cada carrera a lo largo del tiempo">
+        {% for g in distancia.rejilla %}
+        <line class="rejilla" x1="34" y1="{{ g.y }}" x2="{{ distancia.ancho - 8 }}" y2="{{ g.y }}"/>
+        <text class="ejeY" x="28" y="{{ g.y + 3 }}">{{ g.etiqueta }}</text>
+        {% endfor %}
+        {% for p in distancia.puntos %}
+        <g class="marca" data-tip="{{ p.fecha }} · {{ p.km | round(2) }} km · {{ p.duracion_segundos | duracion }}">
+            <circle class="zona" cx="{{ p.cx }}" cy="{{ p.cy }}" r="10"/>
+            <circle class="punto" cx="{{ p.cx }}" cy="{{ p.cy }}" r="3"/>
+        </g>
+        {% endfor %}
+        {% for seg in distancia.segmentos %}
+        <polyline class="linea" points="{{ seg }}"/>
+        {% endfor %}
+        {% for m in distancia.medianas %}
+        <g class="marca" data-tip="Mediana {{ m.etiqueta }}: {{ m.km | round(1) }} km">
+            <circle class="zona" cx="{{ m.x }}" cy="{{ m.y }}" r="11"/>
+            <circle class="nodo" cx="{{ m.x }}" cy="{{ m.y }}" r="4"/>
+        </g>
+        {% endfor %}
+        {% for e in distancia.ejex %}
+        <text class="ejeX" x="{{ e.x }}" y="{{ distancia.alto - 6 }}">{{ e.etiqueta }}</text>
+        {% endfor %}
+    </svg>
+</section>
+{% endif %}
+
 {% if not evolucion.vacia %}
 <section class="bloque">
     <h2>Evolución del ritmo</h2>
