@@ -46,18 +46,18 @@ rechazo de Huawei se pivotó a web. Ver `DECISIONS.md`, 2026-09-04.
 ## Fuentes de datos
 Todas son ficheros exportados a mano. No hay sincronización automática.
 
-Cinco importadores, cuatro formatos. Cifras de producción a 2026-09-07,
+Cinco importadores, cuatro formatos. Cifras de producción a 2026-09-13,
 como visibles / importadas:
 
 | Fuente | Visibles / total | Periodo | Fidelidad |
 |---|---|---|---|
-| `nike_tcx` | 257 / 267 | 2011-12 → 2026-07 | Variable: unas con GPS y FC por segundo, muchas antiguas solo resumen |
-| `my_run_stats` | 29 / 207 | 2011-12 → 2026-05 | Solo resumen |
-| `huawei_json` | 23 / 37 | 2025-05 → 2026-09 | GPS a 1 Hz; FC, cadencia y altitud cada 5 s |
+| `nike_tcx` | 227 / 267 | 2011-12 → 2026-07 | Variable: unas con GPS y FC por segundo, muchas antiguas solo resumen |
+| `my_run_stats` | 26 / 207 | 2011-12 → 2026-05 | Solo resumen |
+| `huawei_json` | 21 / 37 | 2025-05 → 2026-09 | GPS a 1 Hz; FC, cadencia y altitud cada 5 s |
 | `huawei_tcx` | 1 / 5 | 2026-02 → 2026-04 | Solo recorrido y altitud. Es la mitad que le falta a Nike en las "carreras de prueba" |
-| `amazfit_fit` | 3 / 3 | 2026-09 | La más rica: 1 Hz con potencia, contacto con el suelo y zonas de FC ya calculadas |
+| `amazfit_fit` | 7 / 7 | 2026-09 | La más rica: 1 Hz con potencia, contacto con el suelo y zonas de FC ya calculadas |
 
-En total **313 carreras visibles de 519 filas y 305.448 muestreos**.
+En total **282 carreras visibles de 523 filas y 315.140 muestreos**.
 
 Nike es casi un superconjunto de My Run Stats: comparten 199 fechas, 65
 carreras solo están en Nike y 5 solo en My Run Stats. Rellena 2019 entero,
@@ -89,7 +89,7 @@ el de Huawei es una lista de actividades y el otro un objeto.
 ### Niveles de fidelidad
 No todas las funciones aplican a todas las carreras:
 
-- **Volumen y tendencia de ritmo a largo plazo** → las 313. Señal de 15 años.
+- **Volumen y tendencia de ritmo a largo plazo** → las 282. Señal de 15 años.
 - **Ritmo, parciales, récords por ventana rodante** → carreras con muestreos.
 - **Esfuerzo (zonas de FC), potencia y contacto con el suelo** → solo el
   `.fit`, hoy 3 carreras. Sus bloques no se pintan en las demás.
@@ -147,6 +147,12 @@ gráficas, ni zonas de FC, ni récords. La perdedora **no se borra**, se marca
 con `sustituida_por` y las consultas la ocultan (`WHERE sustituida_por IS
 NULL`). Así la decisión es reversible y no se pierde nada.
 
+A la deduplicación se suma un **mínimo de 3 km**: por debajo no cuenta en
+ninguna vista —ni listas, ni totales, ni récords, ni nubes—, aunque la fila
+se queda y su página se puede abrir (`DECISIONS.md`, 2026-09-13). Las dos
+condiciones viven juntas en `analisis.VISIBLE`, que es lo que usan las nueve
+consultas que enseñan carreras.
+
 Contar filas bastaba mientras la competencia era "tiene muestreos" contra "no
 tiene". Con dos fuentes completas enfrentadas decide a cara o cruz: la
 carrera del 2026-09-02 la ganaba Huawei por cuatro muestreos, dejando fuera
@@ -163,7 +169,7 @@ entre los dos relojes sobre la misma carrera (1,2 %).
 
 ## Capa de análisis y gráficas
 - `analisis.py` — solo cálculos que se sostienen con el resumen (fecha,
-  distancia, duración), así que aplican a las 207 carreras. Lo que necesita
+  distancia, duración), así que aplican a las 282 carreras. Lo que necesita
   muestreos vive fuera y aún no existe.
 - `graficas.py` — devuelve geometría; el SVG lo pinta la plantilla. Sin
   librería de gráficas ni CDN: encaja con el "CSS plano" del resto de

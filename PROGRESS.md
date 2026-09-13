@@ -1265,3 +1265,39 @@ de menos de un kilómetro (`DECISIONS.md`, 2026-09-11).
   distancia y no en el ritmo; el eje va de cero a la más larga y es
   proporcional, con y sin año; y en la portada la de distancia va antes, con
   su zona de dedo en cada marca.
+
+---
+
+## 2026-09-13 — Mínimo de 3 km
+
+**Qué**: lo que no llega a 3 km deja de contar en toda la web —listas,
+tarjetas, gráfica de kilómetros, las dos nubes, récords, chips de año y la
+carrera más larga—, aunque la fila se queda en la base y su página se puede
+abrir. Salió de un "elimina las carreras históricas con menos de 3 km";
+borrarlas no se sostenía y se acordó la regla (`DECISIONS.md`, 2026-09-13).
+
+- `analisis.DISTANCIA_MINIMA` y `analisis.VISIBLE`, un único fragmento de SQL
+  que usan las nueve consultas que enseñan carreras.
+- `ritmos` y `distancias` ya seleccionaban lo mismo: se funden en
+  `analisis.por_carrera`, y la portada hace una consulta en vez de dos.
+- Se dice en la interfaz: una línea bajo las cifras de la portada y, al
+  importar algo que no llega, su línea lo avisa.
+
+**Verificado**:
+
+- En producción, en solo lectura: 35 carreras visibles por debajo de 3 km, 72
+  km, de 2012 a 2026, y 30 de ellas de Nike. Con la regla se pasa de 317
+  carreras visibles a 282 y de 1.662 km a 1.589. Ningún año se queda sin
+  carreras y ningún récord dependía de las cortas.
+- Las medianas suben donde las cortas tiraban: 2016 de 3,01 a 4,10 km, 2017
+  de 3,07 a 3,78, 2015 de 3,43 a 4,11. Los años sin cortas no se mueven.
+- Por qué no se borran: 23 de las 35 tienen otra versión escondida detrás,
+  que volvería a salir en la siguiente importación al recalcularse las
+  duplicadas, y reimportar el export de Nike devolvería las 30 suyas.
+- Réplica local en el navegador, a 784 y a 375 px: la portada pasa de 316 a
+  280 carreras, la lista trae 280 tarjetas, y la nota va centrada bajo las
+  cifras en una línea, sin pisar ni las tarjetas ni los récords. Subir una de
+  2,10 km responde "No sale en las listas ni en las cuentas: no llega a 3 km".
+- 169 tests. Los que comparaban contra el export entero comparan ahora contra
+  las 180 carreras de las 207 que llegan al mínimo. Dos nuevos: la portada
+  dice la regla, y la carrera corta subida avisa y deja la portada vacía.

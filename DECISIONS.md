@@ -2,7 +2,7 @@
 
 Append-only. No reescribir entradas anteriores; supersedirlas con una nueva.
 
-Son 46 entradas por orden cronológico. Las que más se consultan, por tema:
+Son 47 entradas por orden cronológico. Las que más se consultan, por tema:
 
 - **Formatos y sus trampas**: el `DistanceMeters` de Nike es un incremento ·
   la duración del `.fit` es el cronómetro y no el reloj de pared · el JSON de
@@ -11,7 +11,7 @@ Son 46 entradas por orden cronológico. Las que más se consultan, por tema:
   Zepp.
 - **Fiabilidad de lo que se muestra**: la serie de distancia se valida contra
   el resumen de la carrera · el tiempo parado no se cronometra · récords
-  falsos y por qué salieron.
+  falsos y por qué salieron · lo que no llega a 3 km no cuenta.
 - **Cómo conviven las fuentes**: la deduplicación cuenta datos y no filas ·
   las versiones de una carrera se fusionan campo a campo · la importación
   dice qué ha sido de cada carrera.
@@ -1333,3 +1333,43 @@ comparten (`graficas._nube`); cambian la escala y qué carreras entran.
 **Revisar si** entra una carrera mucho más larga que el resto, una maratón:
 con el eje hasta 42 km, el grueso de las carreras, en torno a 5, quedaría
 aplastado abajo.
+
+---
+
+## 2026-09-13 — Mínimo de 3 km: lo que no llega, no cuenta
+
+Supersede en un punto a la entrada anterior: allí entraban en la nube de
+distancias las carreras de menos de un kilómetro. Ahora no entra nada por
+debajo de 3 km, y en ninguna vista.
+
+**Contexto**: 35 de las 317 carreras visibles medían menos de 3 km —72 km en
+total, repartidas de 2012 a 2026—. Son pruebas, calentamientos y grabaciones
+que se quedaron a medias, y tiraban de las medianas hacia abajo: 2016 y 2017
+salían en 3,0 km.
+
+**Opciones consideradas**:
+
+- **Borrarlas.** No se sostiene en este sistema: 23 de las 35 tienen otra
+  versión escondida detrás, que volvería a salir en la siguiente importación
+  porque `marcar_duplicadas` recalcula la base entera; y reimportar el export
+  de Nike devolvería las 30 suyas. Además el proyecto no borra (2026-09-05).
+- **Marcarlas como descartadas** una a una. Reversible y a prueba de
+  reimportaciones, pero pide una columna, una forma de marcarlas y una
+  decisión por carrera.
+- **Un mínimo de distancia**, que es lo elegido: una regla, sin tocar datos, y
+  que vale igual para lo que entre mañana.
+
+**Decisión**: `analisis.DISTANCIA_MINIMA = 3000`, y un solo fragmento de SQL,
+`analisis.VISIBLE`, que usan las nueve consultas que enseñan carreras:
+listados, resumen, años, volumen, las dos nubes, récords y la más larga. Va
+sin prefijo de tabla para que sirva igual en las consultas con JOIN.
+
+**Consecuencias medidas en producción**: de 317 carreras visibles a 282, y de
+1.662 km a 1.589. Ningún año se queda sin carreras y ningún récord dependía
+de las cortas. `ritmos` y `distancias` pasan a seleccionar lo mismo, así que
+se funden en `por_carrera`.
+
+**Se dice en la interfaz**, que es la regla de la casa: una línea bajo las
+cifras de la portada, y en la pantalla de importar, si lo que subes no llega
+al mínimo, su línea lo avisa. La carrera se queda en la base y su página se
+puede abrir; lo que no hace es contar.

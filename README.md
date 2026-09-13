@@ -9,28 +9,29 @@ fusionadas en una sola carrera.
 
 No tiene parte pública: una contraseña y dentro.
 
-## Estado, a 7 de septiembre de 2026
+## Estado, a 13 de septiembre de 2026
 
-**313 carreras visibles** de 519 filas importadas, **1.637 km**, de diciembre
-de 2011 a septiembre de 2026. 305.448 muestreos segundo a segundo.
+**282 carreras visibles** de 523 filas importadas, **1.589 km**, de diciembre
+de 2011 a septiembre de 2026. 315.140 muestreos segundo a segundo.
 
 | Fuente | Visibles / importadas | Periodo | Qué aporta |
 |---|---|---|---|
-| `nike_tcx` | 257 / 267 | 2011-12 → 2026-07 | El grueso del histórico. FC por segundo en las recientes; muchas antiguas solo resumen |
-| `my_run_stats` | 29 / 207 | 2011-12 → 2026-05 | Solo resumen. Casi todas las tapa Nike |
-| `huawei_json` | 23 / 37 | 2025-05 → 2026-09 | GPS a 1 Hz, FC y cadencia cada 5 s |
+| `nike_tcx` | 227 / 267 | 2011-12 → 2026-07 | El grueso del histórico. FC por segundo en las recientes; muchas antiguas solo resumen |
+| `my_run_stats` | 26 / 207 | 2011-12 → 2026-05 | Solo resumen. Casi todas las tapa Nike |
+| `huawei_json` | 21 / 37 | 2025-05 → 2026-09 | GPS a 1 Hz, FC y cadencia cada 5 s |
 | `huawei_tcx` | 1 / 5 | 2026-02 → 2026-04 | Solo el recorrido de las "carreras de prueba", que el export de privacidad no trae |
-| `amazfit_fit` | 3 / 3 | 2026-09 | La más rica: 1 Hz con potencia, contacto con el suelo y zonas de FC |
+| `amazfit_fit` | 7 / 7 | 2026-09 | La más rica: 1 Hz con potencia, contacto con el suelo y zonas de FC |
 
-Que una carrera no sea "visible" no significa que se pierda: la
-deduplicación esconde la peor versión, pero **sus campos se fusionan con la
-que gana**. Ver `DECISIONS.md`, 2026-09-06.
+Una carrera puede no ser "visible" por dos motivos, y en ninguno se pierde:
+la deduplicación esconde la peor versión, pero **sus campos se fusionan con
+la que gana** (`DECISIONS.md`, 2026-09-06); y **las de menos de 3 km no
+cuentan** en ninguna vista (`DECISIONS.md`, 2026-09-13).
 
 ## Empezar
 
 ```bash
 python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
-./.venv/bin/python -m pytest tests/ -q          # 157 tests, ~10 s
+./.venv/bin/python -m pytest tests/ -q          # 167 tests, ~11 s
 RUNNERSTATS_PASSWORD=loquesea ./.venv/bin/python app.py   # http://localhost:5001
 ```
 
@@ -54,7 +55,7 @@ runnerstats/
   geo.py                haversine y distancia acumulada
   consultas.py          listados
 templates/  static/     Jinja2 y CSS plano, sin framework
-tests/                  157 tests
+tests/                  167 tests
 data/                   exports personales, ignorado por git
 ```
 

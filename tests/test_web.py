@@ -296,6 +296,17 @@ def test_una_tanda_cuenta_cada_carrera_una_vez(cliente_vacio, export_sintetico):
     ]
 
 
+def test_subir_una_carrera_corta_avisa_de_que_no_contara(cliente_vacio):
+    """Se guarda igual, que el dato es suyo, pero no sale en ninguna lista y
+    quien la sube tiene que saberlo al subirla, no al echarla en falta."""
+    html = _subir(cliente_vacio, _mrs_bytes("2026-09-12", 2.10, "corta"),
+                  "corta.json").get_data(as_text=True)
+    assert _lineas(html) == ["Importada: 12 sep 2026, 2.10 km. No sale en las "
+                             "listas ni en las cuentas: no llega a 3 km."]
+    assert "Todavía no hay ninguna carrera" in cliente_vacio.get(
+        "/").get_data(as_text=True)
+
+
 def test_la_lista_enlaza_al_detalle(cliente):
     """Se colo una vez: la sustitucion en la plantilla no coincidio por la
     indentacion y fallo en silencio, dejando las tarjetas sin enlace."""
@@ -357,6 +368,12 @@ def test_los_records_llevan_el_ritmo_junto_al_tiempo(cliente_vacio, nike_dir):
     # Tiempo y ritmo en el mismo contenedor, no en lineas separadas.
     bloque = html.split('class="record-linea"')[1].split("</span>\n            </span>")[0]
     assert "record-tiempo" in bloque and "record-ritmo" in bloque
+
+
+def test_la_portada_dice_que_no_cuenta_las_cortas(cliente):
+    """La regla de la casa: la interfaz dice de qué subconjunto habla."""
+    html = cliente.get("/").get_data(as_text=True)
+    assert "No se cuentan las carreras de menos de 3 km." in html
 
 
 def test_la_portada_solo_tiene_tres_tarjetas(cliente):

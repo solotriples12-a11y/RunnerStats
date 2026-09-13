@@ -30,6 +30,9 @@ RUTA_DB = os.environ.get("RUNNERSTATS_DB") or "data/runnerstats.db"
 MESES = ("ene", "feb", "mar", "abr", "may", "jun",
          "jul", "ago", "sep", "oct", "nov", "dic")
 
+# El minimo de distancia se dice en la interfaz, asi que lo ve la plantilla.
+app.jinja_env.globals["MINIMO_KM"] = analisis.DISTANCIA_MINIMA // 1000
+
 
 PUBLICAS = {"login", "static"}
 
@@ -243,7 +246,8 @@ def _resultados(conn, subidas, previas: set[str]) -> list[dict]:
             vistas.add(c.id)
             propias.append({"fecha": c.fecha_inicio_unix,
                             "metros": c.distancia_metros, "estado": estado,
-                            "enlace": visible, "con": " y ".join(sorted(ya))})
+                            "enlace": visible, "con": " y ".join(sorted(ya)),
+                            "corta": c.distancia_metros < analisis.DISTANCIA_MINIMA})
         resultados.append({"nombre": nombre, "error": error,
                            "carreras": propias})
     return resultados
@@ -378,6 +382,8 @@ def index():
         agr = "mes" if anio else "anio"
 
     datos = analisis.volumen(conn, agr, anio)
+    # Las dos nubes pintan las mismas carreras: una consulta para las dos.
+    por_carrera = analisis.por_carrera(conn, anio)
     return render_template(
         "index.html",
         carreras=consultas.listar_carreras(conn, anio),
@@ -389,8 +395,8 @@ def index():
         agr=agr,
         recortado=bool(datos and datos[0]["recortado"]),
         volumen=graficas.barras_volumen(datos),
-        distancia=graficas.dispersion_distancia(analisis.distancias(conn, anio), anio),
-        evolucion=graficas.dispersion_ritmo(analisis.ritmos(conn, anio), anio),
+        distancia=graficas.dispersion_distancia(por_carrera, anio),
+        evolucion=graficas.dispersion_ritmo(por_carrera, anio),
     )
 
 

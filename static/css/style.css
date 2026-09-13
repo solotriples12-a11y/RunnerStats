@@ -207,6 +207,15 @@ code {
     border: 1px solid var(--border);
     border-radius: 10px;
 }
+/* El minimo de distancia afecta a todo lo que se cuenta, asi que se dice una
+   vez, justo debajo de las cifras. */
+.minimo {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: -1.5rem 0 2rem;
+}
+
 .tile-lab { font-size: 0.75rem; color: var(--text-muted); }
 .tile-val { font-size: 1.35rem; font-family: var(--mono-stack); }
 .tile-val small { font-size: 0.7rem; color: var(--text-muted); margin-left: 0.25rem; }

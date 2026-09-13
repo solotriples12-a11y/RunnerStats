@@ -22,18 +22,25 @@ def crudo(export_real):
     return json.loads(export_real.read_text())["runs"]
 
 
-def test_resumen_cuadra_con_el_json(conn_real, crudo):
+@pytest.fixture
+def cuentan(crudo):
+    """Las del export que llegan al minimo de distancia, que es lo que la web
+    cuenta: 180 de las 207."""
+    return [c for c in crudo if c["distance"] * 1000 >= analisis.DISTANCIA_MINIMA]
+
+
+def test_resumen_cuadra_con_el_json(conn_real, cuentan):
     r = analisis.resumen(conn_real)
-    assert r["carreras"] == len(crudo)
-    assert round(r["metros"] / 1000, 1) == round(sum(c["distance"] for c in crudo), 1)
-    assert r["segundos"] == sum(mrs.a_segundos(c["duration"]) for c in crudo)
+    assert r["carreras"] == len(cuentan) == 180
+    assert round(r["metros"] / 1000, 1) == round(sum(c["distance"] for c in cuentan), 1)
+    assert r["segundos"] == sum(mrs.a_segundos(c["duration"]) for c in cuentan)
 
 
-def test_filtro_por_anio(conn_real, crudo):
-    de2012 = [c for c in crudo if c["date"].startswith("2012")]
+def test_filtro_por_anio(conn_real, cuentan):
+    de2012 = [c for c in cuentan if c["date"].startswith("2012")]
     r = analisis.resumen(conn_real, 2012)
-    assert r["carreras"] == len(de2012) == 33
-    assert round(r["metros"] / 1000, 1) == 227.4
+    assert r["carreras"] == len(de2012) == 31
+    assert round(r["metros"] / 1000, 1) == 223.4
 
 
 def test_anios_disponibles_no_inventa_huecos(conn_real, crudo):
@@ -43,10 +50,10 @@ def test_anios_disponibles_no_inventa_huecos(conn_real, crudo):
     assert 2019 not in analisis.anios(conn_real)
 
 
-def test_volumen_por_anio_suma_el_total(conn_real, crudo):
+def test_volumen_por_anio_suma_el_total(conn_real, cuentan):
     v = analisis.volumen(conn_real, "anio")
-    assert round(sum(x["km"] for x in v), 1) == round(sum(c["distance"] for c in crudo), 1)
-    assert sum(x["carreras"] for x in v) == len(crudo)
+    assert round(sum(x["km"] for x in v), 1) == round(sum(c["distance"] for c in cuentan), 1)
+    assert sum(x["carreras"] for x in v) == len(cuentan)
 
 
 def test_los_periodos_sin_carreras_salen_a_cero(conn_real):
@@ -69,10 +76,10 @@ def test_la_semana_empieza_en_lunes(conn_real):
     assert all((b - a).days == 7 for a, b in zip(fechas, fechas[1:]))
 
 
-def test_agrupar_por_carrera_da_una_barra_por_carrera(conn_real, crudo):
-    de2012 = [c for c in crudo if c["date"].startswith("2012")]
+def test_agrupar_por_carrera_da_una_barra_por_carrera(conn_real, cuentan):
+    de2012 = [c for c in cuentan if c["date"].startswith("2012")]
     v = analisis.volumen(conn_real, "carrera", 2012)
-    assert len(v) == len(de2012) == 33
+    assert len(v) == len(de2012) == 31
     assert all(x["carreras"] == 1 for x in v)
     assert round(sum(x["km"] for x in v), 2) == round(sum(c["distance"] for c in de2012), 2)
 
@@ -84,14 +91,14 @@ def test_agrupar_por_mes_respeta_el_filtro_de_anio(conn_real):
 
 
 def test_un_año_filtrado_pinta_los_doce_meses(conn_real):
-    """En 2015 solo se corrio en enero, febrero, junio, julio y agosto. El eje
-    tiene que ser el año entero: empezar en enero y acabar en agosto esconde
-    que de septiembre a diciembre no se salio."""
+    """De 2015 solo cuentan febrero, julio y agosto: enero y junio se van
+    enteros por el minimo de distancia. El eje tiene que ser el año entero:
+    empezar en febrero y acabar en agosto esconde el resto."""
     v = analisis.volumen(conn_real, "mes", 2015)
     assert [x["clave"] for x in v] == [f"2015-{m:02d}" for m in range(1, 13)]
     assert [x["etiqueta"] for x in v] == list(analisis.MESES_CORTOS)
     con_datos = {x["clave"] for x in v if x["carreras"]}
-    assert con_datos == {"2015-01", "2015-02", "2015-06", "2015-07", "2015-08"}
+    assert con_datos == {"2015-02", "2015-07", "2015-08"}
     assert all(x["km"] == 0 for x in v if x["clave"] not in con_datos)
 
 
@@ -146,7 +153,7 @@ def test_resumen_vacio_no_revienta(tmp_path):
 def test_la_linea_de_medianas_no_cruza_anios_vacios(conn_real):
     """2019 no tiene carreras: la linea debe partirse, no puentearlo."""
     from runnerstats import graficas
-    g = graficas.dispersion_ritmo(analisis.ritmos(conn_real))
+    g = graficas.dispersion_ritmo(analisis.por_carrera(conn_real))
     anios = [m["periodo"] for m in g["medianas"]]
     assert 2019 not in anios
     # Hay huecos, luego tiene que haber mas de un segmento.
@@ -155,9 +162,9 @@ def test_la_linea_de_medianas_no_cruza_anios_vacios(conn_real):
 
 def test_el_ritmo_respeta_el_filtro_de_anio(conn_real, crudo):
     from datetime import datetime, timezone
-    r = analisis.ritmos(conn_real, 2015)
+    r = analisis.por_carrera(conn_real, 2015)
     assert r, "2015 tiene carreras"
-    assert len(r) < len(analisis.ritmos(conn_real))
+    assert len(r) < len(analisis.por_carrera(conn_real))
     for c in r:
         assert datetime.fromtimestamp(
             c["fecha_inicio_unix"], timezone.utc).year == 2015
@@ -166,45 +173,50 @@ def test_el_ritmo_respeta_el_filtro_de_anio(conn_real, crudo):
 def test_dentro_de_un_anio_la_mediana_es_mensual(conn_real):
     """Una sola mediana anual para un año no dibuja ninguna evolución."""
     from runnerstats import graficas
-    g = graficas.dispersion_ritmo(analisis.ritmos(conn_real, 2015), 2015)
+    g = graficas.dispersion_ritmo(analisis.por_carrera(conn_real, 2015), 2015)
     assert not g["vacia"]
-    # 2015: enero, febrero, junio, julio y agosto.
-    assert [m["periodo"] for m in g["medianas"]] == [1, 2, 6, 7, 8]
-    assert [m["etiqueta"] for m in g["medianas"]] == ["ene", "feb", "jun", "jul", "ago"]
-    # Y la linea se parte en el hueco de marzo a mayo.
-    assert len(g["segmentos"]) == 2
+    # De 2015 cuentan febrero, julio y agosto.
+    assert [m["periodo"] for m in g["medianas"]] == [2, 7, 8]
+    assert [m["etiqueta"] for m in g["medianas"]] == ["feb", "jul", "ago"]
+    # Y la linea se parte en el hueco de marzo a junio: febrero queda solo.
+    assert len(g["segmentos"]) == 1 and len(g["sueltos"]) == 1
     # El eje etiqueta meses, no años, y cada uno cae bajo su nodo de mediana.
     # Julio se salta: su nodo queda pegado al de agosto.
-    assert [e["etiqueta"] for e in g["ejex"]] == ["ene", "feb", "jun", "ago"]
+    assert [e["etiqueta"] for e in g["ejex"]] == ["feb", "ago"]
 
 
 def test_un_mes_suelto_no_parte_la_linea_de_medianas(conn_real):
     """Partir por un solo mes en blanco dejaba puntos sueltos que se leian
     como un fallo de pintado, no como un parón."""
     from runnerstats import graficas
-    # 2022: de enero a junio, agosto, y de octubre a diciembre. Los dos
-    # huecos son de un mes (julio y septiembre): la linea no se parte.
-    g = graficas.dispersion_ritmo(analisis.ritmos(conn_real, 2022), 2022)
-    assert [m["periodo"] for m in g["medianas"]] == [1, 2, 3, 4, 5, 6, 8, 10, 11, 12]
+    # 2022: de enero a junio, agosto, octubre y diciembre. Los tres huecos son
+    # de un mes (julio, septiembre y noviembre): la linea no se parte.
+    g = graficas.dispersion_ritmo(analisis.por_carrera(conn_real, 2022), 2022)
+    assert [m["periodo"] for m in g["medianas"]] == [1, 2, 3, 4, 5, 6, 8, 10, 12]
     assert len(g["segmentos"]) == 1 and not g["sueltos"]
 
-    # 2015 si: de marzo a mayo son tres meses seguidos sin correr.
-    g15 = graficas.dispersion_ritmo(analisis.ritmos(conn_real, 2015), 2015)
-    assert len(g15["segmentos"]) == 2
+    # 2015 si: de marzo a junio son cuatro meses seguidos sin nada que contar.
+    g15 = graficas.dispersion_ritmo(analisis.por_carrera(conn_real, 2015), 2015)
+    assert len(g15["segmentos"]) + len(g15["sueltos"]) == 2
 
 
-def test_la_distancia_cuenta_tambien_las_de_menos_de_un_km(tmp_path):
-    """El ritmo las deja fuera porque en 500 m no hay un ritmo que leer. La
-    distancia sí es un dato, y las tarjetas y la gráfica de kilómetros ya las
-    cuentan."""
+def test_por_debajo_del_minimo_no_cuenta_en_ningun_sitio(tmp_path):
+    """La regla es 3 km. Antes se colaban carreras de 500 m —pruebas y
+    grabaciones a medias— en las listas, los totales y las nubes."""
+    from runnerstats import consultas
     c = db.conectar(tmp_path / "d.db")
     c.executemany(
         "INSERT INTO carrera (id, fecha_inicio_unix, distancia_metros,"
         " duracion_segundos, fuente, importado_en) VALUES (?,?,?,?,?,0)",
-        [("a", 1_700_000_000, 500, 240, "my_run_stats"),
-         ("b", 1_700_100_000, 5000, 1500, "my_run_stats")])
-    assert len(analisis.ritmos(c)) == 1
-    assert [d["km"] for d in analisis.distancias(c)] == [0.5, 5.0]
+        [("corta", 1_600_000_000, 2999, 900, "my_run_stats"),     # 2020
+         ("larga", 1_700_000_000, 5000, 1500, "my_run_stats")])   # 2023
+    assert [d["km"] for d in analisis.por_carrera(c)] == [5.0]
+    assert analisis.resumen(c) == {"carreras": 1, "metros": 5000, "segundos": 1500}
+    assert [f["id"] for f in consultas.listar_carreras(c)] == ["larga"]
+    assert analisis.carrera_mas_larga(c)["id"] == "larga"
+    # Y el año de la corta no sale ni en los chips ni en la grafica de km.
+    assert analisis.anios(c) == [2023]
+    assert [x["clave"] for x in analisis.volumen(c)] == ["2023"]
 
 
 @pytest.mark.parametrize("anio", [None, 2013])
@@ -212,7 +224,7 @@ def test_el_eje_de_la_distancia_va_de_cero_a_la_mas_larga(conn_real, anio):
     """El del ritmo recorta el 2 % extremo, que son paseos. Aquí ese extremo
     son las carreras más largas: salen donde tocan, a escala desde cero."""
     from runnerstats import graficas
-    g = graficas.dispersion_distancia(analisis.distancias(conn_real, anio), anio)
+    g = graficas.dispersion_distancia(analisis.por_carrera(conn_real, anio), anio)
     base, techo = graficas.ALTO - graficas.PAD_INF, graficas.PAD_SUP
     assert g["rejilla"][0] == {"y": base, "etiqueta": "0 km"}
 
@@ -295,7 +307,7 @@ def test_las_semanas_de_un_año_si_se_recortan(conn_real):
 @pytest.mark.parametrize("anio", [None, 2012, 2015, 2022])
 def test_el_eje_del_ritmo_tampoco_se_pisa(conn_real, anio):
     from runnerstats import graficas
-    g = graficas.dispersion_ritmo(analisis.ritmos(conn_real, anio), anio)
+    g = graficas.dispersion_ritmo(analisis.por_carrera(conn_real, anio), anio)
     xs = [e["x"] for e in g["ejex"]]
     assert xs == sorted(xs), "el eje sale en orden inverso"
     minima = _sitio_que_pide([e["etiqueta"] for e in g["ejex"]])

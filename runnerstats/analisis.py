@@ -11,6 +11,16 @@ from datetime import datetime, timedelta, timezone
 
 _FILTRO_ANIO = "AND strftime('%Y', fecha_inicio_unix, 'unixepoch') = ?"
 
+# Por debajo de esto no cuenta como carrera en ningún sitio: son pruebas,
+# calentamientos y grabaciones que se quedaron a medias. Ver DECISIONS.md,
+# 2026-09-13.
+DISTANCIA_MINIMA = 3000
+
+# Lo que se ve en toda la web: la versión que gana la deduplicación, si llega
+# al mínimo. Va sin prefijo de tabla a propósito, para que sirva igual en las
+# consultas de una sola tabla que en las que hacen JOIN.
+VISIBLE = f"sustituida_por IS NULL AND distancia_metros >= {DISTANCIA_MINIMA}"
+
 
 def _where(anio: int | None) -> tuple[str, list]:
     if anio is None:
@@ -23,7 +33,7 @@ def anios(conn: sqlite3.Connection) -> list[int]:
         int(r[0])
         for r in conn.execute(
             "SELECT DISTINCT strftime('%Y', fecha_inicio_unix, 'unixepoch') a"
-            " FROM carrera WHERE sustituida_por IS NULL ORDER BY a DESC"
+            f" FROM carrera WHERE {VISIBLE} ORDER BY a DESC"
         )
     ]
 
@@ -35,7 +45,7 @@ def resumen(conn: sqlite3.Connection, anio: int | None = None) -> dict:
         SELECT COUNT(*)               AS carreras,
                SUM(distancia_metros)  AS metros,
                SUM(duracion_segundos) AS segundos
-        FROM carrera WHERE sustituida_por IS NULL {filtro}
+        FROM carrera WHERE {VISIBLE} {filtro}
         """,
         params,
     ).fetchone()
@@ -136,7 +146,7 @@ def volumen(conn: sqlite3.Connection, agrupacion: str = "anio",
                COUNT(*)                 AS carreras,
                SUM(distancia_metros)/1000 AS km,
                MIN(fecha_inicio_unix)   AS inicio
-        FROM carrera WHERE sustituida_por IS NULL {filtro}
+        FROM carrera WHERE {VISIBLE} {filtro}
         GROUP BY clave ORDER BY inicio
         """,
         params,
@@ -215,31 +225,11 @@ def _rellenar_huecos(agrupacion: str, datos: list[dict],
     return salida
 
 
-def ritmos(conn: sqlite3.Connection, anio: int | None = None) -> list[dict]:
-    """Una entrada por carrera, para la nube de puntos de evolución."""
-    filtro, params = _where(anio)
-    return [
-        dict(r)
-        for r in conn.execute(
-            f"""
-            SELECT fecha_inicio_unix,
-                   distancia_metros,
-                   duracion_segundos * 1000.0 / distancia_metros AS ritmo
-            FROM carrera
-            WHERE sustituida_por IS NULL AND distancia_metros >= 1000 {filtro}
-            ORDER BY fecha_inicio_unix
-            """,
-            params,
-        )
-    ]
+def por_carrera(conn: sqlite3.Connection, anio: int | None = None) -> list[dict]:
+    """Una entrada por carrera, para las dos nubes de evolución.
 
-
-def distancias(conn: sqlite3.Connection, anio: int | None = None) -> list[dict]:
-    """Una entrada por carrera, para la nube de distancias.
-
-    A diferencia de `ritmos`, entran también las de menos de un kilómetro: en
-    500 m no hay un ritmo que leer, pero la distancia es un dato, y las
-    tarjetas y la gráfica de kilómetros ya las cuentan.
+    Las dos pintan las mismas carreras, así que salen de la misma consulta:
+    con el mínimo de 3 km ya no hay ritmos de 500 m que dejar fuera.
     """
     filtro, params = _where(anio)
     return [
@@ -249,9 +239,10 @@ def distancias(conn: sqlite3.Connection, anio: int | None = None) -> list[dict]:
             SELECT fecha_inicio_unix,
                    distancia_metros,
                    duracion_segundos,
-                   distancia_metros / 1000.0 AS km
+                   distancia_metros / 1000.0 AS km,
+                   duracion_segundos * 1000.0 / distancia_metros AS ritmo
             FROM carrera
-            WHERE sustituida_por IS NULL {filtro}
+            WHERE {VISIBLE} {filtro}
             ORDER BY fecha_inicio_unix
             """,
             params,
@@ -278,7 +269,7 @@ def records_rodantes(conn: sqlite3.Connection, anio: int | None = None) -> list[
                MIN(r.segundos) OVER (PARTITION BY r.metros) AS mejor
         FROM record_ventana r
         JOIN carrera c ON c.id = r.carrera_id
-        WHERE c.sustituida_por IS NULL {filtro}
+        WHERE {VISIBLE} {filtro}
         """,
         params,
     ).fetchall()
@@ -302,7 +293,7 @@ def carrera_mas_larga(conn: sqlite3.Connection, anio: int | None = None) -> dict
     fila = conn.execute(
         f"""
         SELECT id, fecha_inicio_unix, distancia_metros, duracion_segundos
-        FROM carrera WHERE sustituida_por IS NULL {filtro}
+        FROM carrera WHERE {VISIBLE} {filtro}
         ORDER BY distancia_metros DESC LIMIT 1
         """,
         params,

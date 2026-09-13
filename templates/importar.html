@@ -32,6 +32,7 @@
                 {{ "Ya estaba importada" if c.estado == "repetida" else "Importada" }}:
                 <a href="{{ url_for('carrera', carrera_id=c.enlace) }}">{{ c.fecha | fecha }}, {{ c.metros | km }} km</a>.
                 {%- if c.estado == "junta" %} Ya la tenías {{ c.con }}: se juntan en una sola carrera.{% endif %}
+                {%- if c.corta %} No sale en las listas ni en las cuentas: no llega a {{ MINIMO_KM }} km.{% endif %}
             {%- else -%}
                 {%- set fechas = r.carreras | map(attribute="fecha") | list -%}
                 {%- set nuevas = r.carreras | selectattr("estado", "equalto", "nueva") | list | length -%}
