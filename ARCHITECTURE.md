@@ -56,7 +56,7 @@ como visibles / importadas:
 | `huawei_json` | 21 / 37 | 2025-05 → 2026-09 | GPS a 1 Hz; FC, cadencia y altitud cada 5 s |
 | `huawei_tcx` | 1 / 5 | 2026-02 → 2026-04 | Solo recorrido y altitud. Es la mitad que le falta a Nike en las "carreras de prueba" |
 | `amazfit_fit` | 7 / 7 | 2026-09 | La más rica: 1 Hz con potencia, contacto con el suelo y zonas de FC ya calculadas |
-| `strava_fit` | por comprobar | 2026-09 | Cinta: pulso y cadencia cada 5 s, sin distancia por punto |
+| `strava_fit` | sin medir / 2 | 2026-09 | Cinta: pulso y cadencia cada 5 s, sin distancia por punto |
 
 En total **282 carreras visibles de 523 filas y 315.140 muestreos**.
 
@@ -85,7 +85,9 @@ escribe en disco, lo que evita de raíz tener que sanear rutas. El despacho
 se hace por extensión y cada fichero informa de su resultado por separado,
 para que un fichero corrupto no tumbe la subida entera. Huawei y My Run Stats
 comparten la extensión `.json`, así que entre esos dos se decide por la forma:
-el de Huawei es una lista de actividades y el otro un objeto.
+el de Huawei es una lista de actividades y el otro un objeto. Con el `.fit`
+pasa lo mismo entre Amazfit y Strava: el de Strava firma `file_id` como
+fabricante `development` (`DECISIONS.md`, 2026-09-24).
 
 ### Niveles de fidelidad
 No todas las funciones aplican a todas las carreras:

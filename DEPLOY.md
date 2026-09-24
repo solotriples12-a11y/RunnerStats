@@ -79,8 +79,8 @@ Para poblarla, entra en **`/importar`** y sube el export de My Run Stats
 desde el navegador, en el móvil o en el escritorio. No hace falta `scp` ni
 tocar el servidor: el fichero se lee en memoria y nunca se escribe en disco.
 
-Los `.fit` del Amazfit se pueden seleccionar, pero de momento el importador
-avisa de que aún no hay parser para ellos.
+Los `.fit` del Amazfit y de Strava entran por el mismo sitio; `/importar`
+distingue uno de otro por dentro.
 
 ## Cambios futuros: auto-deploy
 

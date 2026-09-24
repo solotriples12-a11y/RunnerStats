@@ -1321,3 +1321,9 @@ Javi tenía dos `.fit` de Strava (cinta, 21 y 23 de septiembre) que
 - 177 tests: siete del importador contra los dos ficheros reales y uno de
   `/importar` que antes daba 500. Los ficheros viven en `data/strava/`, fuera
   de git.
+
+**En producción**: push de `3112bff` el 2026-09-24. Javi subió los dos
+ficheros por `/importar` y entraron sin error. El recuento de visibles no se
+ha medido: la lectura de la base por SSH no estuvo disponible en esta sesión,
+y en `README.md` y `ARCHITECTURE.md` la fila de `strava_fit` lo dice así en
+vez de poner una cifra supuesta.

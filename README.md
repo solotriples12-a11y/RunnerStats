@@ -2,9 +2,9 @@
 
 Web personal de estadísticas de carrera. Corre en
 **<https://run.javimendoza.com>**, sobre el Hetzner propio. Importa los
-ficheros que exportan Nike, Huawei, Amazfit y My Run Stats, los normaliza en
+ficheros que exportan Nike, Huawei, Amazfit, Strava y My Run Stats, los normaliza en
 un SQLite y saca de ahí más de lo que dan esas apps: récords por ventana
-rodante, parciales que descuentan el tiempo parado, y las cinco fuentes
+rodante, parciales que descuentan el tiempo parado, y las seis fuentes
 fusionadas en una sola carrera.
 
 No tiene parte pública: una contraseña y dentro.
@@ -21,6 +21,7 @@ de 2011 a septiembre de 2026. 315.140 muestreos segundo a segundo.
 | `huawei_json` | 21 / 37 | 2025-05 → 2026-09 | GPS a 1 Hz, FC y cadencia cada 5 s |
 | `huawei_tcx` | 1 / 5 | 2026-02 → 2026-04 | Solo el recorrido de las "carreras de prueba", que el export de privacidad no trae |
 | `amazfit_fit` | 7 / 7 | 2026-09 | La más rica: 1 Hz con potencia, contacto con el suelo y zonas de FC |
+| `strava_fit` | sin medir / 2 | 2026-09 | Cinta exportada a mano: FC y cadencia cada 5 s, sin distancia por punto. Subidas el 2026-09-24, después del recuento de arriba |
 
 Una carrera puede no ser "visible" por dos motivos, y en ninguno se pierde:
 la deduplicación esconde la peor versión, pero **sus campos se fusionan con
