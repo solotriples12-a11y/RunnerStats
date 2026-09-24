@@ -190,6 +190,14 @@ def test_subir_fit_real_importa_con_muestreos(cliente_vacio, fit_real):
     assert "148 ppm" in html
 
 
+def test_subir_fit_de_strava_no_da_500(cliente_vacio, fits_strava):
+    """Repite el instante de inicio en la mitad de los `record`, y el
+    importador del Amazfit chocaba con la clave de `muestreo`."""
+    r = _subir(cliente_vacio, fits_strava[1].read_bytes(), fits_strava[1].name)
+    assert r.status_code == 200
+    assert _lineas(r.get_data(as_text=True)) == ["Importada: 23 sep 2026, 5.00 km."]
+
+
 def test_json_corrupto_no_da_500(cliente_vacio):
     r = _subir(cliente_vacio, b"{esto no es json", "roto.json")
     assert r.status_code == 200

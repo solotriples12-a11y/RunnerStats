@@ -1373,3 +1373,49 @@ se funden en `por_carrera`.
 cifras de la portada, y en la pantalla de importar, si lo que subes no llega
 al mínimo, su línea lo avisa. La carrera se queda en la base y su página se
 puede abrir; lo que no hace es contar.
+
+---
+
+## 2026-09-24 — El .fit de Strava tiene su propio importador
+
+**Contexto**: dos carreras de cinta del 21 y el 23 de septiembre, exportadas
+de Strava como "Correr en interiores". Al subirlas, `/importar` daba un 500:
+el importador del Amazfit las leía sin quejarse, pero al guardar chocaba con
+la clave `(carrera_id, timestamp_unix)` de `muestreo`.
+
+**Lo que trae el fichero**, visto volcándolo y no en una especificación:
+
+- `file_id` firma como fabricante `development`, sin producto. No hay
+  `device_info`, ni vueltas, ni zonas de FC.
+- Los `record` vienen en **dos tandas del mismo tamaño** (393 y 393; 397 y
+  397). La primera trae solo velocidad, con la marca de tiempo del inicio
+  repetida (y un segundo después en los últimos doce). La segunda, cadencia
+  y pulso cada 5 s, con la velocidad a 64,536, que es relleno.
+- Ningún `record` trae distancia. La sesión no trae `max_heart_rate` ni
+  `total_timer_time`, y su distancia es 5.000 m exactos en las dos.
+- Cadencia por pierna, como en el Amazfit: 78 de media → 156 pasos/min.
+
+**Contraste**: la velocidad emparejada por posición con la segunda tanda e
+integrada a 5 s da **5.111 y 5.098 m**, un +2 % sobre los 5.000 de la
+sesión, del orden del +1,6 % que da la cinta de Huawei. Y el último `record`
+cae justo en `start_time + total_elapsed_time` (1.966 s), así que las dos
+tandas cubren la misma carrera.
+
+**Opciones consideradas**:
+
+- **Arreglarlo dentro de `amazfit_fit`.** Pero la fuente diría "del Amazfit"
+  cuando no lo es, y su lógica (1 Hz, distancia, potencia, zonas) no aplica.
+- **Meterlas a mano por SSH.** Arregla estas dos y deja rota la siguiente.
+- **Un importador `strava_fit`**, que es lo elegido. Se despacha por la
+  firma `development` de `file_id`, como el TCX se despacha por su firma.
+
+**Decisión**: se guardan pulso, cadencia y la velocidad cruda emparejada; no
+se deriva serie de distancia, por lo mismo que en la cinta de Huawei
+(2026-09-06): escalada al total cuadraría por construcción. Consecuencia:
+estas carreras tienen gráfica de pulso, pero no ritmo, parciales ni récords.
+`fc_maxima` se saca del máximo de los pulsos, porque la sesión no la trae.
+Si las dos tandas no tuvieran el mismo tamaño, la velocidad se deja vacía:
+emparejarlas sería inventar.
+
+No resucita "Strava como fuente" del BACKLOG, que va de la API: esto es
+subir a mano un fichero exportado.

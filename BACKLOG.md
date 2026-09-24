@@ -25,6 +25,10 @@ Nada comprometido. Lo que hay sobre la mesa, por orden de lo que aportaría:
   un lienzo de 640, y en una pantalla de 375 px el SVG se escala al 54 %:
   salen a 4,8 px. Pasa en todas las gráficas, las de la portada y las del
   detalle. Medido el 2026-09-11 al añadir la evolución de la distancia.
+- **Un `.fit` con instantes repetidos tumba `/importar` con un 500.** El
+  `IntegrityError` de `muestreo` no se captura en `_importar_uno`. El de
+  Strava ya no pasa por ahí, pero cualquier otro fichero así lo haría. Visto
+  el 2026-09-24.
 
 ## Lo que el `.fit` trae y no se usa
 

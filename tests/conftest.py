@@ -70,6 +70,15 @@ def fit_real() -> Path:
 
 
 @pytest.fixture
+def fits_strava() -> list[Path]:
+    """Los dos .fit de cinta exportados de Strava, si estan en data/strava/."""
+    ficheros = sorted((DATA / "strava").glob("*.fit"))
+    if len(ficheros) < 2:
+        pytest.skip("no estan los .fit de Strava en data/strava/")
+    return ficheros
+
+
+@pytest.fixture
 def nike_dir() -> Path:
     """Muestras representativas del export de Nike, si estan en data/nike/."""
     d = DATA / "nike"

@@ -1301,3 +1301,23 @@ borrarlas no se sostenía y se acordó la regla (`DECISIONS.md`, 2026-09-13).
 - 169 tests. Los que comparaban contra el export entero comparan ahora contra
   las 180 carreras de las 207 que llegan al mínimo. Dos nuevos: la portada
   dice la regla, y la carrera corta subida avisa y deja la portada vacía.
+
+## 2026-09-24 — Las carreras de cinta exportadas de Strava se importan
+
+Javi tenía dos `.fit` de Strava (cinta, 21 y 23 de septiembre) que
+`/importar` rechazaba con un 500. Nuevo importador `strava_fit`, que
+`/importar` elige por la firma del fichero (`DECISIONS.md`, 2026-09-24).
+
+**Verificado**:
+
+- Reproducido el fallo en local: `IntegrityError` en `muestreo` por los ~390
+  `record` que repiten el instante de inicio.
+- Contra la sesión de cada fichero: 5.000 m, 32:46 y 33:09, FC media 154 en
+  las dos. Velocidad integrada +2 %, cadencia 156 pasos/min.
+- En una copia de la base local, subiendo los dos ficheros por `/importar`:
+  "Importada: 21 sep 2026, 5.00 km" y la del 23. La página de la del 23,
+  abierta en el navegador: cifras, y gráfica de pulso con media 154 y máx
+  182; sin ritmo ni parciales, como la cinta de Huawei.
+- 177 tests: siete del importador contra los dos ficheros reales y uno de
+  `/importar` que antes daba 500. Los ficheros viven en `data/strava/`, fuera
+  de git.

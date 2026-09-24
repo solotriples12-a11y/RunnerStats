@@ -14,7 +14,7 @@ from flask import (Flask, Response, abort, g, redirect, render_template,
 
 from runnerstats import analisis, auth, consultas, db, dedup, detalle, graficas
 from runnerstats.importers import (amazfit_fit, huawei_json, huawei_tcx,
-                                   my_run_stats, nike_tcx)
+                                   my_run_stats, nike_tcx, strava_fit)
 
 load_dotenv()
 
@@ -159,8 +159,11 @@ def _importar_uno(conn, fichero) -> tuple[str, list | None, str | None]:
     ext = PurePath(nombre).suffix.lower()
 
     if ext == ".fit":
+        contenido = fichero.stream.read()
         try:
-            return nombre, amazfit_fit.importar(conn, fichero.stream), None
+            if strava_fit.parece_strava(contenido):
+                return nombre, strava_fit.importar(conn, contenido), None
+            return nombre, amazfit_fit.importar(conn, contenido), None
         except amazfit_fit.FitInvalido as e:
             return nombre, None, str(e)
         except (FitParseError, KeyError, TypeError, ValueError) as e:
@@ -205,7 +208,7 @@ def _importar_uno(conn, fichero) -> tuple[str, list | None, str | None]:
 # Huawei".
 FUENTES = {"amazfit_fit": "del Amazfit", "nike_tcx": "de Nike",
            "huawei_json": "de Huawei", "huawei_tcx": "de Huawei",
-           "my_run_stats": "de My Run Stats"}
+           "my_run_stats": "de My Run Stats", "strava_fit": "de Strava"}
 
 
 def _resultados(conn, subidas, previas: set[str]) -> list[dict]:
