@@ -56,7 +56,7 @@ como visibles / importadas:
 | `huawei_json` | 21 / 37 | 2025-05 → 2026-09 | GPS a 1 Hz; FC, cadencia y altitud cada 5 s |
 | `huawei_tcx` | 1 / 5 | 2026-02 → 2026-04 | Solo recorrido y altitud. Es la mitad que le falta a Nike en las "carreras de prueba" |
 | `amazfit_fit` | 7 / 7 | 2026-09 | La más rica: 1 Hz con potencia, contacto con el suelo y zonas de FC ya calculadas |
-| `strava_fit` | sin medir / 2 | 2026-09 | Cinta: pulso y cadencia cada 5 s, sin distancia por punto |
+| `strava_fit` | 2 / 2 | 2026-09 | Cinta: pulso y cadencia cada 5 s, sin distancia por punto |
 
 En total **282 carreras visibles de 523 filas y 315.140 muestreos**.
 

@@ -1327,3 +1327,6 @@ ficheros por `/importar` y entraron sin error. El recuento de visibles no se
 ha medido: la lectura de la base por SSH no estuvo disponible en esta sesión,
 y en `README.md` y `ARCHITECTURE.md` la fila de `strava_fit` lo dice así en
 vez de poner una cifra supuesta.
+
+**Recuento**: las dos se ven. Javi confirma que no había otra versión de
+esas carreras, así que ninguna se juntó con nada: `strava_fit` queda en 2 / 2.
