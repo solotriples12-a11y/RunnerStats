@@ -40,6 +40,31 @@ Los tests que van contra ficheros reales se **saltan solos** si no están en
 `data/`; los demás usan ficheros sintéticos que reproducen la forma exacta de
 cada formato, trampas incluidas.
 
+## Compartir una carrera desde Android
+
+Con esta versión desplegada por HTTPS:
+
+1. Abre **<https://run.javimendoza.com>** en Chrome e inicia sesión.
+2. En el menú de Chrome elige **Instalar aplicación**. Según la versión de
+   Chrome aparece dentro de **Añadir a pantalla de inicio → Instalar**.
+   Un acceso directo antiguo puede necesitar reemplazarse por la instalación.
+3. En Zepp/Amazfit o en el gestor de archivos, pulsa **Compartir** sobre el
+   `.fit` descargado y elige **RunnerStats**.
+
+La importación empieza sola y muestra el mismo resultado que `/importar`.
+También acepta los `.json` y `.tcx` que ya admite la web. Si la sesión ha
+caducado, pide la contraseña y después importa el archivo sin seleccionarlo
+otra vez. Compartir el mismo archivo conserva una sola carrera.
+
+Hace falta conexión para importar. Si falla el envío, el archivo queda
+temporalmente en el navegador del móvil y se puede **Reintentar**; al recibir
+el resultado se borra esa copia. Los envíos abandonados caducan en una hora
+y se limpian al volver a usar la cola. Máximo 64 MB por tanda.
+
+Esta recepción usa Web Share Target de Chrome en Android; no está disponible
+en Safari/iPhone. La instalación y el menú real de Android deben comprobarse
+en el dispositivo, además de las pruebas locales del flujo web.
+
 ## El mapa
 
 ```

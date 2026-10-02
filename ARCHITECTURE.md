@@ -8,6 +8,7 @@ oficiales: récords por ventana rodante, eficiencia cardiovascular en el
 tiempo, gráficas con zonas de FC y mapa.
 
 Responsive: se consulta igual desde ordenador que desde móvil.
+En Android se puede instalar y recibir archivos desde el menú Compartir.
 
 ## Stack
 Mismo patrón que el resto de subdominios de javimendoza.com.
@@ -88,6 +89,34 @@ comparten la extensión `.json`, así que entre esos dos se decide por la forma:
 el de Huawei es una lista de actividades y el otro un objeto. Con el `.fit`
 pasa lo mismo entre Amazfit y Strava: el de Strava firma `file_id` como
 fabricante `development` (`DECISIONS.md`, 2026-09-24).
+
+### Archivos compartidos desde Android
+
+`static/manifest.webmanifest` declara una aplicación instalable y un
+`share_target` que recibe `.fit`, `.json` y `.tcx` mediante un POST multipart
+a `/compartir`. Incluye MIME genéricos porque los proveedores de archivos
+de Android pueden entregar un FIT como `application/octet-stream`; el
+importador sigue validando la extensión y el contenido.
+
+El service worker servido en `/sw.js` intercepta **solo** ese POST de
+navegación. Guarda los archivos en IndexedDB del móvil con un identificador
+por envío, y devuelve un 303 hacia `/compartir?envio=…`. El GET recupera la
+cookie `SameSite=Lax`, que puede faltar en el POST procedente de Android.
+Si hace falta login, el `next` conserva el identificador y el archivo espera
+en el navegador; no se acepta una importación sin autenticar.
+
+Ya dentro, `compartir.js` envía los archivos a `/importar` y muestra su
+respuesta, sin otra selección ni botón de importar. Reutiliza los mismos
+importadores, deduplicación, récords y resultados. Tras una respuesta válida
+borra la copia local y sustituye la URL por `/importar`, de modo que recargar
+no reenvía el archivo. Los errores de conexión o del servidor conservan el
+envío y ofrecen reintentar. Los pendientes caducan en una hora y se limpian
+al volver a leer o guardar un envío.
+
+Manifest, iconos y worker son públicos para permitir la instalación antes
+del login. El worker **no cachea** páginas ni el histórico de carreras. La
+web requiere conexión y la instalación por HTTPS desde Chrome en Android;
+no es una implementación de sincronización con el reloj.
 
 ### Niveles de fidelidad
 No todas las funciones aplican a todas las carreras:
@@ -223,7 +252,7 @@ entre los dos relojes sobre la misma carrera (1,2 %).
   montaña. Con 100 ms de eje se ve lo que pasó de verdad —plano toda la
   carrera, con picos en los semáforos—.
 - **Tooltips propios**, `static/js/tip.js`: unas 50 líneas sin dependencias,
-  el único JavaScript del proyecto. Supersede a los `<title>` nativos de SVG,
+  el JavaScript de las gráficas. Supersede a los `<title>` nativos de SVG,
   que el navegador pintaba con casi un segundo de retardo y que en táctil no
   aparecían nunca. Cada marca lleva el texto en `data-tip` y una zona
   sensible ancha —la banda entera en las barras, un círculo de 10 px en los

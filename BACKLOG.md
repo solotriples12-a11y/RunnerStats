@@ -66,6 +66,10 @@ no importar.
 - Detalle: cifras, recorrido, parciales con FC por kilómetro, esfuerzo
   (zonas de FC), y gráficas de ritmo, pulso, potencia, contacto y altitud.
 - Tooltips propios, favicon y las dos vistas responsive.
+- Recepción de `.fit`, `.json` y `.tcx` desde Compartir en Android: web
+  instalable, importación automática y archivo conservado durante el login
+  o un fallo de conexión. Comprobado en Chromium local; pendiente de
+  despliegue y de probar la instalación y el menú de Android en el móvil.
 
 ## Descartado
 

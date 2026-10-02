@@ -1330,3 +1330,36 @@ vez de poner una cifra supuesta.
 
 **Recuento**: las dos se ven. Javi confirma que no había otra versión de
 esas carreras, así que ninguna se juntó con nada: `strava_fit` queda en 2 / 2.
+
+---
+
+## 2026-10-02 — Importar desde Compartir en Android
+
+**Qué**: manifiesto instalable, iconos de 192 y 512 px derivados del icono
+existente y service worker en la raíz. RunnerStats recibe `.fit`, `.json`
+y `.tcx` desde Compartir en Chrome/Android. El worker conserva el archivo
+en el móvil durante el login; después se envía automáticamente a `/importar`
+y se muestra su resultado. Sin caché del histórico ni cambios en los
+importadores. Instrucciones de instalación en `/importar` y `README.md`.
+
+**Verificado**:
+
+- Suite completa: **93 pasados, 90 omitidos** por faltar los exports reales.
+  Seis pruebas nuevas, incluido un FIT binario sintético con CRC válido:
+  instalación pública, destino conservado en el login, rechazo sin sesión,
+  importación y reimportación, fichero corrupto y límite de tamaño.
+- Chromium con perfil normal: POST multipart de navegación interceptado
+  por el worker → login → importación automática del FIT; la copia de
+  IndexedDB desaparece tras el resultado. Recargar no reenvía y compartir
+  otra vez muestra «Ya estaba importada».
+- Un fallo de red conserva el archivo; el botón Reintentar completa el
+  envío. Un pendiente de más de una hora se elimina y no se importa.
+  Compartir sin archivo muestra un aviso, y más de 64 MB se rechaza antes
+  de enviarlo al servidor.
+- Chromium no informa de errores de instalación del manifiesto. Sin
+  errores JavaScript ni desbordamiento horizontal a 375 y 784 px; las
+  pantallas de importación y reintento se han inspeccionado visualmente.
+
+**Pendiente**: desplegar esta versión, instalarla desde Chrome en Android
+y comprobar Compartir con un `.fit` descargado de Zepp/Amazfit en el móvil.
+No se ha publicado en producción en esta iteración.

@@ -10,7 +10,7 @@ from pathlib import PurePath
 from dotenv import load_dotenv
 from fitparse.utils import FitParseError
 from flask import (Flask, Response, abort, g, redirect, render_template,
-                   request, url_for)
+                   request, send_from_directory, url_for)
 
 from runnerstats import analisis, auth, consultas, db, dedup, detalle, graficas
 from runnerstats.importers import (amazfit_fit, huawei_json, huawei_tcx,
@@ -34,7 +34,7 @@ MESES = ("ene", "feb", "mar", "abr", "may", "jun",
 app.jinja_env.globals["MINIMO_KM"] = analisis.DISTANCIA_MINIMA // 1000
 
 
-PUBLICAS = {"login", "static"}
+PUBLICAS = {"login", "static", "servicio_web"}
 
 
 @app.before_request
@@ -93,6 +93,16 @@ def salir():
     resp = redirect(url_for("login"))
     resp.delete_cookie(auth.COOKIE)
     return resp
+
+
+@app.get("/sw.js")
+def servicio_web():
+    # En la raiz para que pueda recibir /compartir. Solo maneja archivos
+    # compartidos: no guarda paginas ni datos de carreras en una cache.
+    respuesta = send_from_directory(app.static_folder, "sw.js",
+                                    mimetype="text/javascript")
+    respuesta.headers["Cache-Control"] = "no-cache"
+    return respuesta
 
 
 def get_db() -> sqlite3.Connection:
@@ -282,6 +292,15 @@ def importar():
         detalle.recalcular_records(conn)
     return render_template("importar.html",
                            resultados=_resultados(conn, subidas, previas))
+
+
+@app.route("/compartir", methods=["GET", "POST"])
+def compartir():
+    if request.method == "POST":
+        # Respaldo si el navegador entrega el archivo directamente al
+        # servidor. La autenticacion y el importador son los de siempre.
+        return importar()
+    return render_template("compartir.html")
 
 
 @app.route("/periodo/<agrupacion>/<clave>")

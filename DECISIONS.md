@@ -1419,3 +1419,38 @@ emparejarlas sería inventar.
 
 No resucita "Strava como fuente" del BACKLOG, que va de la API: esto es
 subir a mano un fichero exportado.
+
+---
+
+## 2026-10-02 — Compartir archivos desde Android sin perderlos al entrar
+
+**Contexto**: compartir el `.fit` descargado de Zepp/Amazfit con RunnerStats
+debe importarlo directamente, sin abrir `/importar` y seleccionarlo de nuevo.
+El móvil es Android y la web todavía no tenía manifiesto ni service worker.
+
+**Decisión**: aplicación web instalable en Chrome, con Web Share Target para
+los tres formatos existentes. No se crea otro importador ni otra regla de
+deduplicación: el envío termina en el mismo POST de `/importar`.
+
+Un POST directo al servidor no basta: la cookie `SameSite=Lax` puede faltar
+en una navegación POST desde el menú de Android, y una redirección al login
+perdería el archivo. El worker guarda primero el envío en IndexedDB del móvil
+y redirige con 303 a un GET identificado. La autenticación habitual conserva
+ese destino y, tras entrar, la página recupera el archivo e importa sola.
+No se abre una ruta de importación sin contraseña ni se cambia la cookie a
+`SameSite=None`.
+
+Cada envío tiene su propio identificador; la copia local se borra tras el
+resultado y los pendientes caducan en una hora, con limpieza al volver a usar
+la cola. Un error de red permite reintentar sin seleccionar el fichero. La
+URL del resultado es `/importar`: recargar no repite el POST. El worker no
+cachea páginas privadas y la web sigue necesitando conexión.
+
+Se declaran extensión y MIME, incluido `application/octet-stream`, porque
+Android puede presentar así los FIT. La validación final sigue siendo la
+del importador. Límite de 64 MB por tanda también al recibir en el móvil.
+
+**Límite comprobado**: el flujo de navegación, IndexedDB, login e importación
+se ha ejercitado con un FIT binario sintético en Chromium. La instalación
+del WebAPK y su aparición en el menú real de Android se deben probar tras
+desplegar, en el dispositivo; el escritorio no demuestra ese paso.

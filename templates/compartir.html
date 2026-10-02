@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block titulo %}Archivo compartido · RunnerStats{% endblock %}
+
+{% block contenido %}
+<header class="hero">
+    <h1>Archivo compartido</h1>
+    <p id="estado-compartido" role="status" aria-live="polite">Importando…</p>
+</header>
+
+<form class="upload" id="reintentar-compartido" hidden>
+    <button type="submit">Reintentar la importación</button>
+</form>
+
+<noscript><p>Activa JavaScript para importar el archivo compartido automáticamente.</p></noscript>
+
+<footer class="note">
+    <a href="{{ url_for('importar') }}">Importar un archivo manualmente</a> ·
+    <a href="{{ url_for('index') }}">Volver a las carreras</a>
+</footer>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/archivos-compartidos.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/compartir.js') }}" defer></script>
+{% endblock %}

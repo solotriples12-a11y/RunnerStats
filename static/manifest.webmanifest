@@ -1,0 +1,31 @@
+{
+    "id": "/",
+    "name": "RunnerStats",
+    "short_name": "RunnerStats",
+    "description": "Tus carreras, estadísticas e importación de archivos compartidos.",
+    "lang": "es",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#0f0f0f",
+    "theme_color": "#0f0f0f",
+    "icons": [
+        {"src": "/static/img/icono-192.png", "sizes": "192x192", "type": "image/png"},
+        {"src": "/static/img/icono-512.png", "sizes": "512x512", "type": "image/png"}
+    ],
+    "share_target": {
+        "action": "/compartir",
+        "method": "POST",
+        "enctype": "multipart/form-data",
+        "params": {
+            "files": [{
+                "name": "ficheros",
+                "accept": [
+                    ".fit", ".json", ".tcx",
+                    "application/octet-stream", "application/vnd.ant.fit",
+                    "application/json", "application/xml", "text/xml"
+                ]
+            }]
+        }
+    }
+}
