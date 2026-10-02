@@ -1363,3 +1363,20 @@ importadores. Instrucciones de instalación en `/importar` y `README.md`.
 **Pendiente**: desplegar esta versión, instalarla desde Chrome en Android
 y comprobar Compartir con un `.fit` descargado de Zepp/Amazfit en el móvil.
 No se ha publicado en producción en esta iteración.
+
+**Actualización de producción**: publicado mediante push de `ad3ec86` a
+`main`. Comprobados por HTTPS el manifiesto, worker, scripts e iconos:
+responden 200 y coinciden con el commit. Javi confirma que Compartir e
+importar funciona en su Android.
+
+---
+
+## 2026-10-02 — Botón para volver al inicio desde importar
+
+El enlace pequeño del pie se sustituye por «Volver al inicio» en la
+cabecera de `/importar` y `/compartir`, incluido el resultado del archivo
+compartido. Conserva el estilo de la web y un área táctil de al menos 44 px.
+
+**Verificado**: ambas plantillas enlazan a `/`, que responde 200 con sesión
+local. En Chromium, a 375 y 784 px, el botón es visible sin desplazarse y
+no hay desbordamiento horizontal. Inspeccionada la pantalla de móvil.

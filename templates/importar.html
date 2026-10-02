@@ -4,6 +4,7 @@
 {% block contenido %}
 <header class="hero">
     <h1>Importar</h1>
+    <a class="boton-inicio" href="{{ url_for('index') }}">Volver al inicio</a>
 </header>
 
 <form class="upload" method="post" enctype="multipart/form-data">
@@ -57,6 +58,5 @@
 <footer class="note">
     <code>.json</code> de My Run Stats y Huawei · <code>.fit</code> del Amazfit y Strava ·
     <code>.tcx</code> de Nike y Huawei. Máximo 64 MB por tanda.
-    <a href="{{ url_for('index') }}">Volver a las carreras</a>
 </footer>
 {% endblock %}

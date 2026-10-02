@@ -1454,3 +1454,15 @@ del importador. Límite de 64 MB por tanda también al recibir en el móvil.
 se ha ejercitado con un FIT binario sintético en Chromium. La instalación
 del WebAPK y su aparición en el menú real de Android se deben probar tras
 desplegar, en el dispositivo; el escritorio no demuestra ese paso.
+
+---
+
+## 2026-10-02 — Volver al inicio desde la importación
+
+Javi confirma que Compartir funciona en su Android, pero echa en falta un
+botón para volver a la portada. El enlace del pie estaba junto a la nota de
+formatos y no resultaba visible como acción. Se sustituye por un botón en
+la cabecera de `/importar` y `/compartir`, de al menos 44 px de alto. El
+resultado automático usa la misma plantilla de importación y también lo
+muestra. Es un enlace al inicio, no una vuelta en el historial, que al venir
+de Compartir podría llevar a la aplicación de origen.

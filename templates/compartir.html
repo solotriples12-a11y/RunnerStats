@@ -5,6 +5,7 @@
 <header class="hero">
     <h1>Archivo compartido</h1>
     <p id="estado-compartido" role="status" aria-live="polite">Importando…</p>
+    <a class="boton-inicio" href="{{ url_for('index') }}">Volver al inicio</a>
 </header>
 
 <form class="upload" id="reintentar-compartido" hidden>
@@ -14,8 +15,7 @@
 <noscript><p>Activa JavaScript para importar el archivo compartido automáticamente.</p></noscript>
 
 <footer class="note">
-    <a href="{{ url_for('importar') }}">Importar un archivo manualmente</a> ·
-    <a href="{{ url_for('index') }}">Volver a las carreras</a>
+    <a href="{{ url_for('importar') }}">Importar un archivo manualmente</a>
 </footer>
 {% endblock %}
 

@@ -113,6 +113,9 @@ no reenvía el archivo. Los errores de conexión o del servidor conservan el
 envío y ofrecen reintentar. Los pendientes caducan en una hora y se limpian
 al volver a leer o guardar un envío.
 
+La cabecera de `/importar` y `/compartir` incluye un botón «Volver al
+inicio», también visible después del resultado de una importación.
+
 Manifest, iconos y worker son públicos para permitir la instalación antes
 del login. El worker **no cachea** páginas ni el histórico de carreras. La
 web requiere conexión y la instalación por HTTPS desde Chrome en Android;
